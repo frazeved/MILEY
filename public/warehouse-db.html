@@ -127,15 +127,56 @@
     .spinner { width: 34px; height: 34px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px; }
 
     @media (max-width: 768px) {
+      /* NAV */
       nav { padding: 0 16px; height: auto; min-height: 52px; position: relative; }
       .nav-brand { display: block; }
       .nav-hamburger { display: flex; align-items: center; }
-      .nav-links { display: none; position: absolute; top: 52px; left: 0; right: 0; background: var(--surface); border-bottom: 1px solid var(--border); flex-direction: column; padding: 6px 0 10px; gap: 0; z-index: 100; }
+      .nav-links { display: none; position: absolute; top: 52px; left: 0; right: 0; background: var(--surface); border-bottom: 1px solid var(--border); flex-direction: column; padding: 6px 0 10px; gap: 0; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
       .nav-links.open { display: flex; }
-      .nav-link { padding: 10px 20px; border-radius: 0; font-size: 13px; }
-      .mode-bar { padding: 10px 16px; }
+      .nav-link { padding: 11px 20px; border-radius: 0; font-size: 14px; }
+
+      /* MODE BAR */
+      .mode-bar { padding: 10px 16px; font-size: 12px; }
+
+      /* PAGE */
       .page-wrap { padding: 12px 12px 40px; }
-      .grid { grid-template-columns: 1fr; }
+
+      /* TOOLBAR */
+      .toolbar { margin-bottom: 10px; }
+      .status-text { font-size: 11px; }
+
+      /* PILLS — horizontal scroll */
+      .pills { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; gap: 6px; }
+      .pills::-webkit-scrollbar { display: none; }
+      .pill { flex-shrink: 0; font-size: 12px; padding: 6px 12px; }
+
+      /* GRID — 1 column, full width */
+      .grid { grid-template-columns: 1fr; gap: 8px; }
+
+      /* CARDS — slightly more padding on mobile for thumb targets */
+      .card-body { padding: 12px 14px; gap: 9px; }
+      .card-po { font-size: 13px; }
+      .card-style { font-size: 11px; }
+      .badge { font-size: 10px; padding: 3px 8px; }
+
+      /* STATUS VISUAL */
+      .vis { padding: 8px 11px; }
+      .vis-wh-text { font-size: 12px; }
+      .vis-tr-top { font-size: 11px; }
+      .vis-tr-dates { font-size: 10px; }
+      .vis-dl-text { font-size: 12px; }
+
+      /* DATES — slightly bigger text for readability */
+      .date-lbl { font-size: 9px; }
+      .date-val { font-size: 12px; }
+
+      /* METRICS */
+      .metric-lbl { font-size: 9px; }
+      .metric-val { font-size: 12px; }
+
+      /* LABELS + AWB */
+      .lbl { font-size: 10px; padding: 3px 7px; }
+      .awb-link { font-size: 11px; max-width: 120px; }
     }
   </style>
 </head>
