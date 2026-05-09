@@ -173,8 +173,7 @@ const CSV_URL  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx
 const EDIT_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?gid=${GID}`;
 
 // Only these columns get slicers
-const SLICER_KEYWORDS = ['status', 'supplier', 'category', 'month'];
-function isSlicer(h) { const l = h.toLowerCase(); return SLICER_KEYWORDS.some(k => l.includes(k)); }
+function isSlicer(h) { return h.toLowerCase().includes('status'); }
 
 let state = { headers: [], data: [], filters: {}, lastUpdated: '' };
 
