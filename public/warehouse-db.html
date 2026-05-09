@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>305 Workspace — Warehouse Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f6fa; --surface: #fff; --border: #e4e7ed;
+      --text: #1a1d23; --muted: #6b7280;
+      --accent: #0f766e; --accent-lt: #ccfbf1;
+      --green: #16a34a; --green-lt: #dcfce7;
+      --blue: #0891b2;  --blue-lt: #cffafe;
+      --red: #dc2626;   --red-lt: #fee2e2;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+    nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 60; }
+    .nav-brand { font-size: 16px; font-weight: 700; display: none; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .nav-link { font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: 6px; text-decoration: none; color: var(--muted); transition: background 0.15s, color 0.15s; white-space: nowrap; }
+    .nav-link:hover { background: var(--bg); color: var(--text); }
+    .nav-link.active { background: var(--accent-lt); color: var(--accent); }
+    .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--muted); }
+
+    .mode-bar { background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 10px 28px; font-size: 14px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; }
+    .mode-bar a { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+    .mode-bar a:hover { color: #fff; }
+
+    .page-wrap { flex: 1; padding: 16px 24px 40px; max-width: 1600px; margin: 0 auto; width: 100%; }
+
+    /* TOOLBAR */
+    .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .status-text { font-size: 12px; color: var(--muted); flex: 1; }
+    .tb-btn { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 6px 12px; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s; color: var(--accent); }
+    .tb-btn:hover { background: var(--accent-lt); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .tb-btn.loading svg { animation: spin 0.8s linear infinite; }
+
+    /* STATUS PILLS */
+    .pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .pill { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; color: var(--muted); }
+    .pill:hover { border-color: currentColor; }
+    .pill .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+    .pill .cnt { font-size: 11px; opacity: 0.7; }
+    .pill.all  { color: var(--text); }
+    .pill.wh   { color: var(--green); }
+    .pill.tr   { color: var(--blue); }
+    .pill.dl   { color: var(--red); }
+    .pill.active { background: currentColor; border-color: currentColor; }
+    .pill.active span { color: #fff !important; }
+
+    /* CARDS */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: box-shadow 0.15s; }
+    .card:hover { box-shadow: 0 4px 18px rgba(0,0,0,0.08); }
+    .card.hidden { display: none; }
+    .card-bar { height: 4px; }
+    .card-bar.wh { background: var(--green); }
+    .card-bar.tr { background: var(--blue); }
+    .card-bar.dl { background: var(--red); }
+    .card-bar.oth { background: var(--border); }
+    .card-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .card-po { font-size: 13px; font-weight: 700; }
+    .card-style { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
+    .badge.wh  { background: var(--green-lt); color: #166534; }
+    .badge.tr  { background: var(--blue-lt);  color: #155e75; }
+    .badge.dl  { background: var(--red-lt);   color: #991b1b; }
+    .badge.oth { background: #f3f4f6; color: var(--muted); }
+
+    /* STATUS VISUAL */
+    .vis { border-radius: 8px; padding: 10px 12px; }
+    .vis-wh { background: var(--green-lt); display: flex; align-items: center; gap: 10px; }
+    .vis-wh-icon { width: 34px; height: 34px; background: var(--green); border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .vis-wh-text { font-size: 12px; font-weight: 600; color: #166534; }
+    .vis-wh-sub  { font-size: 11px; color: #15803d; margin-top: 1px; }
+
+    .vis-tr { background: var(--blue-lt); }
+    .vis-tr-top { display: flex; justify-content: space-between; margin-bottom: 7px; font-size: 11px; font-weight: 600; color: #155e75; }
+    .progress-track { height: 6px; background: rgba(8,145,178,0.2); border-radius: 3px; position: relative; }
+    .progress-fill { height: 100%; background: var(--blue); border-radius: 3px; }
+    .plane { position: absolute; top: 50%; transform: translateY(-50%); transition: left 0.3s; }
+    .vis-tr-dates { display: flex; justify-content: space-between; margin-top: 5px; font-size: 10px; color: #0e7490; }
+
+    .vis-dl { background: var(--red-lt); display: flex; align-items: center; gap: 10px; }
+    .dl-dot { width: 11px; height: 11px; background: var(--red); border-radius: 50%; flex-shrink: 0; animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,0.4)} 50%{box-shadow:0 0 0 6px rgba(220,38,38,0)} }
+    .vis-dl-text { font-size: 12px; font-weight: 600; color: #991b1b; }
+    .vis-dl-sub  { font-size: 11px; color: #b91c1c; margin-top: 1px; }
+
+    /* DATES */
+    .dates { display: flex; gap: 10px; flex-wrap: wrap; }
+    .date-item { flex: 1; min-width: 70px; }
+    .date-lbl { font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; }
+    .date-val { font-size: 12px; font-weight: 600; }
+    .date-val.overdue { color: var(--red); }
+
+    /* METRICS */
+    .metrics { display: flex; gap: 6px; }
+    .metric { flex: 1; background: var(--bg); border-radius: 6px; padding: 6px 8px; text-align: center; }
+    .metric-lbl { font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; }
+    .metric-val { font-size: 13px; font-weight: 700; }
+
+    /* LABELS */
+    .label-row { display: flex; gap: 5px; }
+    .lbl { font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 4px; letter-spacing: 0.4px; }
+    .lbl.done    { background: var(--green-lt); color: #166534; border: 1px solid #86efac; }
+    .lbl.pending { background: #f3f4f6; color: #9ca3af; border: 1px solid #e5e7eb; }
+
+    /* AWB */
+    .awb-row { display: flex; align-items: center; gap: 6px; background: #f8f9fa; border-radius: 6px; padding: 6px 10px; }
+    .awb-lbl { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; flex-shrink: 0; }
+    .awb-link { font-size: 11px; font-weight: 600; color: var(--accent); text-decoration: none; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .awb-link:hover { text-decoration: underline; }
+    .awb-copy { background: none; border: none; cursor: pointer; color: var(--muted); padding: 2px; display: flex; border-radius: 3px; }
+    .awb-copy:hover { color: var(--accent); }
+
+    .msg-box { padding: 60px 24px; text-align: center; color: var(--muted); font-size: 13px; grid-column: 1/-1; }
+    .spinner { width: 34px; height: 34px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px; }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 16px; height: auto; min-height: 52px; position: relative; }
+      .nav-brand { display: block; }
+      .nav-hamburger { display: flex; align-items: center; }
+      .nav-links { display: none; position: absolute; top: 52px; left: 0; right: 0; background: var(--surface); border-bottom: 1px solid var(--border); flex-direction: column; padding: 6px 0 10px; gap: 0; z-index: 100; }
+      .nav-links.open { display: flex; }
+      .nav-link { padding: 10px 20px; border-radius: 0; font-size: 13px; }
+      .mode-bar { padding: 10px 16px; }
+      .page-wrap { padding: 12px 12px 40px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-brand">305 <span>Workspace</span></div>
+  <button class="nav-hamburger" onclick="document.getElementById('nav-links').classList.toggle('open')" aria-label="Menu">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div class="nav-links" id="nav-links">
+    <a class="nav-link" href="/">&#8592; Home</a>
+    <a class="nav-link active" href="warehouse.html">Warehouse Now</a>
+    <a class="nav-link" href="production.html">Production</a>
+    <a class="nav-link" href="samples.html">Samples Tracking</a>
+    <a class="nav-link" href="design.html">Design</a>
+    <a class="nav-link" href="shipment.html">New Shipment</a>
+    <a class="nav-link" href="map.html">Map Updates</a>
+    <a class="nav-link" href="forecast.html">Forecast</a>
+    <a class="nav-link" href="gantt.html">Gantt Chart</a>
+    <a class="nav-link" href="tradestone.html">Tradestone Updates</a>
+    <a class="nav-link" href="rlm.html">RLM Updates</a>
+    <a class="nav-link" href="dhl.html">DHL Duties Cost</a>
+  </div>
+</nav>
+
+<div class="mode-bar">
+  <span>Warehouse — Status Dashboard</span>
+  <a href="warehouse.html">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Back
+  </a>
+</div>
+
+<div class="page-wrap">
+  <div class="toolbar">
+    <span class="status-text" id="status-text">Loading…</span>
+    <button class="tb-btn" id="reload-btn" onclick="loadData()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Refresh
+    </button>
+  </div>
+
+  <div class="pills" id="pills"></div>
+  <div class="grid"  id="grid"><div class="msg-box"><div class="spinner"></div>Fetching data…</div></div>
+</div>
+
+<script>
+const SHEET_ID = '1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q';
+const CSV_URL  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=99866922`;
+
+let activeFilter = 'all';
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function col(headers, ...kws) {
+  return headers.findIndex(h => kws.some(k => h.toLowerCase().includes(k.toLowerCase())));
+}
+
+function classify(v) {
+  const s = (v||'').toLowerCase();
+  if (s.includes('warehouse') || s.includes('received') || s.includes('arrived')) return 'wh';
+  if (s.includes('transit')   || s.includes('shipped')  || s.includes('route'))   return 'tr';
+  if (s.includes('delay')     || s.includes('late')     || s.includes('hold'))     return 'dl';
+  return 'oth';
+}
+
+function parseDate(s) { const d = new Date(s); return isNaN(d) ? null : d; }
+function fmt(s) {
+  const d = parseDate(s);
+  return d ? d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}) : (s||'—');
+}
+function overdue(s) { const d = parseDate(s); return d && d < new Date(); }
+
+function parseCSV(text) {
+  const rows = []; let row = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c==='"' && text[i+1]==='"') { field+='"'; i++; }
+      else if (c==='"') inQ=false; else field+=c;
+    } else {
+      if (c==='"') inQ=true;
+      else if (c===',') { row.push(field); field=''; }
+      else if (c==='\n'||(c==='\r'&&text[i+1]==='\n')) {
+        if(c==='\r') i++;
+        row.push(field); field='';
+        if(row.some(f=>f.trim())) rows.push(row); row=[];
+      } else field+=c;
+    }
+  }
+  if(row.length){ row.push(field); if(row.some(f=>f.trim())) rows.push(row); }
+  return rows;
+}
+
+function filterCards() {
+  let visible = 0;
+  document.querySelectorAll('.card').forEach(c => {
+    const show = activeFilter === 'all' || c.dataset.cls === activeFilter;
+    c.classList.toggle('hidden', !show);
+    if (show) visible++;
+  });
+  document.querySelectorAll('.pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.f === activeFilter);
+  });
+  const total = document.querySelectorAll('.card').length;
+  document.getElementById('status-text').textContent = `${visible} of ${total} POs`;
+}
+
+function build(rows) {
+  const H = rows[0];
+  const data = rows.slice(1);
+
+  const C = {
+    po:     col(H,'po#','po ','purchase order','order#'),
+    style:  col(H,'style#','style #','style name','style'),
+    status: col(H,'warehouse status','wh status','status'),
+    exfac:  col(H,'ex-factory','exfactory','ex factory','ship date','shipped date'),
+    cancel: col(H,'cancel date','cancel by','cancel'),
+    boxes:  col(H,'box','carton','ctns','ctn qty'),
+    units:  col(H,'units','pcs','pieces','unit qty','qty'),
+    ws:     col(H,'wholesale','wsp','total value','amount'),
+    awb:    col(H,'awb','tracking','airway'),
+    al:     col(H,'anthro label','al ','anthro lbl'),
+    pl:     col(H,'packing list','pack list','pl '),
+    fx:     col(H,'fedex label','fedex lbl','fed ex'),
+  };
+
+  const g = v => (v !== null && v >= 0 ? (data[0]?.[v]??'') : ''); // just for ref
+  const get = (r, ci) => ci >= 0 ? (r[ci]||'').trim() : '';
+
+  const counts = { wh:0, tr:0, dl:0, oth:0 };
+  const cards = data.map((r, ri) => {
+    const statusRaw = get(r, C.status);
+    const cls = classify(statusRaw);
+    counts[cls]++;
+
+    const po     = get(r, C.po) || `#${ri+1}`;
+    const style  = get(r, C.style);
+    const exfac  = get(r, C.exfac);
+    const cancel = get(r, C.cancel);
+    const boxes  = get(r, C.boxes);
+    const units  = get(r, C.units);
+    const ws     = get(r, C.ws);
+    const awb    = get(r, C.awb);
+    const al     = get(r, C.al);
+    const pl     = get(r, C.pl);
+    const fx     = get(r, C.fx);
+
+    const exDate  = parseDate(exfac);
+    const arrDate = exDate ? new Date(+exDate + 3*86400000) : null;
+    const arrStr  = arrDate ? arrDate.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}) : '—';
+
+    // Status visual
+    let vis = '';
+    if (cls === 'wh') {
+      vis = `<div class="vis vis-wh">
+        <div class="vis-wh-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 4l9 5.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><polyline points="9 21 9 13 15 13 15 21"/></svg></div>
+        <div><div class="vis-wh-text">In Warehouse</div><div class="vis-wh-sub">Ready for processing</div></div>
+      </div>`;
+    } else if (cls === 'tr') {
+      const ship = parseDate(exfac), eta = arrDate, now = new Date();
+      const pct = (ship && eta && eta > ship) ? Math.min(100, Math.max(4, Math.round(((now-ship)/(eta-ship))*100))) : 50;
+      const left = Math.max(2, Math.min(93, pct-3));
+      vis = `<div class="vis vis-tr">
+        <div class="vis-tr-top"><span>In Transit</span><span>${pct}% of route</span></div>
+        <div class="progress-track">
+          <div class="progress-fill" style="width:${pct}%"></div>
+          <div class="plane" style="left:${left}%"><svg width="13" height="13" viewBox="0 0 24 24" fill="#0891b2" stroke="none"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg></div>
+        </div>
+        <div class="vis-tr-dates"><span>Ex-Factory: ${fmt(exfac)}</span><span>Est. Arrival: ${arrStr}</span></div>
+      </div>`;
+    } else if (cls === 'dl') {
+      vis = `<div class="vis vis-dl">
+        <div class="dl-dot"></div>
+        <div><div class="vis-dl-text">Shipment Delayed</div><div class="vis-dl-sub">${esc(statusRaw)}</div></div>
+      </div>`;
+    }
+
+    return `<div class="card" data-cls="${cls}">
+      <div class="card-bar ${cls}"></div>
+      <div class="card-body">
+        <div class="card-top">
+          <div>
+            <div class="card-po">${esc(po)}</div>
+            ${style ? `<div class="card-style">${esc(style)}</div>` : ''}
+          </div>
+          <span class="badge ${cls}">${esc(statusRaw || cls.toUpperCase())}</span>
+        </div>
+        ${vis}
+        <div class="dates">
+          ${exfac  ? `<div class="date-item"><div class="date-lbl">Ex-Factory</div><div class="date-val">${fmt(exfac)}</div></div>` : ''}
+          ${cancel ? `<div class="date-item"><div class="date-lbl">Cancel Date</div><div class="date-val ${overdue(cancel)?'overdue':''}">${fmt(cancel)}</div></div>` : ''}
+          ${arrDate? `<div class="date-item"><div class="date-lbl">Est. Arrival</div><div class="date-val">${arrStr}</div></div>` : ''}
+        </div>
+        ${(boxes||units||ws) ? `<div class="metrics">
+          ${boxes ? `<div class="metric"><div class="metric-lbl">Boxes</div><div class="metric-val">${esc(boxes)}</div></div>` : ''}
+          ${units ? `<div class="metric"><div class="metric-lbl">Units</div><div class="metric-val">${esc(units)}</div></div>` : ''}
+          ${ws    ? `<div class="metric"><div class="metric-lbl">Wholesale</div><div class="metric-val">${esc(ws)}</div></div>` : ''}
+        </div>` : ''}
+        <div class="label-row">
+          <div class="lbl ${al?'done':'pending'}">AL</div>
+          <div class="lbl ${pl?'done':'pending'}">PL</div>
+          <div class="lbl ${fx?'done':'pending'}">FEDEX</div>
+        </div>
+        ${awb ? `<div class="awb-row">
+          <span class="awb-lbl">AWB</span>
+          <a class="awb-link" id="awb-${ri}" href="https://www.google.com/search?q=${encodeURIComponent(awb)}+airway+bill+cargo+tracking" target="_blank" rel="noopener">${esc(awb)}</a>
+          <button class="awb-copy" title="Copy" onclick="navigator.clipboard?.writeText(document.getElementById('awb-${ri}').textContent)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('grid').innerHTML = cards || '<div class="msg-box">No data found.</div>';
+
+  const total = data.length;
+  document.getElementById('pills').innerHTML = `
+    <div class="pill all active" data-f="all" onclick="activeFilter='all';filterCards()"><div class="dot" style="background:#6b7280"></div><span>All <span class="cnt">(${total})</span></span></div>
+    <div class="pill wh" data-f="wh" onclick="activeFilter='wh';filterCards()"><div class="dot"></div><span>In Warehouse <span class="cnt">(${counts.wh})</span></span></div>
+    <div class="pill tr" data-f="tr" onclick="activeFilter='tr';filterCards()"><div class="dot"></div><span>In Transit <span class="cnt">(${counts.tr})</span></span></div>
+    <div class="pill dl" data-f="dl" onclick="activeFilter='dl';filterCards()"><div class="dot"></div><span>Delayed <span class="cnt">(${counts.dl})</span></span></div>
+    ${counts.oth ? `<div class="pill oth" data-f="oth" onclick="activeFilter='oth';filterCards()"><div class="dot" style="background:#9ca3af"></div><span>Other <span class="cnt">(${counts.oth})</span></span></div>` : ''}
+  `;
+
+  document.getElementById('status-text').textContent = `${total} POs`;
+}
+
+async function loadData() {
+  document.getElementById('grid').innerHTML = '<div class="msg-box"><div class="spinner"></div>Fetching data…</div>';
+  document.getElementById('pills').innerHTML = '';
+  document.getElementById('status-text').textContent = 'Loading…';
+  document.getElementById('reload-btn').classList.add('loading');
+  activeFilter = 'all';
+
+  try {
+    const res = await fetch(CSV_URL);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const rows = parseCSV(await res.text());
+    if (rows.length < 2) throw new Error('No data');
+    build(rows);
+  } catch(e) {
+    document.getElementById('grid').innerHTML = `<div class="msg-box">⚠️ Could not load data.<br><small style="color:#9ca3af">${esc(e.message)}</small></div>`;
+    document.getElementById('status-text').textContent = 'Error';
+  }
+  document.getElementById('reload-btn').classList.remove('loading');
+}
+
+loadData();
+</script>
+</body>
+</html>
