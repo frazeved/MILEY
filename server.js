@@ -34,26 +34,26 @@ async function ghFetch(url, opts = {}) {
 
 app.get('/api/status', async (req, res) => {
   try {
-    const results = await Promise.all(WORKFLOWS.map(async (wf) => {
-      const r = await ghFetch(`https://api.github.com/repos/${REPO}/actions/workflows/${wf.id}/runs?per_page=1`);
-      const data = await r.json();
-      const run = data.workflow_runs?.[0] || null;
-      const duration =
-        run && run.status === 'completed' && run.run_started_at && run.updated_at
-          ? Math.round((new Date(run.updated_at) - new Date(run.run_started_at)) / 1000)
-          : null;
-      return {
-        id: wf.id,
-        name: wf.name,
-        tab: wf.tab,
-        sheetUrl: wf.sheetUrl,
-        status: run?.status || 'unknown',
-        conclusion: run?.conclusion || null,
-        started_at: run?.run_started_at || null,
-        updated_at: run?.updated_at || null,
-        duration,
-      };
+    const r = await ghFetch(`https://api.github.com/repos/${REPO}/actions/workflows/all-extractions.yml/runs?per_page=1`);
+    const data = await r.json();
+    const run = data.workflow_runs?.[0] || null;
+    const duration =
+      run && run.status === 'completed' && run.run_started_at && run.updated_at
+        ? Math.round((new Date(run.updated_at) - new Date(run.run_started_at)) / 1000)
+        : null;
+
+    const results = WORKFLOWS.map(wf => ({
+      id: wf.id,
+      name: wf.name,
+      tab: wf.tab,
+      sheetUrl: wf.sheetUrl,
+      status: run?.status || 'unknown',
+      conclusion: run?.conclusion || null,
+      started_at: run?.run_started_at || null,
+      updated_at: run?.updated_at || null,
+      duration,
     }));
+
     res.json(results);
   } catch (e) {
     res.status(500).json({ error: e.message });
