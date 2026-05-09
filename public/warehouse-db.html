@@ -137,6 +137,12 @@
     .metric-lbl { font-size: 9px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; }
     .metric-val { font-size: 13px; font-weight: 700; color: var(--text); }
 
+    /* LABEL STATUS */
+    .label-status-row { display: flex; gap: 6px; }
+    .lbl-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.5px; }
+    .lbl-badge.done    { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+    .lbl-badge.pending { background: #f3f4f6; color: #9ca3af; border: 1px solid #e5e7eb; }
+
     /* AWB */
     .awb-row { display: flex; align-items: center; gap: 6px; background: #f8f9fa; border-radius: 6px; padding: 6px 10px; }
     .awb-label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; flex-shrink: 0; }
@@ -294,7 +300,7 @@ function isOverdue(dateStr) {
 }
 
 // ── STATUS VISUAL ───────────────────────────────────────────────────────────
-function statusVisual(cls, shipDate, etaDate, statusText) {
+function statusVisual(cls, exFactory, arrivalStr, statusText) {
   if (cls === 'wh') {
     return `<div class="status-visual vis-warehouse">
       <div class="vis-wh-icon">
@@ -311,7 +317,9 @@ function statusVisual(cls, shipDate, etaDate, statusText) {
     </div>`;
   }
   if (cls === 'tr') {
-    const pct  = transitPct(shipDate, etaDate) ?? 50;
+    const exDate = parseDate(exFactory);
+    const arrDate = exDate ? new Date(+exDate + 3 * 86400000) : null;
+    const pct  = (exDate && arrDate) ? transitPct(exFactory, arrDate.toISOString()) ?? 50 : 50;
     const left = Math.max(2, Math.min(94, pct - 3));
     return `<div class="status-visual vis-transit">
       <div class="vis-tr-top">
@@ -325,8 +333,8 @@ function statusVisual(cls, shipDate, etaDate, statusText) {
         </div>
       </div>
       <div class="vis-tr-dates">
-        <span>Shipped: ${fmtDate(shipDate)}</span>
-        <span>ETA: ${fmtDate(etaDate)}</span>
+        <span>Ex-Factory: ${fmtDate(exFactory)}</span>
+        <span>Est. Arrival: ${arrivalStr}</span>
       </div>
     </div>`;
   }
@@ -348,16 +356,18 @@ function buildCards() {
 
   // Map columns (flexible keywords)
   const C = {
-    po:       findCol(headers,'po#','po ','purchase order','order #','order#'),
-    style:    findCol(headers,'style#','style #','style name','style'),
-    status:   findCol(headers,'warehouse status','status'),
-    shipDate: findCol(headers,'ship date','shipped date','ship'),
-    cancelDate:findCol(headers,'cancel date','cancel by','cancel'),
-    eta:      findCol(headers,'eta','expected arrival','arrival date','expected'),
-    boxQty:   findCol(headers,'box','carton','ctns','ctn qty'),
-    unitQty:  findCol(headers,'units','pcs','pieces','unit qty','qty'),
-    wholesale:findCol(headers,'wholesale','wsp','value','total value','amount'),
-    awb:      findCol(headers,'awb','tracking','airway'),
+    po:         findCol(headers,'po#','po ','purchase order','order #','order#'),
+    style:      findCol(headers,'style#','style #','style name','style'),
+    status:     findCol(headers,'warehouse status','status'),
+    exFactory:  findCol(headers,'ex-factory','exfactory','ex factory','ship date','shipped date','ship'),
+    cancelDate: findCol(headers,'cancel date','cancel by','cancel'),
+    boxQty:     findCol(headers,'box','carton','ctns','ctn qty'),
+    unitQty:    findCol(headers,'units','pcs','pieces','unit qty','qty'),
+    wholesale:  findCol(headers,'wholesale','wsp','value','total value','amount'),
+    awb:        findCol(headers,'awb','tracking','airway'),
+    anthroLabel:findCol(headers,'anthro label','al ','al\t','anthro lbl'),
+    packList:   findCol(headers,'packing list','pack list','pl ','pl\t'),
+    fedexLabel: findCol(headers,'fedex label','fedex lbl','fx label','fed ex'),
   };
 
   // Slicer columns: few unique values, exclude mapped status/date/qty cols
@@ -394,15 +404,24 @@ function buildCards() {
     const cls       = classifyStatus(statusRaw);
     counts[cls]++;
 
-    const po       = get(C.po)       || `#${ri+1}`;
-    const style    = get(C.style);
-    const shipDate = get(C.shipDate);
+    const po         = get(C.po)       || `#${ri+1}`;
+    const style      = get(C.style);
+    const exFactory  = get(C.exFactory);
     const cancelDate = get(C.cancelDate);
-    const eta      = get(C.eta);
-    const boxQty   = get(C.boxQty);
-    const unitQty  = get(C.unitQty);
-    const wsVal    = get(C.wholesale);
-    const awb      = get(C.awb);
+    const boxQty     = get(C.boxQty);
+    const unitQty    = get(C.unitQty);
+    const wsVal      = get(C.wholesale);
+    const awb        = get(C.awb);
+    const alVal      = get(C.anthroLabel);
+    const plVal      = get(C.packList);
+    const fxVal      = get(C.fedexLabel);
+
+    // Arrival = ex-factory + 3 days
+    const exFactoryDate = parseDate(exFactory);
+    const arrivalDate   = exFactoryDate ? new Date(+exFactoryDate + 3 * 86400000) : null;
+    const arrivalStr    = arrivalDate
+      ? arrivalDate.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'2-digit' })
+      : '—';
 
     const card = document.createElement('div');
     card.className = 'po-card';
@@ -420,12 +439,18 @@ function buildCards() {
           <span class="status-badge ${cls}">${esc(statusRaw || STATUS_LABELS[cls])}</span>
         </div>
 
-        ${statusVisual(cls, shipDate, eta, statusRaw)}
+        ${statusVisual(cls, exFactory, arrivalStr, statusRaw)}
 
         <div class="dates-row">
-          ${shipDate ? `<div class="date-item"><div class="date-lbl">Ship Date</div><div class="date-val">${fmtDate(shipDate)}</div></div>` : ''}
+          ${exFactory ? `<div class="date-item"><div class="date-lbl">Ex-Factory</div><div class="date-val">${fmtDate(exFactory)}</div></div>` : ''}
           ${cancelDate ? `<div class="date-item"><div class="date-lbl">Cancel Date</div><div class="date-val ${isOverdue(cancelDate) ? 'overdue' : ''}">${fmtDate(cancelDate)}</div></div>` : ''}
-          ${eta ? `<div class="date-item"><div class="date-lbl">Expected Arrival</div><div class="date-val">${fmtDate(eta)}</div></div>` : ''}
+          ${arrivalDate ? `<div class="date-item"><div class="date-lbl">Est. Arrival</div><div class="date-val">${arrivalStr}</div></div>` : ''}
+        </div>
+
+        <div class="label-status-row">
+          <div class="lbl-badge ${alVal ? 'done' : 'pending'}" title="Anthro Label">AL</div>
+          <div class="lbl-badge ${plVal ? 'done' : 'pending'}" title="Packing List">PL</div>
+          <div class="lbl-badge ${fxVal ? 'done' : 'pending'}" title="FedEx Label">FEDEX</div>
         </div>
 
         ${(boxQty || unitQty || wsVal) ? `

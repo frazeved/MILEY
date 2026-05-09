@@ -52,22 +52,6 @@
     .tb-btn.loading svg { animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* COLUMN PICKER DROPDOWN */
-    .col-picker-wrap { position: relative; }
-    .col-picker-dropdown {
-      display: none; position: absolute; top: calc(100% + 6px); right: 0;
-      background: #fff; border: 1px solid var(--border); border-radius: 10px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.12); padding: 10px 0;
-      min-width: 200px; max-height: 320px; overflow-y: auto; z-index: 100;
-    }
-    .col-picker-dropdown.open { display: block; }
-    .col-picker-hdr { font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.8px; padding: 4px 14px 8px; }
-    .col-picker-item { display: flex; align-items: center; gap: 8px; padding: 5px 14px; cursor: pointer; font-size: 12px; transition: background 0.12s; }
-    .col-picker-item:hover { background: var(--bg); }
-    .col-picker-item input { accent-color: var(--accent); cursor: pointer; }
-    .col-picker-actions { display: flex; gap: 6px; padding: 8px 14px 2px; border-top: 1px solid var(--border); margin-top: 4px; }
-    .col-picker-actions button { flex: 1; font-family: inherit; font-size: 11px; font-weight: 600; padding: 4px 0; border-radius: 5px; cursor: pointer; border: 1px solid var(--border); background: var(--bg); color: var(--text-secondary); transition: background 0.12s; }
-    .col-picker-actions button:hover { background: var(--surface); }
 
     /* SLICERS */
     .slicers-wrap { margin-bottom: 10px; display: none; }
@@ -95,20 +79,6 @@
       width: 90px; min-width: 50px;
     }
     thead tr.hdr-row th:last-child { border-right: none; }
-    thead tr.flt-row th {
-      background: var(--flt); padding: 4px 5px;
-      border-right: 1px solid rgba(255,255,255,0.08);
-      position: sticky; top: 33px; z-index: 3;
-    }
-    thead tr.flt-row th:last-child { border-right: none; }
-    .col-filter {
-      width: 100%; font-family: inherit; font-size: 11px;
-      background: rgba(255,255,255,0.1); color: #fff;
-      border: 1px solid rgba(255,255,255,0.18); border-radius: 3px;
-      padding: 3px 4px; outline: none; cursor: pointer; max-width: 110px;
-    }
-    .col-filter option { background: #1a1d23; color: #fff; }
-    .col-filter.active { background: rgba(134,239,172,0.3); border-color: #86efac; }
 
     tbody tr { transition: background 0.08s; }
     tbody tr:nth-child(even) { background: var(--row-even); }
@@ -121,8 +91,6 @@
     }
     tbody td:last-child { border-right: none; }
 
-    /* hidden column */
-    .col-hidden { display: none !important; }
 
     .msg-box { padding: 60px 24px; text-align: center; color: var(--text-secondary); font-size: 13px; }
     .spinner-ring { width: 36px; height: 36px; border: 3px solid #e4e7ed; border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px; }
@@ -176,23 +144,6 @@
   <div class="toolbar">
     <span class="status-text" id="status-text">Loading…</span>
 
-    <!-- Column picker -->
-    <div class="col-picker-wrap" id="col-picker-wrap">
-      <button class="tb-btn" onclick="toggleColPicker()" id="col-picker-btn">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>
-        Columns
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-      <div class="col-picker-dropdown" id="col-picker-dropdown">
-        <div class="col-picker-hdr">Show / hide columns</div>
-        <div id="col-picker-list"></div>
-        <div class="col-picker-actions">
-          <button onclick="setAllCols(true)">Show all</button>
-          <button onclick="setAllCols(false)">Hide all</button>
-        </div>
-      </div>
-    </div>
-
     <button class="tb-btn red" id="btn-clear-all" onclick="clearAllFilters()">✕ Clear filters</button>
     <button class="tb-btn green" id="reload-btn" onclick="loadData()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
@@ -225,7 +176,7 @@ const EDIT_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?gid=${
 const SLICER_KEYWORDS = ['status', 'supplier', 'category', 'month'];
 function isSlicer(h) { const l = h.toLowerCase(); return SLICER_KEYWORDS.some(k => l.includes(k)); }
 
-let state = { headers: [], data: [], filters: {}, hiddenCols: new Set(), lastUpdated: '' };
+let state = { headers: [], data: [], filters: {}, lastUpdated: '' };
 
 function setMode(mode) {
   if (mode === 'edit') { window.open(EDIT_URL, '_blank'); return; }
@@ -279,25 +230,15 @@ function applyFilters() {
   });
   document.getElementById('status-text').textContent =
     `${visible} of ${state.data.length} rows · ${state.lastUpdated}`;
-  // update filter row dropdowns
-  document.querySelectorAll('.col-filter').forEach(s => {
-    s.classList.toggle('active', !!(state.filters[s.dataset.col]));
-  });
-  // update slicer chips
   document.querySelectorAll('.slicer-chip').forEach(chip => {
-    chip.classList.toggle('active',
-      state.filters[chip.dataset.col] === chip.dataset.val);
+    chip.classList.toggle('active', state.filters[chip.dataset.col] === chip.dataset.val);
   });
-  // show/hide clear button
   const anyActive = Object.values(state.filters).some(Boolean);
   document.getElementById('btn-clear-all').classList.toggle('visible', anyActive);
 }
 
 function setFilter(col, val) {
   state.filters[col] = val;
-  // sync dropdown in filter row
-  const sel = document.querySelector(`.col-filter[data-col="${col}"]`);
-  if (sel) sel.value = val;
   applyFilters();
 }
 
@@ -314,58 +255,17 @@ function onSlicerChip(col, val) {
   setFilter(col, current === val ? '' : val);   // toggle off if same
 }
 
-// ── COLUMN VISIBILITY ───────────────────────────────────────────────────────
-function applyColVisibility() {
-  const { headers, hiddenCols } = state;
-  headers.forEach((_, ci) => {
-    const hidden = hiddenCols.has(ci);
-    document.querySelectorAll(`.c${ci}`).forEach(el => {
-      el.classList.toggle('col-hidden', hidden);
-    });
-  });
-}
-
-function toggleCol(ci) {
-  if (state.hiddenCols.has(ci)) state.hiddenCols.delete(ci);
-  else state.hiddenCols.add(ci);
-  applyColVisibility();
-}
-
-function setAllCols(show) {
-  state.hiddenCols = show ? new Set() : new Set(state.headers.map((_,i)=>i));
-  document.querySelectorAll('#col-picker-list input[type=checkbox]').forEach(cb => {
-    cb.checked = show;
-  });
-  applyColVisibility();
-}
-
-function toggleColPicker() {
-  document.getElementById('col-picker-dropdown').classList.toggle('open');
-}
-document.addEventListener('click', e => {
-  if (!document.getElementById('col-picker-wrap').contains(e.target)) {
-    document.getElementById('col-picker-dropdown').classList.remove('open');
-  }
-});
 
 // ── BUILD TABLE ─────────────────────────────────────────────────────────────
 function buildTable(headers, data) {
   state.headers = headers;
   state.data    = data;
   state.filters = {};
-  state.hiddenCols = new Set();
 
   const colUniq = headers.map((_, ci) =>
     [...new Set(data.map(r => (r[ci]||'').trim()))].filter(Boolean).sort()
   );
 
-  // Column picker list
-  document.getElementById('col-picker-list').innerHTML = headers.map((h, ci) =>
-    `<label class="col-picker-item">
-      <input type="checkbox" checked onchange="toggleCol(${ci})" />
-      ${esc(h)}
-    </label>`
-  ).join('');
 
   // Slicers: only status, supplier, category, month columns
   const slicerCols = headers.reduce((acc, h, ci) => {
@@ -392,18 +292,8 @@ function buildTable(headers, data) {
 
   // Table HTML
   let html = '<table>';
-  // header
   html += '<thead><tr class="hdr-row">';
   headers.forEach((h, ci) => { html += `<th class="c${ci}" title="${esc(h)}">${esc(h)}</th>`; });
-  html += '</tr>';
-  // filter row
-  html += '<tr class="flt-row">';
-  headers.forEach((_, ci) => {
-    html += `<th class="c${ci}"><select class="col-filter" data-col="${ci}" onchange="setFilter(${ci},this.value)">`;
-    html += `<option value="">All</option>`;
-    colUniq[ci].forEach(v => { html += `<option value="${esc(v)}">${esc(v)}</option>`; });
-    html += `</select></th>`;
-  });
   html += '</tr></thead>';
   // body
   html += '<tbody id="data-body">';
