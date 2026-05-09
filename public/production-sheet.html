@@ -12,11 +12,10 @@
       --bg: #f5f6fa; --surface: #fff; --border: #e4e7ed;
       --text: #1a1d23; --text-secondary: #6b7280;
       --accent: #16a34a; --accent-light: #dcfce7;
-      --hdr: #14532d; --flt: #1a4731; --row-even: #f0fdf4;
+      --hdr: #14532d; --row-even: #f0fdf4;
     }
     body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
 
-    /* NAV */
     nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 60; }
     .nav-brand { font-size: 16px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; display: none; }
     .nav-brand span { color: var(--accent); }
@@ -26,7 +25,6 @@
     .nav-link.active { background: var(--accent-light); color: var(--accent); }
     .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--text-secondary); line-height: 1; }
 
-    /* MODE BAR */
     .mode-bar { background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 10px 28px; font-size: 14px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; flex-shrink: 0; }
     .mode-bar-left { display: flex; align-items: center; gap: 16px; }
     .mode-bar a { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
@@ -36,61 +34,52 @@
     .toggle-btn.active { background: rgba(255,255,255,0.25); color: #fff; }
     .toggle-btn:hover:not(.active) { background: rgba(255,255,255,0.12); color: #fff; }
 
-    /* WRAPPER */
     .sheet-wrapper { flex: 1; padding: 14px 24px 40px; width: 100%; }
 
-    /* TOOLBAR */
     .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-    .status-text { font-size: 12px; color: var(--text-secondary); flex: 1; min-width: 120px; }
-
-    .tb-btn { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 6px 12px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text); cursor: pointer; transition: background 0.15s; white-space: nowrap; position: relative; }
+    .status-text { font-size: 12px; color: var(--text-secondary); flex: 1; }
+    .tb-btn { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 6px 12px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text); cursor: pointer; transition: background 0.15s; white-space: nowrap; }
     .tb-btn:hover { background: #f0f0f5; }
     .tb-btn.green { color: var(--accent); }
     .tb-btn.green:hover { background: var(--accent-light); }
     .tb-btn.red { color: #dc2626; background: #fee2e2; border-color: #fca5a5; display: none; }
     .tb-btn.red.visible { display: flex; }
-    .tb-btn.loading svg { animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .tb-btn.loading svg { animation: spin 0.8s linear infinite; }
 
-
-    /* SLICERS */
-    .slicers-wrap { margin-bottom: 10px; display: none; }
-    .slicers-wrap.visible { display: block; }
-    .slicer-row { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
-    .slicer { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; min-width: 160px; }
+    .slicer-wrap { margin-bottom: 10px; }
     .slicer-label { font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
-    .slicer-chips { display: flex; flex-wrap: wrap; gap: 4px; }
-    .slicer-chip { font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg); color: var(--text-secondary); cursor: pointer; transition: all 0.12s; white-space: nowrap; }
+    .slicer-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .slicer-chip { font-size: 11px; font-weight: 500; padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg); color: var(--text-secondary); cursor: pointer; transition: all 0.12s; white-space: nowrap; }
     .slicer-chip:hover { background: var(--accent-light); border-color: #6ee7b7; color: #065f46; }
     .slicer-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
-    /* TABLE */
     .table-card { background: #fff; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-    .table-scroll { overflow-x: auto; max-height: calc(100vh - 240px); overflow-y: auto; }
+    .table-scroll { overflow-x: auto; max-height: calc(100vh - 220px); overflow-y: auto; }
     table { border-collapse: collapse; font-size: 12px; table-layout: fixed; width: max-content; min-width: 100%; }
 
-    thead tr.hdr-row th {
+    thead tr th {
       background: var(--hdr); color: #fff;
       font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
-      padding: 8px 8px; text-align: left;
+      padding: 8px 10px; text-align: left;
       border-right: 1px solid rgba(255,255,255,0.1);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       position: sticky; top: 0; z-index: 3;
-      width: 90px; min-width: 50px;
+      width: 100px; min-width: 60px;
     }
-    thead tr.hdr-row th:last-child { border-right: none; }
+    thead tr th:last-child { border-right: none; }
 
-    tbody tr { transition: background 0.08s; }
     tbody tr:nth-child(even) { background: var(--row-even); }
     tbody tr:hover { background: #bbf7d0; }
     tbody tr.hidden { display: none; }
     tbody td {
-      padding: 4px 8px; border-right: 1px solid #e9f5ee; border-bottom: 1px solid #e9f5ee;
-      color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      width: 90px; min-width: 50px;
+      padding: 5px 10px; border-right: 1px solid #e9f5ee; border-bottom: 1px solid #e9f5ee;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      width: 100px; min-width: 60px; color: var(--text);
     }
     tbody td:last-child { border-right: none; }
-
+    tbody td a { color: var(--accent); text-decoration: none; font-size: 11px; }
+    tbody td a:hover { text-decoration: underline; }
 
     .msg-box { padding: 60px 24px; text-align: center; color: var(--text-secondary); font-size: 13px; }
     .spinner-ring { width: 36px; height: 36px; border: 3px solid #e4e7ed; border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px; }
@@ -110,7 +99,9 @@
 <body>
 <nav>
   <div class="nav-brand">305 <span>Workspace</span></div>
-  <button class="nav-hamburger" onclick="toggleNav()" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  <button class="nav-hamburger" onclick="document.getElementById('nav-links').classList.toggle('open')" aria-label="Menu">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
   <div class="nav-links" id="nav-links">
     <a class="nav-link" href="/">&#8592; Home</a>
     <a class="nav-link" href="warehouse.html">Warehouse Now</a>
@@ -131,32 +122,31 @@
   <div class="mode-bar-left">
     <span>Production &amp; PO Database</span>
     <div class="toggle-group">
-      <button class="toggle-btn active" id="btn-view" onclick="setMode('view')">View</button>
-      <button class="toggle-btn" id="btn-edit" onclick="setMode('edit')">Edit in Sheets</button>
+      <button class="toggle-btn active" id="btn-view">View</button>
+      <button class="toggle-btn" onclick="window.open('https://docs.google.com/spreadsheets/d/1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q/edit?gid=0','_blank')">Edit in Sheets</button>
     </div>
   </div>
-  <a href="production.html"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg> Back to Production</a>
+  <a href="production.html">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to Production
+  </a>
 </div>
 
 <div class="sheet-wrapper">
-
-  <!-- TOOLBAR -->
   <div class="toolbar">
     <span class="status-text" id="status-text">Loading…</span>
-
-    <button class="tb-btn red" id="btn-clear-all" onclick="clearAllFilters()">✕ Clear filters</button>
+    <button class="tb-btn red" id="btn-clear" onclick="clearFilter()">✕ Clear filter</button>
     <button class="tb-btn green" id="reload-btn" onclick="loadData()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
       Refresh
     </button>
   </div>
 
-  <!-- SLICERS -->
-  <div class="slicers-wrap" id="slicers-wrap">
-    <div class="slicer-row" id="slicer-row"></div>
+  <div class="slicer-wrap" id="slicer-wrap" style="display:none">
+    <div class="slicer-label">PL Status</div>
+    <div class="slicer-chips" id="slicer-chips"></div>
   </div>
 
-  <!-- TABLE -->
   <div class="table-card">
     <div class="table-scroll" id="table-area">
       <div class="msg-box"><div class="spinner-ring"></div>Fetching sheet data…</div>
@@ -165,21 +155,19 @@
 </div>
 
 <script>
-function toggleNav() { document.getElementById('nav-links').classList.toggle('open'); }
-
 const SHEET_ID = '1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q';
-const GID      = '0';
-const CSV_URL  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
-const EDIT_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?gid=${GID}`;
+const CSV_URL  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=0`;
 
+let allRows = [], headers = [], statusCol = -1, activeFilter = '';
 
-let state = { headers: [], data: [], filters: {}, lastUpdated: '' };
-
-function setMode(mode) {
-  if (mode === 'edit') { window.open(EDIT_URL, '_blank'); return; }
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ── CSV PARSER ──────────────────────────────────────────────────────────────
+function isURL(s) {
+  return s.startsWith('http://') || s.startsWith('https://');
+}
+
 function parseCSV(text) {
   const rows = [];
   let row = [], field = '', inQ = false;
@@ -204,122 +192,89 @@ function parseCSV(text) {
   return rows;
 }
 
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-// ── FILTER LOGIC ────────────────────────────────────────────────────────────
-function applyFilters() {
+function renderTable() {
   const tbody = document.getElementById('data-body');
   if (!tbody) return;
-  const rows = tbody.querySelectorAll('tr');
   let visible = 0;
-  rows.forEach(tr => {
-    const cells = tr.querySelectorAll('td');
-    let show = true;
-    Object.entries(state.filters).forEach(([col, val]) => {
-      if (!val) return;
-      const raw = cells[+col]?.getAttribute('data-raw') ?? '';
-      if (raw !== val) show = false;
-    });
+  tbody.querySelectorAll('tr').forEach(tr => {
+    const val = tr.dataset.status || '';
+    const show = !activeFilter || val === activeFilter;
     tr.classList.toggle('hidden', !show);
     if (show) visible++;
   });
-  document.getElementById('status-text').textContent =
-    `${visible} of ${state.data.length} rows · ${state.lastUpdated}`;
-  document.querySelectorAll('.slicer-chip').forEach(chip => {
-    chip.classList.toggle('active', state.filters[chip.dataset.col] === chip.dataset.val);
+  document.getElementById('status-text').textContent = `${visible} of ${allRows.length} rows`;
+  document.getElementById('btn-clear').classList.toggle('visible', !!activeFilter);
+  document.querySelectorAll('.slicer-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.val === activeFilter);
   });
-  const anyActive = Object.values(state.filters).some(Boolean);
-  document.getElementById('btn-clear-all').classList.toggle('visible', anyActive);
 }
 
-function setFilter(col, val) {
-  state.filters[col] = val;
-  applyFilters();
+function setFilter(val) {
+  activeFilter = activeFilter === val ? '' : val;
+  renderTable();
 }
 
-function clearAllFilters() {
-  state.filters = {};
-  document.querySelectorAll('.col-filter').forEach(s => s.value = '');
-  document.querySelectorAll('.slicer-chip').forEach(c => c.classList.remove('active'));
-  applyFilters();
+function clearFilter() {
+  activeFilter = '';
+  renderTable();
 }
 
-// ── SLICER CLICK ────────────────────────────────────────────────────────────
-function onSlicerChip(col, val) {
-  const current = state.filters[col];
-  setFilter(col, current === val ? '' : val);   // toggle off if same
-}
+function buildPage(rows) {
+  headers  = rows[0];
+  allRows  = rows.slice(1);
+  statusCol = headers.findIndex(h => h.trim().toUpperCase() === 'PL STATUS');
 
-
-// ── BUILD TABLE ─────────────────────────────────────────────────────────────
-function buildTable(headers, data) {
-  state.headers = headers;
-  state.data    = data;
-  state.filters = {};
-
-  // Status slicer only
-  const statusIdx = headers.findIndex(h => h.toLowerCase().includes('status'));
-  const slicerRow = document.getElementById('slicer-row');
-  if (statusIdx >= 0) {
-    const vals = [...new Set(data.map(r => (r[statusIdx]||'').trim()))].filter(Boolean).sort();
-    slicerRow.innerHTML = `<div class="slicer">
-      <div class="slicer-label">${esc(headers[statusIdx])}</div>
-      <div class="slicer-chips">
-        ${vals.map(v => `<span class="slicer-chip" data-col="${statusIdx}" data-val="${esc(v)}" onclick="onSlicerChip(${statusIdx},'${esc(v)}')">${esc(v)}</span>`).join('')}
-      </div>
-    </div>`;
-    document.getElementById('slicers-wrap').classList.add('visible');
-  } else {
-    document.getElementById('slicers-wrap').classList.remove('visible');
+  // Status slicer
+  if (statusCol >= 0) {
+    const vals = [...new Set(allRows.map(r => (r[statusCol]||'').trim()))].filter(Boolean).sort();
+    document.getElementById('slicer-chips').innerHTML = vals.map(v =>
+      `<span class="slicer-chip" data-val="${esc(v)}" onclick="setFilter('${esc(v)}')">${esc(v)}</span>`
+    ).join('');
+    document.getElementById('slicer-wrap').style.display = 'block';
   }
 
-  // Table HTML
-  let html = '<table>';
-  html += '<thead><tr class="hdr-row">';
-  headers.forEach((h, ci) => { html += `<th class="c${ci}" title="${esc(h)}">${esc(h)}</th>`; });
-  html += '</tr></thead>';
-  // body
-  html += '<tbody id="data-body">';
-  data.forEach(r => {
-    html += '<tr>';
+  // Table
+  let html = '<table><thead><tr>';
+  headers.forEach(h => { html += `<th title="${esc(h)}">${esc(h)}</th>`; });
+  html += '</tr></thead><tbody id="data-body">';
+  allRows.forEach(r => {
+    const statusVal = statusCol >= 0 ? (r[statusCol]||'').trim() : '';
+    html += `<tr data-status="${esc(statusVal)}">`;
     headers.forEach((_, ci) => {
       const raw = (r[ci] ?? '').trim();
-      html += `<td class="c${ci}" data-raw="${esc(raw)}" title="${esc(raw)}">${esc(raw)}</td>`;
+      if (isURL(raw)) {
+        html += `<td title="${esc(raw)}"><a href="${esc(raw)}" target="_blank" rel="noopener">Open ↗</a></td>`;
+      } else {
+        html += `<td title="${esc(raw)}">${esc(raw)}</td>`;
+      }
     });
     html += '</tr>';
   });
   html += '</tbody></table>';
 
   document.getElementById('table-area').innerHTML = html;
+  document.getElementById('status-text').textContent = `${allRows.length} rows`;
 }
 
-// ── LOAD DATA ───────────────────────────────────────────────────────────────
 async function loadData() {
-  const area = document.getElementById('table-area');
-  const btn  = document.getElementById('reload-btn');
-  area.innerHTML = '<div class="msg-box"><div class="spinner-ring"></div>Fetching sheet data…</div>';
+  document.getElementById('table-area').innerHTML = '<div class="msg-box"><div class="spinner-ring"></div>Fetching sheet data…</div>';
   document.getElementById('status-text').textContent = 'Loading…';
-  document.getElementById('slicers-wrap').classList.remove('visible');
-  btn.classList.add('loading');
+  document.getElementById('slicer-wrap').style.display = 'none';
+  document.getElementById('reload-btn').classList.add('loading');
+  activeFilter = '';
 
   try {
     const res = await fetch(CSV_URL);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const rows = parseCSV(await res.text());
-    if (!rows.length) throw new Error('No data');
-
-    state.lastUpdated = 'updated ' + new Date().toLocaleTimeString();
-    buildTable(rows[0], rows.slice(1));
-    document.getElementById('status-text').textContent =
-      `${rows.length - 1} rows · ${state.lastUpdated}`;
+    if (rows.length < 2) throw new Error('No data');
+    buildPage(rows);
   } catch(e) {
-    area.innerHTML = `<div class="msg-box"><div class="icon">⚠️</div>Could not load sheet data.<br>
-      <small style="color:#9ca3af">Make sure the spreadsheet is shared (Anyone with link can view).<br>${esc(e.message)}</small></div>`;
-    document.getElementById('status-text').textContent = 'Error loading data';
+    document.getElementById('table-area').innerHTML =
+      `<div class="msg-box">⚠️ Could not load data.<br><small style="color:#9ca3af">${esc(e.message)}</small></div>`;
+    document.getElementById('status-text').textContent = 'Error';
   }
-  btn.classList.remove('loading');
+  document.getElementById('reload-btn').classList.remove('loading');
 }
 
 loadData();
