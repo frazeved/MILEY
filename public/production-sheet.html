@@ -172,8 +172,6 @@ const GID      = '0';
 const CSV_URL  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
 const EDIT_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?gid=${GID}`;
 
-// Only these columns get slicers
-function isSlicer(h) { return h.toLowerCase().includes('status'); }
 
 let state = { headers: [], data: [], filters: {}, lastUpdated: '' };
 
@@ -261,29 +259,17 @@ function buildTable(headers, data) {
   state.data    = data;
   state.filters = {};
 
-  const colUniq = headers.map((_, ci) =>
-    [...new Set(data.map(r => (r[ci]||'').trim()))].filter(Boolean).sort()
-  );
-
-
-  // Slicers: only status, supplier, category, month columns
-  const slicerCols = headers.reduce((acc, h, ci) => {
-    if (isSlicer(h) && colUniq[ci].length >= 2) acc.push(ci);
-    return acc;
-  }, []);
-
+  // Status slicer only
+  const statusIdx = headers.findIndex(h => h.toLowerCase().includes('status'));
   const slicerRow = document.getElementById('slicer-row');
-  if (slicerCols.length) {
-    slicerRow.innerHTML = slicerCols.map(ci =>
-      `<div class="slicer">
-        <div class="slicer-label">${esc(headers[ci])}</div>
-        <div class="slicer-chips">
-          ${colUniq[ci].map(v =>
-            `<span class="slicer-chip" data-col="${ci}" data-val="${esc(v)}" onclick="onSlicerChip(${ci},'${esc(v)}')">${esc(v)}</span>`
-          ).join('')}
-        </div>
-      </div>`
-    ).join('');
+  if (statusIdx >= 0) {
+    const vals = [...new Set(data.map(r => (r[statusIdx]||'').trim()))].filter(Boolean).sort();
+    slicerRow.innerHTML = `<div class="slicer">
+      <div class="slicer-label">${esc(headers[statusIdx])}</div>
+      <div class="slicer-chips">
+        ${vals.map(v => `<span class="slicer-chip" data-col="${statusIdx}" data-val="${esc(v)}" onclick="onSlicerChip(${statusIdx},'${esc(v)}')">${esc(v)}</span>`).join('')}
+      </div>
+    </div>`;
     document.getElementById('slicers-wrap').classList.add('visible');
   } else {
     document.getElementById('slicers-wrap').classList.remove('visible');
