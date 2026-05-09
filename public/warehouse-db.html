@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>305 Workspace — Warehouse Now</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f6fa; --surface: #fff; --border: #e4e7ed;
+      --text: #1a1d23; --text-secondary: #6b7280; --text-muted: #9ca3af;
+      --accent: #0f766e; --accent-light: #ccfbf1;
+      --green: #16a34a; --green-lt: #dcfce7;
+      --blue: #0891b2;  --blue-lt: #cffafe;
+      --red: #dc2626;   --red-lt: #fee2e2;
+      --gray-lt: #f3f4f6;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* NAV */
+    nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 60; }
+    .nav-brand { font-size: 16px; font-weight: 700; color: var(--text); display: none; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .nav-link { font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: 6px; text-decoration: none; color: var(--text-secondary); transition: background 0.15s, color 0.15s; white-space: nowrap; }
+    .nav-link:hover { background: var(--bg); color: var(--text); }
+    .nav-link.active { background: var(--accent-light); color: var(--accent); }
+    .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--text-secondary); line-height: 1; }
+
+    /* MODE BAR */
+    .mode-bar { background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 10px 28px; font-size: 14px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; }
+    .mode-bar a { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+    .mode-bar a:hover { color: #fff; }
+
+    /* WRAPPER */
+    .page-wrap { flex: 1; padding: 16px 24px 40px; max-width: 1600px; margin: 0 auto; width: 100%; }
+
+    /* TOOLBAR */
+    .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .status-text { font-size: 12px; color: var(--text-secondary); flex: 1; }
+    .tb-btn { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 6px 12px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text); cursor: pointer; transition: background 0.15s; white-space: nowrap; }
+    .tb-btn:hover { background: #f0f0f5; }
+    .tb-btn.teal { color: var(--accent); }
+    .tb-btn.teal:hover { background: var(--accent-light); }
+    .tb-btn.red-btn { color: var(--red); background: var(--red-lt); border-color: #fca5a5; display: none; }
+    .tb-btn.red-btn.visible { display: flex; }
+    .tb-btn.loading svg.spin { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* SUMMARY PILLS */
+    .summary-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+    .summary-pill { display: flex; align-items: center; gap: 7px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 5px 14px 5px 10px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .summary-pill:hover { border-color: currentColor; }
+    .summary-pill.all  { color: var(--text); }
+    .summary-pill.wh   { color: var(--green); }
+    .summary-pill.tr   { color: var(--blue); }
+    .summary-pill.dl   { color: var(--red); }
+    .summary-pill.oth  { color: var(--text-secondary); }
+    .summary-pill.active { background: currentColor; }
+    .summary-pill.active span { color: #fff !important; }
+    .pill-dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+    .pill-count { font-size: 11px; opacity: 0.75; }
+
+    /* SLICERS */
+    .slicers-wrap { display: none; margin-bottom: 12px; }
+    .slicers-wrap.visible { display: block; }
+    .slicer-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .slicer { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+    .slicer-label { font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 5px; }
+    .slicer-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+    .slicer-chip { font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg); color: var(--text-secondary); cursor: pointer; transition: all 0.12s; white-space: nowrap; }
+    .slicer-chip:hover { border-color: var(--accent); color: var(--accent); }
+    .slicer-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    /* CARDS GRID */
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+
+    /* PO CARD */
+    .po-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; transition: box-shadow 0.15s; }
+    .po-card:hover { box-shadow: 0 4px 18px rgba(0,0,0,0.08); }
+    .po-card.hidden { display: none; }
+
+    /* Card top bar (status color) */
+    .card-top { height: 5px; }
+    .card-top.wh  { background: var(--green); }
+    .card-top.tr  { background: var(--blue); }
+    .card-top.dl  { background: var(--red); }
+    .card-top.oth { background: var(--border); }
+
+    .card-body { padding: 14px 16px 12px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+
+    /* HEADER */
+    .card-hdr { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .card-po   { font-size: 13px; font-weight: 700; color: var(--text); }
+    .card-style { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+    .status-badge { display: flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+    .status-badge.wh  { background: var(--green-lt); color: #166534; }
+    .status-badge.tr  { background: var(--blue-lt);  color: #155e75; }
+    .status-badge.dl  { background: var(--red-lt);   color: #991b1b; }
+    .status-badge.oth { background: var(--gray-lt);  color: var(--text-secondary); }
+
+    /* STATUS VISUAL */
+    .status-visual { border-radius: 8px; padding: 10px 12px; }
+    /* Warehouse */
+    .vis-warehouse { background: var(--green-lt); display: flex; align-items: center; gap: 10px; }
+    .vis-wh-icon { width: 36px; height: 36px; background: var(--green); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .vis-wh-text { font-size: 12px; color: #166534; font-weight: 600; }
+    .vis-wh-sub  { font-size: 11px; color: #15803d; margin-top: 2px; }
+    /* In Transit */
+    .vis-transit { background: var(--blue-lt); }
+    .vis-tr-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .vis-tr-label { font-size: 11px; font-weight: 600; color: #155e75; }
+    .vis-tr-pct { font-size: 11px; color: #0891b2; font-weight: 700; }
+    .progress-track { height: 6px; background: rgba(8,145,178,0.2); border-radius: 3px; position: relative; }
+    .progress-fill { height: 100%; background: var(--blue); border-radius: 3px; transition: width 0.4s; }
+    .plane-icon { position: absolute; top: 50%; transform: translateY(-50%); transition: left 0.4s; }
+    .vis-tr-dates { display: flex; justify-content: space-between; margin-top: 5px; font-size: 10px; color: #0e7490; }
+    /* Delayed */
+    .vis-delayed { background: var(--red-lt); display: flex; align-items: center; gap: 10px; }
+    .vis-dl-dot { width: 12px; height: 12px; background: var(--red); border-radius: 50%; flex-shrink: 0; animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,0.4)} 50%{box-shadow:0 0 0 6px rgba(220,38,38,0)} }
+    .vis-dl-text { font-size: 12px; color: #991b1b; font-weight: 600; }
+    .vis-dl-sub  { font-size: 11px; color: #b91c1c; margin-top: 1px; }
+
+    /* DATES ROW */
+    .dates-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .date-item { flex: 1; min-width: 80px; }
+    .date-lbl { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; }
+    .date-val { font-size: 12px; font-weight: 600; color: var(--text); }
+    .date-val.overdue { color: var(--red); }
+
+    /* METRICS ROW */
+    .metrics-row { display: flex; gap: 8px; }
+    .metric { flex: 1; background: var(--bg); border-radius: 6px; padding: 6px 8px; text-align: center; }
+    .metric-lbl { font-size: 9px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; }
+    .metric-val { font-size: 13px; font-weight: 700; color: var(--text); }
+
+    /* AWB */
+    .awb-row { display: flex; align-items: center; gap: 6px; background: #f8f9fa; border-radius: 6px; padding: 6px 10px; }
+    .awb-label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; flex-shrink: 0; }
+    .awb-val { font-size: 11px; font-weight: 600; color: var(--text-secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .awb-copy { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 2px; border-radius: 3px; display: flex; }
+    .awb-copy:hover { color: var(--accent); }
+
+    /* LOADING */
+    .msg-box { padding: 60px 24px; text-align: center; color: var(--text-secondary); font-size: 13px; }
+    .spinner-ring { width: 36px; height: 36px; border: 3px solid #e4e7ed; border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px; }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      nav { padding: 0 16px; height: auto; min-height: 52px; position: relative; }
+      .nav-brand { display: block; }
+      .nav-hamburger { display: flex; align-items: center; }
+      .nav-links { display: none; position: absolute; top: 52px; left: 0; right: 0; background: var(--surface); border-bottom: 1px solid var(--border); flex-direction: column; padding: 6px 0 10px; gap: 0; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+      .nav-links.open { display: flex; }
+      .nav-link { padding: 10px 20px; border-radius: 0; font-size: 13px; }
+      .mode-bar { padding: 10px 16px; flex-wrap: wrap; gap: 8px; }
+      .page-wrap { padding: 12px 12px 40px; }
+      .cards-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-brand">305 <span>Workspace</span></div>
+  <button class="nav-hamburger" onclick="toggleNav()" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  <div class="nav-links" id="nav-links">
+    <a class="nav-link" href="/">&#8592; Home</a>
+    <a class="nav-link active" href="warehouse.html">Warehouse Now</a>
+    <a class="nav-link" href="production.html">Production</a>
+    <a class="nav-link" href="samples.html">Samples Tracking</a>
+    <a class="nav-link" href="design.html">Design</a>
+    <a class="nav-link" href="shipment.html">New Shipment</a>
+    <a class="nav-link" href="map.html">Map Updates</a>
+    <a class="nav-link" href="forecast.html">Forecast</a>
+    <a class="nav-link" href="gantt.html">Gantt Chart</a>
+    <a class="nav-link" href="tradestone.html">Tradestone Updates</a>
+    <a class="nav-link" href="rlm.html">RLM Updates</a>
+    <a class="nav-link" href="dhl.html">DHL Duties Cost</a>
+  </div>
+</nav>
+
+<div class="mode-bar">
+  <span>Warehouse Now — Status Dashboard</span>
+  <a href="warehouse.html"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg> Back to Warehouse</a>
+</div>
+
+<div class="page-wrap">
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <span class="status-text" id="status-text">Loading…</span>
+    <button class="tb-btn red-btn" id="btn-clear" onclick="clearAll()">✕ Clear filters</button>
+    <button class="tb-btn teal" id="reload-btn" onclick="loadData()">
+      <svg class="spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Refresh
+    </button>
+  </div>
+
+  <!-- SUMMARY PILLS -->
+  <div class="summary-row" id="summary-row"></div>
+
+  <!-- SLICERS -->
+  <div class="slicers-wrap" id="slicers-wrap">
+    <div class="slicer-row" id="slicer-row"></div>
+  </div>
+
+  <!-- CARDS -->
+  <div class="cards-grid" id="cards-grid">
+    <div class="msg-box" style="grid-column:1/-1"><div class="spinner-ring"></div>Fetching warehouse data…</div>
+  </div>
+
+</div>
+
+<script>
+function toggleNav() { document.getElementById('nav-links').classList.toggle('open'); }
+
+const SHEET_ID = '1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q';
+const GID      = '99866922';
+const CSV_URL  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
+const EDIT_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?gid=${GID}`;
+const MAX_SLICER = 14;
+
+let state = { headers: [], rows: [], filters: {}, statusFilter: 'all' };
+
+// ── CSV PARSER ──────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"' && text[i+1] === '"') { field += '"'; i++; }
+      else if (c === '"') inQ = false;
+      else field += c;
+    } else {
+      if (c === '"') inQ = true;
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\n' || (c === '\r' && text[i+1] === '\n')) {
+        if (c === '\r') i++;
+        row.push(field); field = '';
+        if (row.some(f => f.trim())) rows.push(row);
+        row = [];
+      } else field += c;
+    }
+  }
+  if (row.length) { row.push(field); if (row.some(f => f.trim())) rows.push(row); }
+  return rows;
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── COLUMN DETECTOR ─────────────────────────────────────────────────────────
+function findCol(headers, ...keywords) {
+  const kws = keywords.map(k => k.toLowerCase());
+  const idx = headers.findIndex(h => kws.some(k => h.toLowerCase().includes(k)));
+  return idx >= 0 ? idx : null;
+}
+
+// ── STATUS CLASSIFIER ───────────────────────────────────────────────────────
+function classifyStatus(val) {
+  if (!val) return 'oth';
+  const v = val.toLowerCase();
+  if (v.includes('warehouse') || v.includes('received') || v.includes('arrived')) return 'wh';
+  if (v.includes('transit') || v.includes('shipped') || v.includes('in route') || v.includes('en route')) return 'tr';
+  if (v.includes('delay') || v.includes('late') || v.includes('hold')) return 'dl';
+  return 'oth';
+}
+
+const STATUS_LABELS = { wh: 'In Warehouse', tr: 'In Transit', dl: 'Delayed', oth: 'Other' };
+
+// ── DATE HELPERS ─────────────────────────────────────────────────────────────
+function parseDate(s) {
+  if (!s) return null;
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+function fmtDate(s) {
+  const d = parseDate(s);
+  if (!d) return s || '—';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+}
+function transitPct(shipStr, etaStr) {
+  const ship = parseDate(shipStr), eta = parseDate(etaStr), now = new Date();
+  if (!ship || !eta || eta <= ship) return null;
+  const pct = Math.min(100, Math.max(4, Math.round(((now - ship) / (eta - ship)) * 100)));
+  return pct;
+}
+function isOverdue(dateStr) {
+  const d = parseDate(dateStr);
+  return d && d < new Date();
+}
+
+// ── STATUS VISUAL ───────────────────────────────────────────────────────────
+function statusVisual(cls, shipDate, etaDate, statusText) {
+  if (cls === 'wh') {
+    return `<div class="status-visual vis-warehouse">
+      <div class="vis-wh-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9.5L12 4l9 5.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/>
+          <polyline points="9 21 9 13 15 13 15 21"/>
+          <line x1="9" y1="13" x2="15" y2="13"/>
+        </svg>
+      </div>
+      <div>
+        <div class="vis-wh-text">Goods in Warehouse</div>
+        <div class="vis-wh-sub">Ready for processing</div>
+      </div>
+    </div>`;
+  }
+  if (cls === 'tr') {
+    const pct  = transitPct(shipDate, etaDate) ?? 50;
+    const left = Math.max(2, Math.min(94, pct - 3));
+    return `<div class="status-visual vis-transit">
+      <div class="vis-tr-top">
+        <span class="vis-tr-label">In Transit</span>
+        <span class="vis-tr-pct">${pct}% of route</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width:${pct}%"></div>
+        <div class="plane-icon" style="left:${left}%">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#0891b2" stroke="none"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>
+        </div>
+      </div>
+      <div class="vis-tr-dates">
+        <span>Shipped: ${fmtDate(shipDate)}</span>
+        <span>ETA: ${fmtDate(etaDate)}</span>
+      </div>
+    </div>`;
+  }
+  if (cls === 'dl') {
+    return `<div class="status-visual vis-delayed">
+      <div class="vis-dl-dot"></div>
+      <div>
+        <div class="vis-dl-text">Shipment Delayed</div>
+        <div class="vis-dl-sub">${esc(statusText)} — needs attention</div>
+      </div>
+    </div>`;
+  }
+  return '';
+}
+
+// ── BUILD CARDS ─────────────────────────────────────────────────────────────
+function buildCards() {
+  const { headers, rows } = state;
+
+  // Map columns (flexible keywords)
+  const C = {
+    po:       findCol(headers,'po#','po ','purchase order','order #','order#'),
+    style:    findCol(headers,'style#','style #','style name','style'),
+    status:   findCol(headers,'warehouse status','status'),
+    shipDate: findCol(headers,'ship date','shipped date','ship'),
+    cancelDate:findCol(headers,'cancel date','cancel by','cancel'),
+    eta:      findCol(headers,'eta','expected arrival','arrival date','expected'),
+    boxQty:   findCol(headers,'box','carton','ctns','ctn qty'),
+    unitQty:  findCol(headers,'units','pcs','pieces','unit qty','qty'),
+    wholesale:findCol(headers,'wholesale','wsp','value','total value','amount'),
+    awb:      findCol(headers,'awb','tracking','airway'),
+  };
+
+  // Slicer columns: few unique values, exclude mapped status/date/qty cols
+  const skipCols = new Set(Object.values(C).filter(v => v !== null));
+  const slicerCols = headers.reduce((acc, h, ci) => {
+    if (skipCols.has(ci)) return acc;
+    const vals = [...new Set(rows.map(r => (r[ci]||'').trim()))].filter(Boolean);
+    if (vals.length >= 2 && vals.length <= MAX_SLICER) acc.push({ ci, label: h, vals });
+    return acc;
+  }, []);
+
+  // Build slicers
+  if (slicerCols.length) {
+    document.getElementById('slicer-row').innerHTML = slicerCols.map(s =>
+      `<div class="slicer">
+        <div class="slicer-label">${esc(s.label)}</div>
+        <div class="slicer-chips">${s.vals.map(v =>
+          `<span class="slicer-chip" data-col="${s.ci}" data-val="${esc(v)}" onclick="onSlicer(${s.ci},'${esc(v)}')">${esc(v)}</span>`
+        ).join('')}</div>
+      </div>`
+    ).join('');
+    document.getElementById('slicers-wrap').classList.add('visible');
+  }
+
+  // Render cards
+  const grid = document.getElementById('cards-grid');
+  grid.innerHTML = '';
+
+  const counts = { wh:0, tr:0, dl:0, oth:0 };
+
+  rows.forEach((r, ri) => {
+    const get = ci => (ci !== null && ci !== undefined ? (r[ci] || '').trim() : '');
+    const statusRaw = get(C.status);
+    const cls       = classifyStatus(statusRaw);
+    counts[cls]++;
+
+    const po       = get(C.po)       || `#${ri+1}`;
+    const style    = get(C.style);
+    const shipDate = get(C.shipDate);
+    const cancelDate = get(C.cancelDate);
+    const eta      = get(C.eta);
+    const boxQty   = get(C.boxQty);
+    const unitQty  = get(C.unitQty);
+    const wsVal    = get(C.wholesale);
+    const awb      = get(C.awb);
+
+    const card = document.createElement('div');
+    card.className = 'po-card';
+    card.dataset.ri  = ri;
+    card.dataset.cls = cls;
+
+    card.innerHTML = `
+      <div class="card-top ${cls}"></div>
+      <div class="card-body">
+        <div class="card-hdr">
+          <div>
+            <div class="card-po">${esc(po)}</div>
+            ${style ? `<div class="card-style">${esc(style)}</div>` : ''}
+          </div>
+          <span class="status-badge ${cls}">${esc(statusRaw || STATUS_LABELS[cls])}</span>
+        </div>
+
+        ${statusVisual(cls, shipDate, eta, statusRaw)}
+
+        <div class="dates-row">
+          ${shipDate ? `<div class="date-item"><div class="date-lbl">Ship Date</div><div class="date-val">${fmtDate(shipDate)}</div></div>` : ''}
+          ${cancelDate ? `<div class="date-item"><div class="date-lbl">Cancel Date</div><div class="date-val ${isOverdue(cancelDate) ? 'overdue' : ''}">${fmtDate(cancelDate)}</div></div>` : ''}
+          ${eta ? `<div class="date-item"><div class="date-lbl">Expected Arrival</div><div class="date-val">${fmtDate(eta)}</div></div>` : ''}
+        </div>
+
+        ${(boxQty || unitQty || wsVal) ? `
+        <div class="metrics-row">
+          ${boxQty  ? `<div class="metric"><div class="metric-lbl">Boxes</div><div class="metric-val">${esc(boxQty)}</div></div>` : ''}
+          ${unitQty ? `<div class="metric"><div class="metric-lbl">Units</div><div class="metric-val">${esc(unitQty)}</div></div>` : ''}
+          ${wsVal   ? `<div class="metric"><div class="metric-lbl">Wholesale</div><div class="metric-val">${esc(wsVal)}</div></div>` : ''}
+        </div>` : ''}
+
+        ${awb ? `
+        <div class="awb-row">
+          <span class="awb-label">AWB</span>
+          <span class="awb-val" id="awb-${ri}">${esc(awb)}</span>
+          <button class="awb-copy" title="Copy AWB" onclick="copyAWB('awb-${ri}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>` : ''}
+      </div>`;
+
+    grid.appendChild(card);
+  });
+
+  // Summary pills
+  const total = rows.length;
+  document.getElementById('summary-row').innerHTML = `
+    <div class="summary-pill all active" onclick="setStatusFilter('all')"><div class="pill-dot" style="background:#6b7280"></div><span>All <span class="pill-count">(${total})</span></span></div>
+    <div class="summary-pill wh" onclick="setStatusFilter('wh')"><div class="pill-dot"></div><span>In Warehouse <span class="pill-count">(${counts.wh})</span></span></div>
+    <div class="summary-pill tr" onclick="setStatusFilter('tr')"><div class="pill-dot"></div><span>In Transit <span class="pill-count">(${counts.tr})</span></span></div>
+    <div class="summary-pill dl" onclick="setStatusFilter('dl')"><div class="pill-dot"></div><span>Delayed <span class="pill-count">(${counts.dl})</span></span></div>
+    ${counts.oth ? `<div class="summary-pill oth" onclick="setStatusFilter('oth')"><div class="pill-dot"></div><span>Other <span class="pill-count">(${counts.oth})</span></span></div>` : ''}
+  `;
+
+  applyFilters();
+}
+
+// ── FILTER LOGIC ─────────────────────────────────────────────────────────────
+function applyFilters() {
+  const cards  = document.querySelectorAll('.po-card');
+  let visible  = 0;
+  cards.forEach(card => {
+    const ri  = parseInt(card.dataset.ri);
+    const cls = card.dataset.cls;
+    let show  = (state.statusFilter === 'all' || cls === state.statusFilter);
+
+    if (show) {
+      Object.entries(state.filters).forEach(([col, val]) => {
+        if (!val) return;
+        const raw = (state.rows[ri]?.[+col] || '').trim();
+        if (raw !== val) show = false;
+      });
+    }
+    card.classList.toggle('hidden', !show);
+    if (show) visible++;
+  });
+
+  const anyFilter = state.statusFilter !== 'all' || Object.values(state.filters).some(Boolean);
+  document.getElementById('btn-clear').classList.toggle('visible', anyFilter);
+  document.getElementById('status-text').textContent = `${visible} of ${state.rows.length} POs`;
+
+  // sync slicer chips
+  document.querySelectorAll('.slicer-chip').forEach(c => {
+    c.classList.toggle('active', state.filters[c.dataset.col] === c.dataset.val);
+  });
+  // sync summary pills
+  document.querySelectorAll('.summary-pill').forEach(p => {
+    p.classList.toggle('active', p.getAttribute('onclick').includes(`'${state.statusFilter}'`) || (state.statusFilter==='all' && p.classList.contains('all')));
+  });
+}
+
+function setStatusFilter(f) { state.statusFilter = f; applyFilters(); }
+function onSlicer(col, val) {
+  state.filters[col] = state.filters[col] === val ? '' : val;
+  applyFilters();
+}
+function clearAll() { state.statusFilter = 'all'; state.filters = {}; applyFilters(); }
+
+function copyAWB(id) {
+  const txt = document.getElementById(id)?.textContent;
+  if (txt) navigator.clipboard?.writeText(txt);
+}
+
+// ── LOAD ─────────────────────────────────────────────────────────────────────
+async function loadData() {
+  const grid = document.getElementById('cards-grid');
+  const btn  = document.getElementById('reload-btn');
+  grid.innerHTML = '<div class="msg-box" style="grid-column:1/-1"><div class="spinner-ring"></div>Fetching warehouse data…</div>';
+  document.getElementById('status-text').textContent = 'Loading…';
+  document.getElementById('summary-row').innerHTML = '';
+  document.getElementById('slicers-wrap').classList.remove('visible');
+  btn.classList.add('loading');
+
+  try {
+    const res  = await fetch(CSV_URL);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const all  = parseCSV(await res.text());
+    if (!all.length) throw new Error('No data');
+
+    state.headers = all[0];
+    state.rows    = all.slice(1);
+    state.filters = {};
+    state.statusFilter = 'all';
+
+    buildCards();
+  } catch(e) {
+    grid.innerHTML = `<div class="msg-box" style="grid-column:1/-1">⚠️ Could not load data.<br><small style="color:#9ca3af">${esc(e.message)}</small></div>`;
+    document.getElementById('status-text').textContent = 'Error';
+  }
+  btn.classList.remove('loading');
+}
+
+loadData();
+</script>
+</body>
+</html>

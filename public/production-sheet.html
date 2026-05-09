@@ -88,11 +88,11 @@
     thead tr.hdr-row th {
       background: var(--hdr); color: #fff;
       font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
-      padding: 8px 10px; text-align: left;
+      padding: 8px 8px; text-align: left;
       border-right: 1px solid rgba(255,255,255,0.1);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       position: sticky; top: 0; z-index: 3;
-      width: 120px; min-width: 60px;
+      width: 90px; min-width: 50px;
     }
     thead tr.hdr-row th:last-child { border-right: none; }
     thead tr.flt-row th {
@@ -115,9 +115,9 @@
     tbody tr:hover { background: #bbf7d0; }
     tbody tr.hidden { display: none; }
     tbody td {
-      padding: 5px 10px; border-right: 1px solid #e9f5ee; border-bottom: 1px solid #e9f5ee;
+      padding: 4px 8px; border-right: 1px solid #e9f5ee; border-bottom: 1px solid #e9f5ee;
       color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      width: 120px; min-width: 60px;
+      width: 90px; min-width: 50px;
     }
     tbody td:last-child { border-right: none; }
 
@@ -220,7 +220,10 @@ const SHEET_ID = '1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q';
 const GID      = '0';
 const CSV_URL  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
 const EDIT_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?gid=${GID}`;
-const MAX_SLICER_VALS = 12;
+
+// Only these columns get slicers
+const SLICER_KEYWORDS = ['status', 'supplier', 'category', 'month'];
+function isSlicer(h) { const l = h.toLowerCase(); return SLICER_KEYWORDS.some(k => l.includes(k)); }
 
 let state = { headers: [], data: [], filters: {}, hiddenCols: new Set(), lastUpdated: '' };
 
@@ -364,9 +367,9 @@ function buildTable(headers, data) {
     </label>`
   ).join('');
 
-  // Slicers: columns with ≤ MAX_SLICER_VALS unique values
+  // Slicers: only status, supplier, category, month columns
   const slicerCols = headers.reduce((acc, h, ci) => {
-    if (colUniq[ci].length >= 2 && colUniq[ci].length <= MAX_SLICER_VALS) acc.push(ci);
+    if (isSlicer(h) && colUniq[ci].length >= 2) acc.push(ci);
     return acc;
   }, []);
 
