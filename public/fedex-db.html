@@ -53,6 +53,7 @@
     .pill.out      { color: var(--teal); }
     .pill.exception { color: var(--red); }
     .pill.pending  { color: var(--muted); }
+    .pill.notrk    { color: var(--red); }
     .pill.active { background: currentColor; border-color: currentColor; }
     .pill.active span { color: #fff !important; }
 
@@ -88,6 +89,7 @@
     .sbadge.out       { background: var(--teal-lt);   color: #134e4a; }
     .sbadge.exception { background: var(--red-lt);    color: #991b1b; }
     .sbadge.pending   { background: #f3f4f6;          color: var(--muted); }
+    .sbadge.notrk     { background: var(--red-lt);    color: var(--red); }
 
     .msg-box { padding: 60px 24px; text-align: center; color: var(--muted); font-size: 13px; }
     .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px; }
@@ -221,7 +223,7 @@ function classifyStatus(raw) {
   return 'pending';
 }
 
-const STATUS_LABELS = { delivered:'Delivered', out:'Out for Delivery', transit:'In Transit', exception:'Exception', pending:'Pending' };
+const STATUS_LABELS = { delivered:'Delivered', out:'Out for Delivery', transit:'In Transit', exception:'Exception', pending:'Pending', notrk:'No Tracking' };
 
 function filterRows() {
   let visible = 0;
@@ -249,16 +251,17 @@ function build(rows) {
     fedexSts: col(H,'fedex status','delivery status','fed ex status','fedex delivery'),
   };
 
-  // Rows that have a tracking number
+  // Only rows shipped within the last 20 days
+  const now   = new Date();
+  const cutoff = new Date(now - 20 * 86400000);
   const shipped = data.filter(r => {
-    const trk = C.fedexTrk >= 0 ? (r[C.fedexTrk]||'').trim() : '';
-    const awb = C.awb      >= 0 ? (r[C.awb]     ||'').trim() : '';
-    return (trk || awb).length > 0;
+    const sd = parseDate(C.shipDate >= 0 ? (r[C.shipDate]||'') : '');
+    return sd && sd >= cutoff;
   });
 
   if (!shipped.length) {
     document.getElementById('table-area').innerHTML =
-      '<div class="msg-box">No POs with FedEx tracking numbers found.<br><small style="color:#9ca3af">Jhonny will populate tracking numbers when shipments are booked.</small></div>';
+      '<div class="msg-box">No shipments in the last 20 days.</div>';
     document.getElementById('status-text').textContent = '0 shipments';
     document.getElementById('pills').innerHTML = '';
     return;
@@ -267,14 +270,17 @@ function build(rows) {
   // Count by status class for pills
   const counts = {};
   shipped.forEach(r => {
+    const trk = C.fedexTrk >= 0 ? (r[C.fedexTrk]||'').trim() : '';
+    const awb = C.awb      >= 0 ? (r[C.awb]     ||'').trim() : '';
+    const hasTracking = (trk || awb).length > 0;
     const raw = C.fedexSts >= 0 ? (r[C.fedexSts]||'').trim() : '';
-    const cls = classifyStatus(raw);
+    const cls = hasTracking ? classifyStatus(raw) : 'notrk';
     counts[cls] = (counts[cls]||0) + 1;
   });
 
   // Pills
   const total = shipped.length;
-  const pillOrder = ['delivered','out','transit','exception','pending'];
+  const pillOrder = ['delivered','out','transit','exception','notrk','pending'];
   let pillHtml = `<div class="pill all" data-f="all" onclick="activeFilter='all';filterRows()"><div class="dot" style="background:#6b7280"></div><span>All (${total})</span></div>`;
   pillOrder.forEach(c => {
     if (counts[c]) pillHtml += `<div class="pill ${c}" data-f="${c}" onclick="activeFilter='${c}';filterRows()"><div class="dot"></div><span>${STATUS_LABELS[c]} (${counts[c]})</span></div>`;
@@ -292,29 +298,33 @@ function build(rows) {
     const style    = get(C.style);
     const shipDate = get(C.shipDate);
     const cancel   = get(C.cancel);
-    const tracking = C.fedexTrk >= 0 ? get(C.fedexTrk) : get(C.awb);
+    const tracking = (C.fedexTrk >= 0 ? get(C.fedexTrk) : '') || get(C.awb);
     const statusRaw= get(C.fedexSts);
-    const sclass   = classifyStatus(statusRaw);
+    const hasTracking = tracking.length > 0;
+    const sclass   = hasTracking ? classifyStatus(statusRaw) : 'notrk';
     const fedexUrl = `https://www.fedex.com/fedextrack/?trknbr=${encodeURIComponent(tracking)}`;
 
-    const shipRed = isPast(shipDate);
     const ndcRed  = withinDays(cancel, 5);
 
     html += `<tr data-sclass="${sclass}">
       <td class="td-style">${esc(style||'—')}</td>
       <td class="td-po">${esc(po)}</td>
-      <td class="td-date${shipRed?' red':''}">${fmt(shipDate)}</td>
+      <td class="td-date">${fmt(shipDate)}</td>
       <td class="td-date${ndcRed?' red':''}">${fmt(cancel)}${ndcRed?' ⚠':''}</td>
       <td>
-        <a class="trk-link" href="${esc(fedexUrl)}" target="_blank" rel="noopener">
-          ${esc(tracking)}
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        </a>
+        ${hasTracking
+          ? `<a class="trk-link" href="${esc(fedexUrl)}" target="_blank" rel="noopener">
+              ${esc(tracking)}
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+             </a>`
+          : `<span style="color:var(--muted);font-size:11px;">—</span>`}
       </td>
       <td>
-        ${statusRaw
-          ? `<span class="sbadge ${sclass}"><span class="sbadge-dot"></span>${esc(statusRaw)}</span>`
-          : `<span class="sbadge pending"><span class="sbadge-dot"></span>Pending</span>`}
+        ${!hasTracking
+          ? `<span class="sbadge notrk"><span class="sbadge-dot"></span>No Tracking</span>`
+          : statusRaw
+            ? `<span class="sbadge ${sclass}"><span class="sbadge-dot"></span>${esc(statusRaw)}</span>`
+            : `<span class="sbadge pending"><span class="sbadge-dot"></span>Pending</span>`}
       </td>
     </tr>`;
   });
