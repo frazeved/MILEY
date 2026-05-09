@@ -57,7 +57,7 @@
 
     .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
     .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; max-height: calc(100vh - 230px); overflow-y: auto; }
-    table { border-collapse: collapse; font-size: 12px; width: 100%; }
+    table { border-collapse: collapse; font-size: 12px; }
     thead th { background: #1e1b4b; color: #fff; padding: 10px 14px; text-align: left; font-size: 10px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; white-space: nowrap; position: sticky; top: 0; z-index: 2; border-right: 1px solid rgba(255,255,255,0.08); }
     thead th:last-child { border-right: none; }
     tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
@@ -65,7 +65,7 @@
     tbody tr:nth-child(even) { background: #faf9ff; }
     tbody tr:hover { background: #f3f0ff; }
     tbody tr.hidden { display: none; }
-    tbody td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; border-right: 1px solid #f0eeff; width: 1%; }
+    tbody td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; border-right: 1px solid #f0eeff; }
     tbody td:last-child { border-right: none; }
 
     .td-style { font-weight: 700; }
@@ -228,10 +228,11 @@ function filterRows() {
 
 function build(rows) {
   const H = rows[0].map(h => h.trim());
+  console.log('[fedex-db] headers:', H.slice(0, 15).join(' | '));
 
   const CI = {
     style:   findCol(H, 'style #', 'style#'),
-    po:      findCol(H, 'po#', 'po #'),
+    po:      findCol(H, 'po#', 'po #', 'po ', 'purchase order', 'order#'),
     ship:    findCol(H, 'ship date tradestone', 'ship date'),
     cancel:  findCol(H, 'cancel date'),
     trk:     findCol(H, 'tracking number'),
@@ -239,10 +240,12 @@ function build(rows) {
   };
 
   const now    = new Date();
-  const cutoff = new Date(+now - 30 * 86400000);
+  const cutoff = new Date(+now - 60 * 86400000);
   const get    = (r, i) => i >= 0 ? (r[i] || '').trim() : '';
 
+  console.log('[fedex-db] CI:', CI);
   const statusCol = findCol(H, 'status');
+  console.log('[fedex-db] statusCol:', statusCol, '=', H[statusCol]);
   const data = rows.slice(1).filter(r => {
     const sd  = parseDate(get(r, CI.ship));
     const sts = get(r, statusCol).toLowerCase();
@@ -250,7 +253,7 @@ function build(rows) {
   });
 
   if (!data.length) {
-    document.getElementById('table-area').innerHTML = '<div class="msg-box">No shipments in the last 30 days.</div>';
+    document.getElementById('table-area').innerHTML = '<div class="msg-box">No shipments in the last 60 days.</div>';
     document.getElementById('pills').innerHTML = '';
     document.getElementById('status-text').textContent = '0 shipments';
     return;
