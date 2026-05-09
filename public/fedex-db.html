@@ -242,12 +242,12 @@ function build(rows) {
   const data = rows.slice(1);
 
   const C = {
-    po:       col(H,'po#','po ','purchase order','order#'),
-    style:    col(H,'style#','style #','style name','style'),
-    shipDate: col(H,'ex-factory','exfactory','ex factory','ship date','shipped date'),
-    cancel:   col(H,'cancel date','cancel by','cancel'),
-    fedexTrk: col(H,'tracking number','tracking #','fedex tracking','fedex trk','trk#','awb','airway'),
-    fedexSts: col(H,'fedex status','delivery status','fed ex status','fedex delivery'),
+    style:    col(H,'style #','style#'),
+    po:       col(H,'po#','po #'),
+    shipDate: col(H,'ship date tradestone','ship date','ex-factory','exfactory'),
+    cancel:   col(H,'cancel date'),
+    fedexTrk: col(H,'tracking number'),
+    fedexSts: col(H,'delivery status','fedex status'),
   };
 
   // Only rows shipped within the last 20 days
