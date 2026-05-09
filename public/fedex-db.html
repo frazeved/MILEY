@@ -57,7 +57,7 @@
 
     .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
     .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; max-height: calc(100vh - 230px); overflow-y: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 680px; }
+    table { border-collapse: collapse; font-size: 12px; width: 100%; }
     thead th { background: #1e1b4b; color: #fff; padding: 10px 14px; text-align: left; font-size: 10px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; white-space: nowrap; position: sticky; top: 0; z-index: 2; border-right: 1px solid rgba(255,255,255,0.08); }
     thead th:last-child { border-right: none; }
     tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
@@ -65,7 +65,7 @@
     tbody tr:nth-child(even) { background: #faf9ff; }
     tbody tr:hover { background: #f3f0ff; }
     tbody tr.hidden { display: none; }
-    tbody td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; border-right: 1px solid #f0eeff; }
+    tbody td { padding: 9px 14px; vertical-align: middle; white-space: nowrap; border-right: 1px solid #f0eeff; width: 1%; }
     tbody td:last-child { border-right: none; }
 
     .td-style { font-weight: 700; }
@@ -164,7 +164,7 @@ let activeFilter = 'all';
 function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function findCol(headers, ...keywords) {
-  return headers.findIndex(h => keywords.some(k => h.trim().toLowerCase() === k.toLowerCase()));
+  return headers.findIndex(h => keywords.some(k => h.trim().toLowerCase().includes(k.toLowerCase())));
 }
 
 function parseDate(s) { const d = new Date(s); return isNaN(d) ? null : d; }
@@ -242,9 +242,11 @@ function build(rows) {
   const cutoff = new Date(+now - 30 * 86400000);
   const get    = (r, i) => i >= 0 ? (r[i] || '').trim() : '';
 
+  const statusCol = findCol(H, 'status');
   const data = rows.slice(1).filter(r => {
-    const sd = parseDate(get(r, CI.ship));
-    return sd && sd >= cutoff;
+    const sd  = parseDate(get(r, CI.ship));
+    const sts = get(r, statusCol).toLowerCase();
+    return sd && sd >= cutoff && sts.includes('ship');
   });
 
   if (!data.length) {
@@ -254,20 +256,7 @@ function build(rows) {
     return;
   }
 
-  // Count for pills
-  const counts = {};
-  data.forEach(r => {
-    const hasTrack = get(r, CI.trk).length > 0;
-    const cls = hasTrack ? classifyStatus(get(r, CI.sts)) : 'notrk';
-    counts[cls] = (counts[cls] || 0) + 1;
-  });
-
-  // Pills
-  let pillsHtml = `<div class="pill" data-f="all" onclick="setFilter('all')"><div class="dot" style="background:var(--muted)"></div><span>All (${data.length})</span></div>`;
-  ['notrk','delivered','out','transit','exception','pending'].forEach(cls => {
-    if (counts[cls]) pillsHtml += `<div class="pill ${cls}" data-f="${cls}" onclick="setFilter('${cls}')"><div class="dot"></div><span>${LABELS[cls]} (${counts[cls]})</span></div>`;
-  });
-  document.getElementById('pills').innerHTML = pillsHtml;
+  document.getElementById('pills').innerHTML = '';
 
   // Table
   let html = `<table><thead><tr>
@@ -283,14 +272,13 @@ function build(rows) {
     const statusRaw= get(r, CI.sts);
     const hasTrack = tracking.length > 0;
     const cls      = hasTrack ? classifyStatus(statusRaw) : 'notrk';
-    const ndcRed   = withinDays(cancel, 5);
     const fedexUrl = `https://www.fedex.com/fedextrack/?trknbr=${encodeURIComponent(tracking)}`;
 
-    html += `<tr data-cls="${cls}">
+    html += `<tr>
       <td class="td-style">${esc(style)}</td>
       <td class="td-muted">${esc(po)}</td>
       <td>${esc(fmtDate(ship))}</td>
-      <td class="${ndcRed ? 'td-red' : ''}">${esc(fmtDate(cancel))}${ndcRed ? ' ⚠' : ''}</td>
+      <td>${esc(fmtDate(cancel))}</td>
       <td>${hasTrack
         ? `<a class="trk-link" href="${esc(fedexUrl)}" target="_blank" rel="noopener">${esc(tracking)} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>`
         : `<span class="td-muted">—</span>`}
@@ -305,12 +293,6 @@ function build(rows) {
   html += '</tbody></table>';
   document.getElementById('table-area').innerHTML = html;
   document.getElementById('status-text').textContent = `${data.length} shipments`;
-  filterRows();
-}
-
-function setFilter(f) {
-  activeFilter = f;
-  filterRows();
 }
 
 async function loadData() {
