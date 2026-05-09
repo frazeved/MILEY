@@ -147,6 +147,8 @@
     .awb-row { display: flex; align-items: center; gap: 6px; background: #f8f9fa; border-radius: 6px; padding: 6px 10px; }
     .awb-label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; flex-shrink: 0; }
     .awb-val { font-size: 11px; font-weight: 600; color: var(--text-secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    a.awb-link { color: var(--accent); text-decoration: none; }
+    a.awb-link:hover { text-decoration: underline; }
     .awb-copy { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 2px; border-radius: 3px; display: flex; }
     .awb-copy:hover { color: var(--accent); }
 
@@ -463,7 +465,7 @@ function buildCards() {
         ${awb ? `
         <div class="awb-row">
           <span class="awb-label">AWB</span>
-          <span class="awb-val" id="awb-${ri}">${esc(awb)}</span>
+          <a class="awb-val awb-link" id="awb-${ri}" href="https://www.google.com/search?q=${encodeURIComponent(awb)}+airway+bill+cargo+tracking" target="_blank" rel="noopener">${esc(awb)}</a>
           <button class="awb-copy" title="Copy AWB" onclick="copyAWB('awb-${ri}')">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           </button>
