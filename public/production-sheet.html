@@ -12,7 +12,7 @@
       --bg: #f5f6fa; --surface: #fff; --border: #e4e7ed;
       --text: #1a1d23; --text-secondary: #6b7280;
       --accent: #16a34a; --accent-light: #dcfce7;
-      --blue: #1a56db;
+      --hdr: #14532d; --row-even: #f0fdf4;
     }
     body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
 
@@ -25,30 +25,51 @@
     .nav-link:hover { background: var(--bg); color: var(--text); }
     .nav-link.active { background: var(--accent-light); color: var(--accent); }
     .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--text-secondary); line-height: 1; }
-    .nav-hamburger:hover { color: var(--text); }
 
     /* MODE BAR */
     .mode-bar { background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 10px 28px; font-size: 14px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; flex-shrink: 0; }
     .mode-bar-left { display: flex; align-items: center; gap: 16px; }
     .mode-bar a { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
     .mode-bar a:hover { color: #fff; }
-
-    /* VIEW / EDIT TOGGLE */
     .toggle-group { display: flex; border-radius: 6px; overflow: hidden; border: 1.5px solid rgba(255,255,255,0.4); }
     .toggle-btn { background: transparent; border: none; color: rgba(255,255,255,0.75); font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; padding: 5px 14px; cursor: pointer; transition: background 0.15s, color 0.15s; }
     .toggle-btn.active { background: rgba(255,255,255,0.25); color: #fff; }
     .toggle-btn:hover:not(.active) { background: rgba(255,255,255,0.12); color: #fff; }
 
-    /* SHEET CONTAINER */
-    .sheet-wrapper { flex: 1; display: flex; flex-direction: column; padding: 0; }
+    /* WRAPPER */
+    .sheet-wrapper { flex: 1; padding: 20px 24px 40px; max-width: 1600px; margin: 0 auto; width: 100%; }
 
-    .sheet-frame {
-      flex: 1;
-      width: 100%;
-      min-height: calc(100vh - 112px);
-      border: none;
-      display: block;
+    /* STATUS */
+    .status-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .status-text { font-size: 12px; color: var(--text-secondary); }
+    .btn-reload { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 6px 12px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--accent); cursor: pointer; transition: background 0.15s; }
+    .btn-reload:hover { background: var(--accent-light); }
+    .btn-reload svg { transition: transform 0.4s; }
+    .btn-reload.loading svg { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* TABLE CARD */
+    .table-card { background: #fff; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    .table-scroll { overflow-x: auto; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead th {
+      background: var(--hdr); color: #fff;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.4px;
+      padding: 9px 12px; text-align: left;
+      border-right: 1px solid rgba(255,255,255,0.12);
+      white-space: nowrap; position: sticky; top: 0;
     }
+    thead th:last-child { border-right: none; }
+    tbody tr:nth-child(even) { background: var(--row-even); }
+    tbody tr:hover { background: #bbf7d0; }
+    tbody td { padding: 7px 12px; border-right: 1px solid #e9f5ee; border-bottom: 1px solid #e9f5ee; color: var(--text); white-space: nowrap; }
+    tbody td:last-child { border-right: none; }
+
+    /* LOADING / ERROR */
+    .msg-box { padding: 60px 24px; text-align: center; color: var(--text-secondary); font-size: 13px; }
+    .msg-box .icon { font-size: 32px; margin-bottom: 12px; }
+    .spinner-ring { width: 36px; height: 36px; border: 3px solid #e4e7ed; border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px; }
 
     /* RESPONSIVE */
     @media (max-width: 768px) {
@@ -59,7 +80,7 @@
       .nav-links.open { display: flex; }
       .nav-link { padding: 10px 20px; border-radius: 0; font-size: 13px; }
       .mode-bar { padding: 10px 16px; flex-wrap: wrap; gap: 8px; }
-      .sheet-frame { min-height: calc(100vh - 130px); }
+      .sheet-wrapper { padding: 16px 12px 40px; }
     }
   </style>
 </head>
@@ -85,44 +106,115 @@
 
 <div class="mode-bar">
   <div class="mode-bar-left">
-    <span>Production Sheet</span>
+    <span>Production &amp; PO Database</span>
     <div class="toggle-group">
       <button class="toggle-btn active" id="btn-view" onclick="setMode('view')">View</button>
-      <button class="toggle-btn" id="btn-edit" onclick="setMode('edit')">Edit</button>
+      <button class="toggle-btn" id="btn-edit" onclick="setMode('edit')">Edit in Sheets</button>
     </div>
   </div>
   <a href="production.html"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg> Back to Production</a>
 </div>
 
 <div class="sheet-wrapper">
-  <iframe
-    id="sheet-frame"
-    class="sheet-frame"
-    src="https://docs.google.com/spreadsheets/d/1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q/preview?gid=0&rm=minimal&single=true"
-    allowfullscreen
-  ></iframe>
+  <div class="status-bar">
+    <span class="status-text" id="status-text">Loading…</span>
+    <button class="btn-reload" id="reload-btn" onclick="loadData()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Refresh
+    </button>
+  </div>
+  <div class="table-card">
+    <div class="table-scroll" id="table-area">
+      <div class="msg-box"><div class="spinner-ring"></div>Fetching sheet data…</div>
+    </div>
+  </div>
 </div>
 
 <script>
 function toggleNav() { document.getElementById('nav-links').classList.toggle('open'); }
 
-const VIEW_URL = 'https://docs.google.com/spreadsheets/d/1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q/preview?gid=0&rm=minimal&single=true';
-const EDIT_URL = 'https://docs.google.com/spreadsheets/d/1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q/edit?gid=0&rm=minimal';
+const SHEET_ID = '1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q';
+const GID      = '0';
+const CSV_URL  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
+const EDIT_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?gid=${GID}`;
 
 function setMode(mode) {
-  const frame = document.getElementById('sheet-frame');
-  const btnView = document.getElementById('btn-view');
-  const btnEdit = document.getElementById('btn-edit');
   if (mode === 'edit') {
-    frame.src = EDIT_URL;
-    btnEdit.classList.add('active');
-    btnView.classList.remove('active');
-  } else {
-    frame.src = VIEW_URL;
-    btnView.classList.add('active');
-    btnEdit.classList.remove('active');
+    window.open(EDIT_URL, '_blank');
+    return;
   }
+  document.getElementById('btn-view').classList.add('active');
+  document.getElementById('btn-edit').classList.remove('active');
 }
+
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"' && text[i+1] === '"') { field += '"'; i++; }
+      else if (c === '"') { inQ = false; }
+      else { field += c; }
+    } else {
+      if (c === '"') { inQ = true; }
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\n' || (c === '\r' && text[i+1] === '\n')) {
+        if (c === '\r') i++;
+        row.push(field); field = '';
+        if (row.some(f => f.trim())) rows.push(row);
+        row = [];
+      } else { field += c; }
+    }
+  }
+  if (field || row.length) { row.push(field); if (row.some(f => f.trim())) rows.push(row); }
+  return rows;
+}
+
+function escapeHTML(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function loadData() {
+  const area   = document.getElementById('table-area');
+  const status = document.getElementById('status-text');
+  const btn    = document.getElementById('reload-btn');
+
+  area.innerHTML = '<div class="msg-box"><div class="spinner-ring"></div>Fetching sheet data…</div>';
+  status.textContent = 'Loading…';
+  btn.classList.add('loading');
+
+  try {
+    const res = await fetch(CSV_URL);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const csv  = await res.text();
+    const rows = parseCSV(csv);
+
+    if (!rows.length) throw new Error('No data');
+
+    const headers = rows[0];
+    const data    = rows.slice(1);
+
+    let html = '<table><thead><tr>';
+    headers.forEach(h => { html += `<th>${escapeHTML(h)}</th>`; });
+    html += '</tr></thead><tbody>';
+    data.forEach(r => {
+      html += '<tr>';
+      headers.forEach((_, i) => { html += `<td>${escapeHTML(r[i] ?? '')}</td>`; });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+
+    area.innerHTML = html;
+    status.textContent = `${data.length} rows · last updated ${new Date().toLocaleTimeString()}`;
+  } catch(e) {
+    area.innerHTML = `<div class="msg-box"><div class="icon">⚠️</div>Could not load sheet data.<br><small style="color:#9ca3af">Make sure the spreadsheet is shared (Anyone with link can view).<br>${e.message}</small></div>`;
+    status.textContent = 'Error loading data';
+  }
+  btn.classList.remove('loading');
+}
+
+loadData();
 </script>
 </body>
 </html>
