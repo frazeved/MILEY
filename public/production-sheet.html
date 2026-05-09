@@ -42,17 +42,9 @@
     .tb-btn:hover { background: #f0f0f5; }
     .tb-btn.green { color: var(--accent); }
     .tb-btn.green:hover { background: var(--accent-light); }
-    .tb-btn.red { color: #dc2626; background: #fee2e2; border-color: #fca5a5; display: none; }
-    .tb-btn.red.visible { display: flex; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .tb-btn.loading svg { animation: spin 0.8s linear infinite; }
 
-    .slicer-wrap { margin-bottom: 10px; }
-    .slicer-label { font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
-    .slicer-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-    .slicer-chip { font-size: 11px; font-weight: 500; padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg); color: var(--text-secondary); cursor: pointer; transition: all 0.12s; white-space: nowrap; }
-    .slicer-chip:hover { background: var(--accent-light); border-color: #6ee7b7; color: #065f46; }
-    .slicer-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
     .table-card { background: #fff; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
     .table-scroll { overflow-x: auto; max-height: calc(100vh - 220px); overflow-y: auto; }
@@ -135,16 +127,10 @@
 <div class="sheet-wrapper">
   <div class="toolbar">
     <span class="status-text" id="status-text">Loading…</span>
-    <button class="tb-btn red" id="btn-clear" onclick="clearFilter()">✕ Clear filter</button>
     <button class="tb-btn green" id="reload-btn" onclick="loadData()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
       Refresh
     </button>
-  </div>
-
-  <div class="slicer-wrap" id="slicer-wrap" style="display:none">
-    <div class="slicer-label">PL Status</div>
-    <div class="slicer-chips" id="slicer-chips"></div>
   </div>
 
   <div class="table-card">
@@ -158,7 +144,7 @@
 const SHEET_ID = '1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q';
 const CSV_URL  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=0`;
 
-let allRows = [], headers = [], statusCol = -1, activeFilter = '';
+let allRows = [], headers = [];
 
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -192,54 +178,17 @@ function parseCSV(text) {
   return rows;
 }
 
-function renderTable() {
-  const tbody = document.getElementById('data-body');
-  if (!tbody) return;
-  let visible = 0;
-  tbody.querySelectorAll('tr').forEach(tr => {
-    const val = tr.dataset.status || '';
-    const show = !activeFilter || val === activeFilter;
-    tr.classList.toggle('hidden', !show);
-    if (show) visible++;
-  });
-  document.getElementById('status-text').textContent = `${visible} of ${allRows.length} rows`;
-  document.getElementById('btn-clear').classList.toggle('visible', !!activeFilter);
-  document.querySelectorAll('.slicer-chip').forEach(c => {
-    c.classList.toggle('active', c.dataset.val === activeFilter);
-  });
-}
-
-function setFilter(val) {
-  activeFilter = activeFilter === val ? '' : val;
-  renderTable();
-}
-
-function clearFilter() {
-  activeFilter = '';
-  renderTable();
-}
 
 function buildPage(rows) {
-  headers  = rows[0];
-  allRows  = rows.slice(1);
-  statusCol = headers.findIndex(h => h.trim().toUpperCase() === 'PL STATUS');
-
-  // Status slicer
-  if (statusCol >= 0) {
-    const vals = [...new Set(allRows.map(r => (r[statusCol]||'').trim()))].filter(Boolean).sort();
-    document.getElementById('slicer-chips').innerHTML = vals.map(v =>
-      `<span class="slicer-chip" data-val="${esc(v)}" onclick="setFilter('${esc(v)}')">${esc(v)}</span>`
-    ).join('');
-    document.getElementById('slicer-wrap').style.display = 'block';
-  }
+  headers = rows[0];
+  allRows = rows.slice(1);
 
   // Table
   let html = '<table><thead><tr>';
   headers.forEach(h => { html += `<th title="${esc(h)}">${esc(h)}</th>`; });
   html += '</tr></thead><tbody id="data-body">';
   allRows.forEach(r => {
-    const statusVal = statusCol >= 0 ? (r[statusCol]||'').trim() : '';
-    html += `<tr data-status="${esc(statusVal)}">`;
+    html += `<tr>`;
     headers.forEach((_, ci) => {
       const raw = (r[ci] ?? '').trim();
       if (isURL(raw)) {
