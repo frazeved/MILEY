@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>305 Workspace — Sample Shipping</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f6fa; --surface: #fff; --border: #e4e7ed;
+      --text: #1a1d23; --text-secondary: #6b7280; --text-muted: #9ca3af;
+      --accent: #0891b2; --accent-light: #ecfeff;
+      --blue: #1a56db; --blue-hdr: #5b9bd5; --blue-light: #d6e4f7;
+      --row-even: #e8edf8; --row-odd: #fff;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 50; }
+    .nav-brand { font-size: 16px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; display: none; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .nav-link { font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: 6px; text-decoration: none; color: var(--text-secondary); transition: background 0.15s, color 0.15s; white-space: nowrap; }
+    .nav-link:hover { background: var(--bg); color: var(--text); }
+    .nav-link.active { background: var(--accent-light); color: var(--accent); }
+    .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--text-secondary); }
+
+    .mode-bar { background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 10px 28px; font-size: 14px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; }
+    .mode-bar a { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+    .mode-bar a:hover { color: #fff; }
+
+    .form-wrapper { max-width: 1600px; margin: 0 auto; padding: 16px 16px 40px; }
+
+    .form-card { background: #fff; border: 2px solid var(--blue); border-radius: 10px; overflow: hidden; }
+
+    /* TOP: logo + search */
+    .form-top { display: flex; align-items: center; gap: 24px; padding: 16px 20px; border-bottom: 1px solid var(--blue-light); flex-wrap: wrap; }
+    .logo-fr { height: 44px; width: auto; object-fit: contain; }
+    .search-block { display: flex; flex-direction: column; gap: 6px; margin-left: auto; }
+    .search-label { font-size: 11px; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.5px; text-transform: uppercase; }
+    .search-inputs { display: flex; gap: 6px; align-items: center; }
+    .search-col { display: flex; flex-direction: column; gap: 2px; }
+    .search-col-lbl { font-size: 10px; font-weight: 600; color: var(--text-muted); text-align: center; }
+    .search-input { width: 120px; font-family: inherit; font-size: 12px; border: 1.5px solid var(--blue); border-radius: 3px; padding: 5px 8px; outline: none; }
+    .search-btn { background: var(--blue-light); border: 1.5px solid var(--blue); color: var(--blue); font-family: inherit; font-size: 11px; font-weight: 700; padding: 5px 14px; border-radius: 4px; cursor: pointer; margin-top: 4px; letter-spacing: 0.5px; }
+    .search-btn:hover { background: #b8d0f0; }
+    .top-icons { display: flex; align-items: center; gap: 8px; }
+    .icon-circle { width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: filter 0.15s; }
+    .icon-circle:hover { filter: brightness(0.88); }
+    .icon-circle.blue { background: #1971c2; }
+    .icon-circle.gray { background: #a0aec0; }
+
+    /* BODY: 3 panels */
+    .form-body { display: flex; align-items: stretch; }
+
+    /* LEFT PANEL — FROM */
+    .panel { padding: 0; border-right: 1px solid var(--blue-light); }
+    .panel-from { width: 300px; flex-shrink: 0; }
+    .panel-to { width: 280px; flex-shrink: 0; }
+    .panel-items { flex: 1; min-width: 0; border-right: none; overflow-x: auto; }
+
+    .panel-hdr { background: var(--blue-hdr); color: #fff; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 6px 14px; text-align: center; }
+
+    .contact-list-row { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--blue-light); background: var(--blue-light); }
+    .contact-list-label { font-size: 10px; font-weight: 700; color: #1a3a6b; white-space: nowrap; }
+    .contact-select { flex: 1; font-family: inherit; font-size: 11px; border: 1px solid #9db8e0; border-radius: 3px; padding: 4px 6px; background: #dde8f8; outline: none; }
+
+    .contact-fields { padding: 8px 12px; }
+    .cf-row { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+    .cf-label { font-size: 10px; font-weight: 700; color: #1a1d23; white-space: nowrap; min-width: 90px; }
+    .cf-input { flex: 1; font-family: inherit; font-size: 11px; border: 1px dashed #9db8e0; border-radius: 2px; padding: 3px 7px; background: var(--row-even); outline: none; }
+    .cf-input:focus { border-color: var(--blue); background: #fff; }
+
+    .meta-section { padding: 8px 12px; border-top: 1px solid var(--blue-light); }
+    .meta-label { font-size: 10px; font-weight: 700; color: #1a1d23; white-space: nowrap; margin-bottom: 3px; }
+
+    /* SAVE */
+    .save-area { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 12px 0; cursor: pointer; }
+    .save-label { font-size: 11px; font-weight: 700; color: var(--blue); letter-spacing: 0.8px; text-transform: uppercase; }
+    .save-btn { width: 52px; height: 52px; background: var(--blue); border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: filter 0.15s; }
+    .save-btn:hover { filter: brightness(0.88); }
+
+    /* ITEMS TABLE */
+    .items-table { width: 100%; border-collapse: collapse; min-width: 700px; }
+    .items-table th { background: var(--blue-hdr); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; padding: 7px 8px; text-align: left; white-space: nowrap; border-right: 1px solid #3a7ac0; }
+    .items-table th .sort-arrow { font-size: 8px; margin-left: 3px; opacity: 0.7; }
+    .items-table td { padding: 2px 4px; border-bottom: 1px solid #dde8f8; }
+    .items-table tr:nth-child(odd) td { background: var(--row-odd); }
+    .items-table tr:nth-child(even) td { background: var(--row-even); }
+    .row-num { font-size: 10px; color: var(--text-muted); padding: 0 6px; width: 28px; text-align: right; }
+    .td-select { width: 70px; font-family: inherit; font-size: 10px; border: 1px solid #c8d8ee; border-radius: 2px; padding: 3px 4px; background: transparent; outline: none; width: 100%; }
+    .td-input { width: 100%; font-family: inherit; font-size: 11px; border: none; background: transparent; outline: none; padding: 3px 4px; }
+    .td-input:focus { background: #fff0e0; border-bottom: 1px solid var(--blue); }
+    .col-type { width: 80px; }
+    .col-style { width: 100px; }
+    .col-qty { width: 50px; }
+    .col-cat { width: 110px; }
+    .col-comp { width: 140px; }
+    .col-hts { width: 80px; }
+    .col-duty { width: 60px; }
+    .col-price { width: 80px; }
+
+    @media (max-width: 900px) {
+      .form-body { flex-direction: column; }
+      .panel-from, .panel-to { width: 100%; }
+      .panel { border-right: none; border-bottom: 1px solid var(--blue-light); }
+    }
+    @media (max-width: 768px) {
+      nav { padding: 0 16px; height: auto; min-height: 52px; position: relative; }
+      .nav-brand { display: block; }
+      .nav-hamburger { display: flex; align-items: center; }
+      .nav-links { display: none; position: absolute; top: 52px; left: 0; right: 0; background: var(--surface); border-bottom: 1px solid var(--border); flex-direction: column; padding: 6px 0 10px; gap: 0; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+      .nav-links.open { display: flex; }
+      .nav-link { padding: 10px 20px; border-radius: 0; font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-brand">305 <span>Workspace</span></div>
+  <button class="nav-hamburger" onclick="toggleNav()" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  <div class="nav-links" id="nav-links">
+    <a class="nav-link" href="/">&#8592; Home</a>
+    <a class="nav-link" href="warehouse.html">Warehouse Now</a>
+    <a class="nav-link" href="production.html">Production</a>
+    <a class="nav-link" href="samples.html">Samples Tracking</a>
+    <a class="nav-link" href="design.html">Design</a>
+    <a class="nav-link active" href="shipment.html">New Shipment</a>
+    <a class="nav-link" href="map.html">Map Updates</a>
+    <a class="nav-link" href="forecast.html">Forecast</a>
+    <a class="nav-link" href="gantt.html">Gantt Chart</a>
+    <a class="nav-link" href="tradestone.html">Tradestone Updates</a>
+    <a class="nav-link" href="rlm.html">RLM Updates</a>
+    <a class="nav-link" href="dhl.html">DHL Duties Cost</a>
+  </div>
+</nav>
+
+<div class="mode-bar">
+  <span>Sample Shipping</span>
+  <a href="shipment.html"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg> Back to New Shipment</a>
+</div>
+
+<div class="form-wrapper">
+  <div class="form-card">
+
+    <!-- TOP -->
+    <div class="form-top">
+      <img src="FARM RIO LOGO.png" alt="Farm Rio" class="logo-fr" />
+      <div class="search-block">
+        <div class="search-label">Search Shipment</div>
+        <div class="search-inputs">
+          <div class="search-col"><div class="search-col-lbl">STYLE</div><input type="text" class="search-input" /></div>
+          <div class="search-col"><div class="search-col-lbl">AWB</div><input type="text" class="search-input" /></div>
+          <div class="search-col"><div class="search-col-lbl">SHIP ORDER#</div><input type="text" class="search-input" /></div>
+          <button class="icon-circle blue" title="Search" style="flex-shrink:0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+        </div>
+        <div style="text-align:center;"><button class="search-btn">SEARCH</button></div>
+      </div>
+      <div class="top-icons">
+        <button class="icon-circle gray" title="Edit"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="icon-circle gray" title="Reports"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></button>
+        <button class="icon-circle gray" title="Chart"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></button>
+      </div>
+    </div>
+
+    <!-- BODY -->
+    <div class="form-body">
+
+      <!-- FROM PANEL -->
+      <div class="panel panel-from">
+        <div class="contact-list-row">
+          <span class="contact-list-label">CONTACT LIST</span>
+          <select class="contact-select"><option value="">—</option></select>
+        </div>
+        <div class="panel-hdr">FROM</div>
+        <div class="contact-fields">
+          <div class="cf-row"><span class="cf-label">CONTACT NAME:</span><input type="text" class="cf-input" /></div>
+          <div class="cf-row"><span class="cf-label">EMAIL:</span><input type="email" class="cf-input" /></div>
+          <div class="cf-row"><span class="cf-label">PHONE:</span><input type="text" class="cf-input" /></div>
+          <div class="cf-row"><span class="cf-label">COMPANY:</span><input type="text" class="cf-input" /></div>
+          <div class="cf-row"><span class="cf-label">ADDRESS 1:</span><input type="text" class="cf-input" /></div>
+          <div class="cf-row"><span class="cf-label">ADDRESS 2:</span><input type="text" class="cf-input" /></div>
+          <div class="cf-row"><span class="cf-label">CITY/COUNTRY:</span><input type="text" class="cf-input" /></div>
+          <div class="cf-row"><span class="cf-label">ZIP CODE:</span><input type="text" class="cf-input" /></div>
+          <div class="cf-row"><span class="cf-label">TAX ID:</span><input type="text" class="cf-input" /></div>
+        </div>
+        <div class="meta-section">
+          <div class="cf-row" style="margin-bottom:5px;"><span class="cf-label">ORDERED BY</span><input type="text" class="cf-input" /></div>
+          <div class="cf-row" style="margin-bottom:8px;"><span class="cf-label">EMAIL</span><input type="email" class="cf-input" /></div>
+          <div class="cf-row" style="align-items:flex-start;">
+            <span class="cf-label">SHIPMENT CREATED BY</span>
+            <select class="contact-select" style="flex:1;"><option value="">—</option></select>
+          </div>
+          <div style="height:8px;"></div>
+          <div class="cf-row"><span class="cf-label">AWB - TRACKING</span><input type="text" class="cf-input" /></div>
+          <div class="cf-row"><span class="cf-label">COST</span><input type="text" class="cf-input" /></div>
+          <div class="cf-row"><span class="cf-label">LABEL LINK</span><input type="text" class="cf-input" /></div>
+          <div class="cf-row"><span class="cf-label">INVOICE LINK</span><input type="text" class="cf-input" /></div>
+        </div>
+      </div>
+
+      <!-- TO PANEL -->
+      <div class="panel panel-to">
+        <div class="contact-list-row">
+          <span class="contact-list-label">CONTACT LIST</span>
+          <select class="contact-select"><option value="">—</option></select>
+        </div>
+        <div class="panel-hdr">TO</div>
+        <div class="contact-fields">
+          <div class="cf-row"><span class="cf-label">CONTACT NAME:</span><input type="text" class="cf-input" /></div>
+          <div class="cf-row"><span class="cf-label">EMAIL:</span><input type="email" class="cf-input" /></div>
+          <div class="cf-row"><span class="cf-label">PHONE:</span><input type="text" class="cf-input" /></div>
+          <div class="cf-row"><span class="cf-label">COMPANY:</span><input type="text" class="cf-input" /></div>
+          <div class="cf-row"><span class="cf-label">ADDRESS 1:</span><input type="text" class="cf-input" /></div>
+          <div class="cf-row"><span class="cf-label">ADDRESS 2:</span><input type="text" class="cf-input" /></div>
+          <div class="cf-row"><span class="cf-label">CITY/COUNTRY:</span><input type="text" class="cf-input" /></div>
+          <div class="cf-row"><span class="cf-label">ZIP CODE:</span><input type="text" class="cf-input" /></div>
+          <div class="cf-row"><span class="cf-label">TAX ID:</span><input type="text" class="cf-input" /></div>
+        </div>
+        <div class="meta-section">
+          <div class="cf-row"><span class="cf-label">SHIP DATE</span><input type="text" class="cf-input" /></div>
+          <div class="cf-row"><span class="cf-label">DELIVERY DATE</span><input type="text" class="cf-input" /></div>
+          <div class="save-area">
+            <span class="save-label">Save</span>
+            <button class="save-btn" title="Save">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ITEMS TABLE PANEL -->
+      <div class="panel panel-items">
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th style="width:28px;"></th>
+              <th class="col-type">TYPE <span class="sort-arrow">&#9663;</span></th>
+              <th class="col-style">STYLE <span class="sort-arrow">&#9663;</span></th>
+              <th class="col-qty">QTY <span class="sort-arrow">&#9663;</span></th>
+              <th class="col-cat">CATEGORY <span class="sort-arrow">&#9663;</span></th>
+              <th class="col-comp">COMPOSITION <span class="sort-arrow">&#9663;</span></th>
+              <th class="col-hts">HTS <span class="sort-arrow">&#9663;</span></th>
+              <th class="col-duty">DUTY % <span class="sort-arrow">&#9663;</span></th>
+              <th class="col-price">PRICE <span class="sort-arrow">&#9663;</span></th>
+            </tr>
+          </thead>
+          <tbody id="items-tbody"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleNav() { document.getElementById('nav-links').classList.toggle('open'); }
+
+// Build 25 table rows
+const tbody = document.getElementById('items-tbody');
+for (let i = 1; i <= 25; i++) {
+  tbody.innerHTML += `<tr>
+    <td class="row-num">${i}</td>
+    <td class="col-type"><select class="td-select"><option value="">—</option><option>Proto</option><option>SMS</option><option>TOP</option><option>PP</option><option>Photo</option></select></td>
+    <td class="col-style"><input class="td-input" type="text" /></td>
+    <td class="col-qty"><input class="td-input" type="text" /></td>
+    <td class="col-cat"><input class="td-input" type="text" /></td>
+    <td class="col-comp"><input class="td-input" type="text" /></td>
+    <td class="col-hts"><input class="td-input" type="text" /></td>
+    <td class="col-duty"><input class="td-input" type="text" /></td>
+    <td class="col-price"><input class="td-input" type="text" /></td>
+  </tr>`;
+}
+</script>
+</body>
+</html>

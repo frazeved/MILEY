@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>305 Workspace — DHL Duties Cost</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f6fa; --surface: #fff; --border: #e4e7ed;
+      --text: #1a1d23; --text-secondary: #6b7280; --text-muted: #9ca3af;
+      --accent: #d97706; --accent-light: #fffbeb;
+      --blue: #1a56db; --blue-light: #e8f0fe;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 50; }
+    .nav-brand { font-size: 16px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; display: none; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .nav-link { font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: 6px; text-decoration: none; color: var(--text-secondary); transition: background 0.15s, color 0.15s; white-space: nowrap; }
+    .nav-link:hover { background: var(--bg); color: var(--text); }
+    .nav-link.active { background: var(--accent-light); color: var(--accent); }
+    .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--text-secondary); }
+
+    .mode-bar { background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 10px 28px; font-size: 14px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; }
+    .mode-bar a { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+    .mode-bar a:hover { color: #fff; }
+
+    .form-wrapper { max-width: 1200px; margin: 0 auto; padding: 20px 24px 40px; }
+
+    .form-card {
+      background: #fff;
+      border: 2px solid var(--blue);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    /* LOGOS HEADER */
+    .form-logos {
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      gap: 48px;
+      border-bottom: 1px solid #e0e8f8;
+    }
+    .logo-fr { height: 48px; width: auto; object-fit: contain; }
+    .logo-dhl { height: 40px; width: auto; object-fit: contain; }
+
+    /* FORM BODY: 3 columns */
+    .form-body {
+      display: grid;
+      grid-template-columns: 300px 300px 1fr;
+      min-height: 360px;
+    }
+    .form-col { padding: 16px 20px; border-right: 1px solid #e0e8f8; }
+    .form-col:last-child { border-right: none; }
+
+    /* FIELD ROWS */
+    .f-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .f-label { font-size: 11px; font-weight: 700; color: #1a1d23; letter-spacing: 0.3px; white-space: nowrap; min-width: 90px; }
+    .f-label.w120 { min-width: 120px; }
+    .f-label.w140 { min-width: 140px; }
+    .f-input, .f-select {
+      flex: 1; font-family: inherit; font-size: 12px; color: var(--text);
+      border: 1.5px solid var(--blue); border-radius: 3px; padding: 5px 8px;
+      outline: none; background: #fff; transition: border-color 0.12s;
+    }
+    .f-input:focus, .f-select:focus { border-color: #0d3caa; background: #f8f9ff; }
+
+    /* ICONS */
+    .icon-btn { width: 36px; height: 36px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: filter 0.15s; }
+    .icon-btn:hover { filter: brightness(0.88); }
+    .icon-btn.blue { background: #1971c2; }
+    .icon-btn.gray { background: #a0aec0; }
+    .icon-btn svg { width: 18px; height: 18px; }
+
+    /* STYLES SECTION */
+    .styles-hdr { display: flex; align-items: center; margin-bottom: 8px; margin-top: 4px; }
+    .styles-hdr-label { font-size: 11px; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.8px; text-transform: uppercase; margin-left: 106px; }
+    .style-row { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; }
+    .style-label { font-size: 11px; font-weight: 700; color: #1a1d23; width: 60px; flex-shrink: 0; }
+    .style-input { flex: 1; font-family: inherit; font-size: 12px; border: 1.5px solid var(--blue); border-radius: 3px; padding: 5px 8px; outline: none; }
+    .style-input:focus { border-color: #0d3caa; background: #f8f9ff; }
+    .style-select { width: 110px; font-family: inherit; font-size: 12px; border: 1.5px solid #bbb; border-radius: 3px; padding: 4px 6px; background: #f0f0f0; outline: none; }
+
+    /* SEND BUTTON */
+    .send-area { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 20px; cursor: pointer; }
+    .send-label { font-size: 12px; font-weight: 700; color: var(--blue); letter-spacing: 0.8px; text-transform: uppercase; }
+    .send-btn { width: 56px; height: 56px; background: var(--blue); border: none; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: filter 0.15s; }
+    .send-btn:hover { filter: brightness(0.88); }
+    .send-btn svg { width: 30px; height: 30px; }
+
+    @media (max-width: 900px) {
+      .form-body { grid-template-columns: 1fr; }
+      .form-col { border-right: none; border-bottom: 1px solid #e0e8f8; }
+    }
+    @media (max-width: 768px) {
+      nav { padding: 0 16px; height: auto; min-height: 52px; position: relative; }
+      .nav-brand { display: block; }
+      .nav-hamburger { display: flex; align-items: center; }
+      .nav-links { display: none; position: absolute; top: 52px; left: 0; right: 0; background: var(--surface); border-bottom: 1px solid var(--border); flex-direction: column; padding: 6px 0 10px; gap: 0; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+      .nav-links.open { display: flex; }
+      .nav-link { padding: 10px 20px; border-radius: 0; font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-brand">305 <span>Workspace</span></div>
+  <button class="nav-hamburger" onclick="toggleNav()" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  <div class="nav-links" id="nav-links">
+    <a class="nav-link" href="/">&#8592; Home</a>
+    <a class="nav-link" href="warehouse.html">Warehouse Now</a>
+    <a class="nav-link" href="production.html">Production</a>
+    <a class="nav-link" href="samples.html">Samples Tracking</a>
+    <a class="nav-link" href="design.html">Design</a>
+    <a class="nav-link" href="shipment.html">New Shipment</a>
+    <a class="nav-link" href="map.html">Map Updates</a>
+    <a class="nav-link" href="forecast.html">Forecast</a>
+    <a class="nav-link" href="gantt.html">Gantt Chart</a>
+    <a class="nav-link" href="tradestone.html">Tradestone Updates</a>
+    <a class="nav-link" href="rlm.html">RLM Updates</a>
+    <a class="nav-link active" href="dhl.html">DHL Duties Cost</a>
+  </div>
+</nav>
+
+<div class="mode-bar">
+  <span>DHL Duties Cost — New Entry</span>
+  <a href="dhl.html"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg> Back to DHL</a>
+</div>
+
+<div class="form-wrapper">
+  <div class="form-card">
+
+    <!-- LOGOS -->
+    <div class="form-logos">
+      <img src="FARM RIO LOGO.png" alt="Farm Rio" class="logo-fr" />
+      <img src="DHL_Logo.svg.png" alt="DHL" class="logo-dhl" />
+      <span style="margin-left:auto; font-size:10px; font-weight:700; color:#9ca3af; letter-spacing:1px; text-transform:uppercase;">305 WORKSPACE — INTERNAL TOOL</span>
+    </div>
+
+    <!-- FORM BODY -->
+    <div class="form-body">
+
+      <!-- LEFT: AWB + Styles -->
+      <div class="form-col">
+        <div class="f-row" style="margin-bottom:14px;">
+          <span class="f-label">DHL AWB</span>
+          <input type="text" class="f-input" />
+          <button class="icon-btn blue" title="Search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <button class="icon-btn gray" title="Edit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+        </div>
+        <div class="styles-hdr"><span class="styles-hdr-label">Sample Type</span></div>
+        <div class="style-row"><span class="style-label">STYLE 1</span><input type="text" class="style-input" /><select class="style-select"><option value="">—</option><option>Proto</option><option>SMS</option><option>TOP</option><option>PP</option><option>Photo</option></select></div>
+        <div class="style-row"><span class="style-label">STYLE 2</span><input type="text" class="style-input" /><select class="style-select"><option value="">—</option><option>Proto</option><option>SMS</option><option>TOP</option><option>PP</option><option>Photo</option></select></div>
+        <div class="style-row"><span class="style-label">STYLE 3</span><input type="text" class="style-input" /><select class="style-select"><option value="">—</option><option>Proto</option><option>SMS</option><option>TOP</option><option>PP</option><option>Photo</option></select></div>
+        <div class="style-row"><span class="style-label">STYLE 4</span><input type="text" class="style-input" /><select class="style-select"><option value="">—</option><option>Proto</option><option>SMS</option><option>TOP</option><option>PP</option><option>Photo</option></select></div>
+        <div class="style-row"><span class="style-label">STYLE 5</span><input type="text" class="style-input" /><select class="style-select"><option value="">—</option><option>Proto</option><option>SMS</option><option>TOP</option><option>PP</option><option>Photo</option></select></div>
+        <div class="style-row"><span class="style-label">STYLE 6</span><input type="text" class="style-input" /><select class="style-select"><option value="">—</option><option>Proto</option><option>SMS</option><option>TOP</option><option>PP</option><option>Photo</option></select></div>
+        <div class="style-row"><span class="style-label">STYLE 7</span><input type="text" class="style-input" /><select class="style-select"><option value="">—</option><option>Proto</option><option>SMS</option><option>TOP</option><option>PP</option><option>Photo</option></select></div>
+      </div>
+
+      <!-- MIDDLE: Ship info + SEND -->
+      <div class="form-col">
+        <div class="f-row"><span class="f-label w120">SHIP DATE</span><input type="text" class="f-input" /></div>
+        <div class="f-row"><span class="f-label w120">SUPPLIER</span><select class="f-select"><option value="">—</option></select></div>
+        <div class="f-row"><span class="f-label w120">SENDER NAME</span><input type="text" class="f-input" /></div>
+        <div class="f-row"><span class="f-label w120">SENDER EMAIL</span><input type="text" class="f-input" /></div>
+        <div class="send-area">
+          <span class="send-label">Send</span>
+          <button class="send-btn" title="Send / Save">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- RIGHT: Financial info -->
+      <div class="form-col">
+        <div class="f-row"><span class="f-label w140">DUTY AMOUNT</span><input type="text" class="f-input" /></div>
+        <div class="f-row"><span class="f-label w140">DUTIES STATUS</span><select class="f-select"><option value="">—</option><option>Pending</option><option>Approved</option><option>Settled</option><option>Disputed</option></select></div>
+        <div class="f-row"><span class="f-label w140">BILLED TO</span><select class="f-select"><option value="">—</option></select></div>
+        <div class="f-row"><span class="f-label w140">BILLING DATE</span><input type="text" class="f-input" /></div>
+        <div class="f-row"><span class="f-label w140">INVOICE LINK</span><input type="text" class="f-input" /></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleNav() { document.getElementById('nav-links').classList.toggle('open'); }
+</script>
+</body>
+</html>

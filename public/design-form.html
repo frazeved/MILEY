@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>305 Workspace — Design Form</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f6fa; --surface: #fff; --border: #e4e7ed;
+      --text: #1a1d23; --text-secondary: #6b7280; --text-muted: #9ca3af;
+      --accent: #7c3aed; --accent-light: #f5f3ff; --accent-hover: #6d28d9;
+      --section-hdr: #9b8eca;
+      --label-bg: #ece9f8;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* NAV */
+    nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 50; }
+    .nav-brand { font-size: 16px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; flex-shrink: 0; display: none; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .nav-link { font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: 6px; text-decoration: none; color: var(--text-secondary); transition: background 0.15s, color 0.15s; white-space: nowrap; }
+    .nav-link:hover { background: var(--bg); color: var(--text); }
+    .nav-link.active { background: var(--accent-light); color: var(--accent); }
+    .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--text-secondary); line-height: 1; }
+    .nav-hamburger:hover { color: var(--text); }
+
+    /* MODE BAR */
+    .mode-bar {
+      background: var(--accent);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 28px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+    .mode-bar a { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+    .mode-bar a:hover { color: #fff; }
+    #mode-label { font-size: 14px; }
+
+    /* FORM WRAPPER */
+    .form-wrapper { max-width: 1380px; margin: 0 auto; padding: 20px 24px 40px; }
+
+    /* FORM TOP BAR */
+    .form-top {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px 10px 0 0;
+      border-bottom: 2px solid var(--border);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .top-logos { display: flex; align-items: center; gap: 20px; }
+    .top-logos .logo-fr { height: 36px; width: auto; object-fit: contain; }
+    .logo-urbn { font-size: 20px; font-weight: 900; letter-spacing: -1px; color: #1a1d23; font-style: italic; border-left: 2px solid var(--border); padding-left: 20px; }
+
+    .top-divider { flex: 1; }
+
+    .top-icons { display: flex; align-items: center; gap: 10px; }
+    .icon-circle {
+      width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: filter 0.15s;
+    }
+    .icon-circle:hover { filter: brightness(0.88); }
+    .icon-circle.red { background: #e03131; }
+    .icon-circle.blue { background: #1971c2; }
+    .icon-circle svg { width: 22px; height: 22px; }
+
+    .style-num-wrap { flex: 0 0 180px; }
+    .style-num-input {
+      width: 100%; padding: 9px 14px; border: 1.5px solid #bbb; border-radius: 6px;
+      font-family: inherit; font-size: 14px; font-weight: 700; text-align: center;
+      background: #f4f4f6; letter-spacing: 1px;
+      outline: none; text-transform: uppercase;
+    }
+    .style-num-input:focus { border-color: var(--accent); background: #fff; }
+    .style-num-input::placeholder { font-weight: 600; color: #888; }
+
+    /* FORM BODY */
+    .form-body { display: flex; gap: 0; background: #fff; border: 1px solid var(--border); border-top: none; border-radius: 0 0 10px 10px; }
+    .form-sections { flex: 1; min-width: 0; padding: 0 0 16px; }
+    .form-sidebar { width: 200px; flex-shrink: 0; border-left: 1px solid var(--border); padding: 16px 14px; display: flex; flex-direction: column; gap: 0; }
+
+    /* SECTION */
+    .form-section { margin-bottom: 0; }
+    .section-hdr {
+      background: var(--section-hdr);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-align: center;
+      padding: 8px 16px;
+      text-transform: uppercase;
+    }
+
+    /* FIELDS TABLE */
+    .fields-tbl { width: 100%; border-collapse: collapse; }
+    .fields-tbl tr:nth-child(even) { background: #fafafa; }
+    .fields-tbl td { padding: 4px 6px; vertical-align: middle; border-bottom: 1px solid #f0edf8; }
+
+    .lbl {
+      background: var(--label-bg);
+      font-size: 10px;
+      font-weight: 700;
+      color: #3d3068;
+      letter-spacing: 0.4px;
+      white-space: nowrap;
+      padding: 5px 10px;
+      width: 1%;
+      border-right: 1px solid #ddd9f0;
+    }
+    .fld { padding: 4px 8px; }
+    .fld input, .fld select {
+      width: 100%; min-width: 80px;
+      font-family: inherit; font-size: 12px; color: var(--text);
+      background: #fff; border: 1px solid #d0cce8; border-radius: 3px;
+      padding: 4px 8px; outline: none;
+      transition: border-color 0.12s;
+    }
+    .fld input:focus, .fld select:focus { border-color: var(--accent); background: #fdf8ff; }
+    .fld input.yellow { background: #fffde7; border-color: #f0d060; }
+    .fld input.yellow:focus { border-color: #d4a017; }
+
+    /* SIDEBAR */
+    .style-image-box {
+      flex: 1;
+      border: 2px solid #5c54b0;
+      border-radius: 4px;
+      min-height: 280px;
+      background: #fff;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .img-placeholder { font-size: 11px; color: var(--text-muted); text-align: center; }
+
+    .sidebar-actions { display: flex; flex-direction: column; gap: 18px; }
+
+    .sidebar-action { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .action-label {
+      font-size: 10px; font-weight: 700; color: #1971c2;
+      letter-spacing: 0.8px; text-transform: uppercase; text-align: center;
+    }
+    .action-label.red { color: #c92a2a; }
+
+    .action-icon-btn {
+      width: 48px; height: 48px; border-radius: 50%; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: filter 0.15s;
+    }
+    .action-icon-btn:hover { filter: brightness(0.88); }
+    .action-icon-btn.email1 { background: #1971c2; }
+    .action-icon-btn.email2 { background: #339af0; }
+    .action-icon-btn.trash { background: transparent; }
+    .action-icon-btn svg { width: 26px; height: 26px; }
+
+    .delete-input {
+      width: 100%; font-family: inherit; font-size: 12px;
+      padding: 5px 8px; border: 2px solid #c92a2a; border-radius: 4px;
+      outline: none; background: #fff5f5;
+    }
+    .delete-input:focus { border-color: #a61b1b; }
+
+    /* FOOTER */
+    .form-footer {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-top: 2px solid var(--border);
+      border-radius: 0 0 10px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 32px;
+      padding: 14px 24px;
+    }
+    .footer-action { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+    .footer-label { font-size: 10px; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.8px; text-transform: uppercase; }
+    .footer-btn {
+      width: 52px; height: 52px; border-radius: 10px; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: filter 0.15s;
+    }
+    .footer-btn:hover { filter: brightness(0.88); }
+    .footer-btn.db { background: #e8e4f8; }
+    .footer-btn.tpgen { background: #fff3bf; }
+    .footer-btn.save { background: #1971c2; }
+    .footer-btn svg { width: 30px; height: 30px; }
+
+    /* MOBILE */
+    .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--text-secondary); }
+    @media (max-width: 768px) {
+      nav { padding: 0 16px; height: auto; min-height: 52px; position: relative; }
+      .nav-brand { display: block; }
+      .nav-hamburger { display: flex; align-items: center; }
+      .nav-links { display: none; position: absolute; top: 52px; left: 0; right: 0; background: var(--surface); border-bottom: 1px solid var(--border); flex-direction: column; padding: 6px 0 10px; gap: 0; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+      .nav-links.open { display: flex; }
+      .nav-link { padding: 10px 20px; border-radius: 0; font-size: 13px; white-space: normal; }
+      .form-wrapper { padding: 12px 10px 40px; }
+      .form-top { flex-wrap: wrap; gap: 10px; }
+      .form-body { flex-direction: column; }
+      .form-sidebar { width: 100%; border-left: none; border-top: 1px solid var(--border); flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 16px; }
+      .style-image-box { min-height: 160px; flex: 0 0 160px; margin-bottom: 0; }
+      .sidebar-actions { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+      .fields-tbl, .fields-tbl tbody, .fields-tbl tr, .fields-tbl td { display: block; width: 100%; }
+      .fields-tbl tr { display: grid; grid-template-columns: 140px 1fr; margin-bottom: 4px; }
+      .lbl { white-space: normal; }
+      .top-logos .logo-fr { height: 26px; }
+      .logo-urbn { font-size: 15px; padding-left: 14px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">305 <span>Workspace</span></div>
+  <button class="nav-hamburger" onclick="toggleNav()" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  <div class="nav-links" id="nav-links">
+    <a class="nav-link" href="/">&#8592; Home</a>
+    <a class="nav-link" href="warehouse.html">Warehouse Now</a>
+    <a class="nav-link" href="production.html">Production</a>
+    <a class="nav-link" href="samples.html">Samples Tracking</a>
+    <a class="nav-link active" href="design.html">Design</a>
+    <a class="nav-link" href="shipment.html">New Shipment</a>
+    <a class="nav-link" href="map.html">Map Updates</a>
+    <a class="nav-link" href="forecast.html">Forecast</a>
+    <a class="nav-link" href="gantt.html">Gantt Chart</a>
+    <a class="nav-link" href="tradestone.html">Tradestone Updates</a>
+    <a class="nav-link" href="rlm.html">RLM Updates</a>
+    <a class="nav-link" href="dhl.html">DHL Duties Cost</a>
+  </div>
+</nav>
+
+<!-- MODE BAR -->
+<div class="mode-bar">
+  <span id="mode-label">NEW STYLE INPUT</span>
+  <a href="design.html">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to Design
+  </a>
+</div>
+
+<!-- FORM WRAPPER -->
+<div class="form-wrapper">
+
+  <!-- TOP BAR -->
+  <div class="form-top">
+    <div class="top-logos">
+      <img src="FARM RIO LOGO.png" alt="Farm Rio" class="logo-fr" />
+      <span class="logo-urbn">URBN</span>
+    </div>
+    <div class="top-divider"></div>
+    <div class="top-icons">
+      <button class="icon-circle red" title="View All Styles">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="#fff"/><circle cx="3" cy="12" r="1" fill="#fff"/><circle cx="3" cy="18" r="1" fill="#fff"/></svg>
+      </button>
+      <button class="icon-circle blue" title="Edit Mode">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+      </button>
+    </div>
+    <div class="style-num-wrap">
+      <input id="style-number" type="text" class="style-num-input" placeholder="STYLE #" />
+    </div>
+    <button class="icon-circle blue" title="Search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </button>
+  </div>
+
+  <!-- BODY -->
+  <div class="form-body">
+
+    <!-- LEFT: FORM SECTIONS -->
+    <div class="form-sections">
+
+      <!-- DEVELOPMENT PROCESS -->
+      <div class="form-section">
+        <div class="section-hdr">Development Process</div>
+        <table class="fields-tbl">
+          <tr>
+            <td class="lbl">PHASE</td>
+            <td class="fld"><select><option value="">—</option><option>Design</option><option>Development</option><option>Production</option></select></td>
+            <td class="lbl">TP SENT TO SUPPLIER</td>
+            <td class="fld"><input type="text" /></td>
+          </tr>
+          <tr>
+            <td class="lbl">INTERNAL PRESENTATION</td>
+            <td class="fld"><input type="text" /></td>
+            <td class="lbl">TP LINK</td>
+            <td class="fld"><input type="text" class="yellow" placeholder="" /></td>
+          </tr>
+          <tr>
+            <td class="lbl">INTERNAL APPROVAL</td>
+            <td class="fld"><input type="text" /></td>
+            <td class="lbl">PRINT SENT TO SUPPLIER</td>
+            <td class="fld"><input type="text" /></td>
+          </tr>
+          <tr>
+            <td class="lbl">BUYER PRESENTATION</td>
+            <td class="fld"><input type="text" /></td>
+            <td class="lbl">PRINT INFO SENT TO MARKER MAKER</td>
+            <td class="fld"><input type="text" /></td>
+          </tr>
+          <tr>
+            <td class="lbl">BUYER APPROVAL</td>
+            <td class="fld"><input type="text" /></td>
+            <td class="lbl">PRINT INFO RECEIVED FROM MARKER MAKER</td>
+            <td class="fld"><input type="text" /></td>
+          </tr>
+          <tr>
+            <td class="lbl">STYLE NEEDS PROTO?</td>
+            <td class="fld"><select><option value="">—</option><option>Yes</option><option>No</option></select></td>
+            <td class="lbl">PATTERN REQUEST (Existing Styles)</td>
+            <td class="fld"><input type="text" /></td>
+          </tr>
+          <tr>
+            <td class="lbl">TP DEVELOPMENT</td>
+            <td class="fld"><input type="text" /></td>
+            <td class="lbl">PATTERN RECEIVE (Existing Styles)</td>
+            <td class="fld"><input type="text" /></td>
+          </tr>
+          <tr>
+            <td class="lbl">BRAND</td>
+            <td class="fld"><select><option value="">—</option><option>Farm Rio</option><option>URBN</option></select></td>
+            <td class="lbl">PATTERN REQUEST (New Styles)</td>
+            <td class="fld"><input type="text" /></td>
+          </tr>
+          <tr>
+            <td class="lbl"></td>
+            <td class="fld"></td>
+            <td class="lbl">PATTERN RECEIVE (New Styles)</td>
+            <td class="fld"><input type="text" /></td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- STYLE DESCRIPTION / COMPOSITION -->
+      <div class="form-section">
+        <div class="section-hdr">Style Description / Composition</div>
+        <table class="fields-tbl">
+          <tr>
+            <td class="lbl">CATEGORY</td>
+            <td class="fld"><select><option value="">—</option></select></td>
+            <td class="lbl">SEASON</td>
+            <td class="fld"><select><option value="">—</option></select></td>
+          </tr>
+          <tr>
+            <td class="lbl">SUB-CATEGORY</td>
+            <td class="fld"><select><option value="">—</option></select></td>
+            <td class="lbl">SUPPLIER</td>
+            <td class="fld"><select><option value="">—</option></select></td>
+          </tr>
+          <tr>
+            <td class="lbl">FABRIC</td>
+            <td class="fld"><input type="text" /></td>
+            <td class="lbl">SUPPLIER B</td>
+            <td class="fld"><select><option value="">—</option></select></td>
+          </tr>
+          <tr>
+            <td class="lbl">PRINT TYPE</td>
+            <td class="fld"><select><option value="">—</option></select></td>
+            <td class="lbl">DIFFICULTY</td>
+            <td class="fld"><select><option value="">—</option></select></td>
+          </tr>
+          <tr>
+            <td class="lbl">PRINT NAME</td>
+            <td class="fld"><input type="text" /></td>
+            <td class="lbl">DESIGN NOTES</td>
+            <td class="fld"><input type="text" /></td>
+          </tr>
+          <tr>
+            <td class="lbl">CAD URL</td>
+            <td class="fld"><input type="text" /></td>
+            <td class="lbl">LINK A/W INTERNAL</td>
+            <td class="fld"><input type="text" /></td>
+          </tr>
+          <tr>
+            <td class="lbl">UNITS QUANTITY</td>
+            <td class="fld"><input type="text" /></td>
+            <td class="lbl">LINK STYLE FOLDER</td>
+            <td class="fld"><input type="text" /></td>
+          </tr>
+          <tr>
+            <td class="lbl">TECH PACK MODEL</td>
+            <td class="fld"><select><option value="">—</option></select></td>
+            <td class="lbl">LINK A/W SUPPLIER</td>
+            <td class="fld"><input type="text" /></td>
+          </tr>
+        </table>
+      </div>
+
+    </div><!-- end form-sections -->
+
+    <!-- RIGHT SIDEBAR -->
+    <div class="form-sidebar">
+      <div class="style-image-box">
+        <div class="img-placeholder">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#c8c0e8" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <div style="margin-top:8px;font-size:10px;color:#b0a8d0;">Style Image</div>
+        </div>
+      </div>
+
+      <div class="sidebar-actions">
+        <div class="sidebar-action">
+          <span class="action-label">TP E-MAIL</span>
+          <button class="action-icon-btn email1" title="Send TP Email">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </button>
+        </div>
+        <div class="sidebar-action">
+          <span class="action-label">MEETING E-MAIL</span>
+          <button class="action-icon-btn email2" title="Send Meeting Email">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </button>
+        </div>
+        <div class="sidebar-action">
+          <span class="action-label red">DELETE STYLE</span>
+          <input type="text" class="delete-input" placeholder="" />
+          <button class="action-icon-btn trash" title="Delete Style">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#c92a2a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="36" height="36"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end form-body -->
+
+  <!-- FOOTER ACTIONS -->
+  <div class="form-footer">
+    <div class="footer-action">
+      <button class="footer-btn db" title="Database">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+      </button>
+      <span class="footer-label">Database</span>
+    </div>
+    <div class="footer-action">
+      <button class="footer-btn tpgen" title="Generate TP">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#d4a017" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+      </button>
+      <span class="footer-label">TP Generator</span>
+    </div>
+    <div class="footer-action">
+      <button class="footer-btn save" title="Save">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      </button>
+      <span class="footer-label">Save</span>
+    </div>
+  </div>
+
+</div><!-- end form-wrapper -->
+
+<script>
+function toggleNav() { document.getElementById('nav-links').classList.toggle('open'); }
+
+const params = new URLSearchParams(window.location.search);
+const mode = params.get('mode') || 'new';
+const labels = {
+  'new':    'New Style Input',
+  'edit':   'Edit / Update Style',
+  'delete': 'Delete Style',
+  'print':  'Print Inputs'
+};
+document.getElementById('mode-label').textContent = labels[mode] || labels['new'];
+</script>
+</body>
+</html>
