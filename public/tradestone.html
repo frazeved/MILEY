@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>305 Workspace — Samantha</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f6fa;
+      --surface: #ffffff;
+      --border: #e4e7ed;
+      --text: #1a1d23;
+      --text-secondary: #6b7280;
+      --text-muted: #9ca3af;
+      --accent: #2563eb;
+      --accent-light: #eff6ff;
+      --accent-hover: #1d4ed8;
+      --success: #16a34a;
+      --success-bg: #f0fdf4;
+      --success-border: #bbf7d0;
+      --fail: #dc2626;
+      --fail-bg: #fef2f2;
+      --fail-border: #fecaca;
+      --running: #d97706;
+      --running-bg: #fffbeb;
+      --running-border: #fde68a;
+      --idle: #6b7280;
+      --idle-bg: #f9fafb;
+      --idle-border: #e5e7eb;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── NAV ── */
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .nav-brand {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.3px;
+      white-space: nowrap;
+    }
+
+    .nav-brand span { color: var(--accent); }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .nav-link {
+      font-size: 12px;
+      font-weight: 500;
+      padding: 5px 10px;
+      border-radius: 6px;
+      text-decoration: none;
+      color: var(--text-secondary);
+      transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+
+    .nav-link:hover { background: var(--bg); color: var(--text); }
+
+    .nav-link.active {
+      background: var(--accent-light);
+      color: var(--accent);
+    }
+
+    .nav-link.soon {
+      color: var(--text-muted);
+      cursor: default;
+    }
+
+    .nav-link.soon::after {
+      content: 'soon';
+      font-size: 9px;
+      background: var(--border);
+      color: var(--text-muted);
+      border-radius: 4px;
+      padding: 1px 4px;
+      margin-left: 5px;
+      font-weight: 400;
+    }
+
+    /* ── LAYOUT ── */
+    .layout {
+      display: flex;
+      align-items: flex-start;
+      gap: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 24px 60px;
+    }
+
+    /* ── LEFT SIDEBAR ── */
+    .sidebar {
+      width: 240px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 72px;
+    }
+
+    .sidebar-agent {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px 20px 20px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .sidebar-avatar {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      overflow: hidden;
+      margin: 0 auto 16px;
+      box-shadow: 0 0 0 4px var(--accent-light), 0 0 0 7px #bfdbfe;
+    }
+
+    .sidebar-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+      display: block;
+    }
+
+    .sidebar-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+
+    .sidebar-name {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.4px;
+      margin-bottom: 4px;
+    }
+
+    .sidebar-title {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .sidebar-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      text-align: left;
+      margin-bottom: 14px;
+    }
+
+    .sidebar-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      justify-content: center;
+    }
+
+    .sidebar-tag {
+      font-size: 10px;
+      font-weight: 500;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+
+    /* ── CHAT TOGGLE BUTTON ── */
+    .chat-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .chat-toggle:hover { background: var(--accent-light); border-color: #bfdbfe; }
+    .chat-toggle svg { flex-shrink: 0; }
+
+    /* ── INLINE CHAT PANEL ── */
+    .sidebar-chat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      margin-top: 10px;
+      display: none;
+    }
+    .sidebar-chat.open { display: block; }
+
+    .chat-head {
+      background: var(--accent);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .chat-head-left { display: flex; align-items: center; gap: 8px; }
+
+    .chat-head-avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      overflow: hidden;
+      flex-shrink: 0;
+      border: 2px solid rgba(255,255,255,0.4);
+    }
+
+    .chat-head-avatar img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      object-position: center top;
+      display: block;
+    }
+
+    .chat-head-name { font-size: 13px; font-weight: 600; color: #fff; }
+    .chat-head-sub  { font-size: 10px; color: rgba(255,255,255,0.75); }
+
+    .chat-close {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.8);
+      font-size: 18px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px;
+    }
+    .chat-close:hover { color: #fff; }
+
+    .chat-body { padding: 14px; display: flex; flex-direction: column; gap: 9px; }
+
+    .chat-bubble {
+      background: var(--accent-light);
+      border-radius: 10px 10px 10px 3px;
+      padding: 9px 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .chat-field { display: flex; flex-direction: column; gap: 3px; }
+    .chat-field label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .chat-field input,
+    .chat-field textarea {
+      font-family: inherit;
+      font-size: 12px;
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      outline: none;
+      color: var(--text);
+      background: var(--bg);
+      resize: none;
+      transition: border-color 0.15s;
+    }
+    .chat-field input:focus,
+    .chat-field textarea:focus { border-color: var(--accent); }
+
+    .chat-send {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 7px;
+      padding: 9px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-top: 2px;
+    }
+    .chat-send:hover { background: var(--accent-hover); }
+    .chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .chat-success {
+      text-align: center;
+      padding: 20px 14px;
+      font-size: 12px;
+      color: var(--success);
+      font-weight: 500;
+      display: none;
+    }
+
+    /* ── RIGHT CONTENT ── */
+    .content { flex: 1; min-width: 0; }
+
+    /* ── SECTION HEADER ── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .section-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .refresh-info {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .btn-run {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 18px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .btn-run:hover { background: var(--accent-hover); }
+    .btn-run:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-run .spinner {
+      width: 13px; height: 13px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    .btn-run.loading .spinner { display: block; }
+    .btn-run.loading .btn-label { display: none; }
+
+    /* ── TASK GRID ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      transition: box-shadow 0.15s;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .card-sheet {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    .status-badge .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .badge-success { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+    .badge-success .dot { background: var(--success); }
+    .badge-fail { background: var(--fail-bg); color: var(--fail); border: 1px solid var(--fail-border); }
+    .badge-fail .dot { background: var(--fail); }
+    .badge-running { background: var(--running-bg); color: var(--running); border: 1px solid var(--running-border); }
+    .badge-running .dot { background: var(--running); animation: pulse 1.2s ease-in-out infinite; }
+    .badge-idle { background: var(--idle-bg); color: var(--idle); border: 1px solid var(--idle-border); }
+    .badge-idle .dot { background: var(--idle); }
+
+    .card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      flex: 1;
+    }
+
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .meta-label { color: var(--text-muted); }
+    .meta-value { color: var(--text-secondary); font-weight: 500; }
+
+    .card-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 14px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      text-decoration: none;
+      padding: 7px 12px;
+      background: var(--accent-light);
+      border-radius: 7px;
+      transition: background 0.15s;
+      align-self: flex-start;
+    }
+
+    .card-link:hover { background: #dbeafe; }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--text);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 10px 16px;
+      border-radius: 8px;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: all 0.2s;
+      pointer-events: none;
+      z-index: 100;
+      max-width: 360px;
+    }
+
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { background: var(--fail); }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">305 <span>Workspace</span></div>
+  <div class="nav-links">
+    <a class="nav-link" href="/">&#8592; Home</a>
+    <a class="nav-link active" href="tradestone.html">Tradestone Updates</a>
+    <a class="nav-link soon" href="#">Warehouse Now</a>
+    <a class="nav-link soon" href="#">Production E-mails</a>
+    <a class="nav-link soon" href="#">RLM Updates</a>
+    <a class="nav-link soon" href="#">Map Updates</a>
+    <a class="nav-link soon" href="#">Forecast</a>
+    <a class="nav-link soon" href="#">Gantt Chart</a>
+  </div>
+</nav>
+
+<!-- TWO-COLUMN LAYOUT -->
+<div class="layout">
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="sidebar">
+
+    <!-- Agent Profile -->
+    <div class="sidebar-agent">
+      <div class="sidebar-avatar">
+        <img src="samantha.jpg.png" alt="Samantha" />
+      </div>
+      <div class="sidebar-label">AI Agent</div>
+      <div class="sidebar-name">Samantha</div>
+      <div class="sidebar-title">Data Extraction Specialist<br>TradeStone PLM</div>
+      <div class="sidebar-desc">
+        Samantha connects to TradeStone PLM, runs your PO extractions on schedule or on demand, and delivers clean data directly to Google Sheets — no manual work required.
+      </div>
+      <div class="sidebar-tags">
+        <span class="sidebar-tag">TradeStone PLM</span>
+        <span class="sidebar-tag">Google Sheets</span>
+        <span class="sidebar-tag">Daily Schedule</span>
+        <span class="sidebar-tag">4 Reports</span>
+      </div>
+    </div>
+
+    <!-- Chat Toggle Button -->
+    <button class="chat-toggle" onclick="toggleChat()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      Message the team
+    </button>
+
+    <!-- Chat Panel (hidden by default) -->
+    <div class="sidebar-chat" id="chat-panel">
+      <div class="chat-head">
+        <div class="chat-head-left">
+          <div class="chat-head-avatar">
+            <img src="samantha.jpg.png" alt="Samantha" />
+          </div>
+          <div>
+            <div class="chat-head-name">Message the team</div>
+            <div class="chat-head-sub">We'll reply by email</div>
+          </div>
+        </div>
+        <button class="chat-close" onclick="toggleChat()">&#x2715;</button>
+      </div>
+      <div class="chat-body" id="chat-body">
+        <div class="chat-bubble">Hi! Leave a message and the team will get back to you.</div>
+        <div class="chat-field">
+          <label>Your name</label>
+          <input id="chat-name" type="text" placeholder="Jane Smith" />
+        </div>
+        <div class="chat-field">
+          <label>Email (optional)</label>
+          <input id="chat-email" type="email" placeholder="jane@company.com" />
+        </div>
+        <div class="chat-field">
+          <label>Message</label>
+          <textarea id="chat-message" rows="3" placeholder="What do you need?"></textarea>
+        </div>
+        <button class="chat-send" id="chat-send-btn" onclick="sendChat()">Send Message</button>
+      </div>
+      <div class="chat-success" id="chat-success">
+        ✅ Sent! The team will reply soon.
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- RIGHT CONTENT -->
+  <div class="content">
+    <div class="section-header">
+      <div class="section-title">Active Tasks</div>
+      <div class="section-actions">
+        <span class="refresh-info" id="refresh-info"></span>
+        <button class="btn-run" id="run-btn" onclick="runAll()">
+          <span class="spinner"></span>
+          <span class="btn-label">Refresh All</span>
+        </button>
+      </div>
+    </div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function toggleChat() {
+  document.getElementById('chat-panel').classList.toggle('open');
+}
+
+async function sendChat() {
+  const name = document.getElementById('chat-name').value.trim();
+  const email = document.getElementById('chat-email').value.trim();
+  const message = document.getElementById('chat-message').value.trim();
+  if (!name || !message) { alert('Please enter your name and message.'); return; }
+
+  const btn = document.getElementById('chat-send-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  try {
+    const res = await fetch('/api/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, message }),
+    });
+    if (!res.ok) throw new Error();
+    document.getElementById('chat-body').style.display = 'none';
+    document.getElementById('chat-success').style.display = 'block';
+  } catch {
+    btn.disabled = false;
+    btn.textContent = 'Send Message';
+    alert('Could not send message. Please try again.');
+  }
+}
+</script>
+
+<script>
+const WORKFLOWS = [
+  { id: 'po-detail.yml',   name: 'PO DETAIL',   tab: 'PO DETAIL',  sheetUrl: 'https://docs.google.com/spreadsheets/d/1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q/edit?gid=2017761959#gid=2017761959' },
+  { id: 'all-pos.yml',     name: 'ALL POs',      tab: 'PO TRADE',   sheetUrl: 'https://docs.google.com/spreadsheets/d/1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q/edit?gid=890202899#gid=890202899'   },
+  { id: 'po-headers.yml',  name: 'PO HEADERS',   tab: 'PO NEW',     sheetUrl: 'https://docs.google.com/spreadsheets/d/1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q/edit?gid=406184613#gid=406184613'   },
+  { id: 'po-invoiced.yml', name: 'PO INVOICED',  tab: 'PO INVOICE', sheetUrl: 'https://docs.google.com/spreadsheets/d/1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q/edit?gid=1379989532#gid=1379989532' },
+];
+
+let countdown = 30;
+let timer, pollInterval;
+
+function badgeClass(status, conclusion) {
+  if (status === 'in_progress' || status === 'queued') return 'badge-running';
+  if (conclusion === 'success') return 'badge-success';
+  if (conclusion === 'failure' || conclusion === 'timed_out') return 'badge-fail';
+  return 'badge-idle';
+}
+
+function badgeLabel(status, conclusion) {
+  if (status === 'in_progress') return 'Running';
+  if (status === 'queued') return 'Queued';
+  if (conclusion === 'success') return 'Success';
+  if (conclusion === 'failure') return 'Failed';
+  if (conclusion === 'timed_out') return 'Timed out';
+  return 'No runs yet';
+}
+
+function timeAgo(iso) {
+  if (!iso) return '—';
+  const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function formatDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function formatDuration(s) {
+  if (s === null || s === undefined) return '—';
+  if (s < 60) return `${s}s`;
+  return `${Math.floor(s / 60)}m ${s % 60}s`;
+}
+
+function renderCards(data) {
+  document.getElementById('grid').innerHTML = data.map(wf => {
+    const cls = badgeClass(wf.status, wf.conclusion);
+    const label = badgeLabel(wf.status, wf.conclusion);
+    return `
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">${wf.name}</div>
+            <div class="card-sheet">&#x2192; ${wf.tab}</div>
+          </div>
+          <span class="status-badge ${cls}"><span class="dot"></span>${label}</span>
+        </div>
+        <div class="card-body">
+          <div class="meta-row">
+            <span class="meta-label">Last run</span>
+            <span class="meta-value">${formatDate(wf.updated_at)}</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Time ago</span>
+            <span class="meta-value">${timeAgo(wf.updated_at)}</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Duration</span>
+            <span class="meta-value">${formatDuration(wf.duration)}</span>
+          </div>
+        </div>
+        ${wf.sheetUrl ? `<a class="card-link" href="${wf.sheetUrl}" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Open Sheet
+        </a>` : ''}
+      </div>`;
+  }).join('');
+}
+
+function renderSkeleton() {
+  document.getElementById('grid').innerHTML = WORKFLOWS.map(() => `
+    <div class="card">
+      <div class="card-header">
+        <div style="background:#eee;border-radius:4px;height:14px;width:90px;animation:shimmer 1.2s ease infinite"></div>
+        <div style="background:#eee;border-radius:20px;height:22px;width:60px;animation:shimmer 1.2s ease infinite"></div>
+      </div>
+      <div class="card-body">
+        <div class="meta-row"><span class="meta-label">Last run</span><span style="background:#eee;border-radius:4px;height:12px;width:80px;display:inline-block;animation:shimmer 1.2s ease infinite"></span></div>
+        <div class="meta-row"><span class="meta-label">Time ago</span><span style="background:#eee;border-radius:4px;height:12px;width:50px;display:inline-block;animation:shimmer 1.2s ease infinite"></span></div>
+        <div class="meta-row"><span class="meta-label">Duration</span><span style="background:#eee;border-radius:4px;height:12px;width:40px;display:inline-block;animation:shimmer 1.2s ease infinite"></span></div>
+      </div>
+    </div>`).join('');
+}
+
+function showToast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => { t.className = 'toast'; }, 5000);
+}
+
+async function fetchStatus() {
+  try {
+    const res = await fetch('/api/status');
+    const data = await res.json();
+    renderCards(data);
+  } catch {
+    showToast('Could not load status', true);
+  }
+}
+
+function setAllQueued() {
+  const now = new Date().toISOString();
+  renderCards(WORKFLOWS.map(wf => ({ ...wf, status: 'queued', conclusion: null, updated_at: now, duration: null })));
+}
+
+function startPolling() {
+  clearInterval(pollInterval);
+  clearInterval(timer);
+  let ticks = 0;
+  document.getElementById('refresh-info').textContent = 'Checking every 5s...';
+  pollInterval = setInterval(async () => {
+    ticks++;
+    await fetchStatus();
+    if (ticks >= 60) {
+      clearInterval(pollInterval);
+      pollInterval = null;
+      startCountdown();
+    }
+  }, 5000);
+}
+
+async function runAll() {
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  btn.classList.add('loading');
+  try {
+    const res = await fetch('/api/run-all', { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+    setAllQueued();
+    showToast('Samantha is running — updating every 5s');
+    startPolling();
+  } catch (e) {
+    showToast(`Failed: ${e.message}`, true);
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+  }
+}
+
+function startCountdown() {
+  clearInterval(timer);
+  countdown = 30;
+  const el = document.getElementById('refresh-info');
+  el.textContent = `Refreshes in ${countdown}s`;
+  timer = setInterval(() => {
+    if (pollInterval) return;
+    countdown--;
+    el.textContent = `Refreshes in ${countdown}s`;
+    if (countdown <= 0) { fetchStatus(); countdown = 30; }
+  }, 1000);
+}
+
+const style = document.createElement('style');
+style.textContent = '@keyframes shimmer{0%{background-color:#eee}50%{background-color:#f5f5f5}100%{background-color:#eee}}';
+document.head.appendChild(style);
+
+renderSkeleton();
+fetchStatus();
+startCountdown();
+</script>
+</body>
+</html>
