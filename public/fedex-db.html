@@ -205,10 +205,10 @@ function parseCSV(text) {
 function classifyStatus(raw) {
   const v = (raw || '').toLowerCase();
   if (!v) return 'pending';
-  if (v.includes('delivered'))                                   return 'delivered';
-  if (v.includes('out for delivery'))                            return 'out';
-  if (v.includes('in transit') || v.includes('on the way') || v.includes('picked up')) return 'transit';
-  if (v.includes('exception') || v.includes('delay') || v.includes('failed')) return 'exception';
+  if (v.includes('delivered') || v.includes('entregado'))        return 'delivered';
+  if (v.includes('out for delivery') || v.includes('en camino')) return 'out';
+  if (v.includes('in transit') || v.includes('on the way') || v.includes('picked up') || v.includes('en tránsito') || v.includes('en transito')) return 'transit';
+  if (v.includes('exception') || v.includes('delay') || v.includes('failed') || v.includes('excepción') || v.includes('excepcion')) return 'exception';
   return 'transit';
 }
 
@@ -232,7 +232,7 @@ function build(rows) {
 
   const CI = {
     style:   findCol(H, 'style #', 'style#'),
-    po:      findCol(H, 'po#', 'po #', 'po ', 'purchase order', 'order#'),
+    po:      findCol(H, 'po#'),
     ship:    findCol(H, 'ship date tradestone', 'ship date'),
     cancel:  findCol(H, 'cancel date'),
     trk:     findCol(H, 'tracking number'),
