@@ -79,6 +79,24 @@
       display: flex;
       align-items: center;
       gap: 6px;
+      position: relative;
+    }
+
+    .nav-brand {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.3px;
+      display: none;
+      flex-shrink: 0;
+    }
+    .nav-brand span { color: var(--accent); }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
     }
 
     .nav-link {
@@ -93,6 +111,18 @@
     }
     .nav-link:hover { background: var(--bg); color: var(--text); }
     .nav-link.active { background: var(--accent-light); color: var(--accent); }
+
+    .nav-hamburger {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px 8px;
+      color: var(--text-secondary);
+      line-height: 1;
+      margin-left: auto;
+    }
+    .nav-hamburger:hover { color: var(--text); }
 
     /* ── MAIN ── */
     main {
@@ -117,9 +147,6 @@
       gap: 20px;
     }
 
-    @media (max-width: 900px) { .workspace-grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 500px) { .workspace-grid { grid-template-columns: 1fr; } }
-
     .workspace-card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -143,10 +170,7 @@
       border-color: #c7d7f9;
     }
 
-    .workspace-card.soon {
-      opacity: 1;
-      cursor: pointer;
-    }
+    .workspace-card.soon { opacity: 1; cursor: pointer; }
 
     .card-icon {
       width: 180px;
@@ -189,6 +213,60 @@
       font-weight: 500;
       margin-top: -6px;
     }
+
+    /* ── MOBILE ── */
+    @media (max-width: 900px) {
+      .workspace-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+      .workspace-card { min-height: 220px; padding: 24px 14px 20px; gap: 12px; }
+      .card-icon { width: 120px; height: 120px; }
+      .card-icon img { width: 120px; height: 120px; }
+    }
+
+    @media (max-width: 768px) {
+      .brand-bar { padding: 0 20px; height: 80px; }
+      .logo-305 img { height: 64px; }
+      .logo-farmrio img { height: 30px; }
+      .logo-anthro img { height: 22px; }
+      .brand-logos { gap: 20px; }
+
+      nav { padding: 0 16px; height: 48px; gap: 0; }
+      .nav-brand { display: block; }
+      .nav-hamburger { display: flex; align-items: center; }
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 48px;
+        left: 0;
+        right: 0;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        flex-direction: column;
+        padding: 6px 0 10px;
+        gap: 0;
+        z-index: 100;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      }
+      .nav-links.open { display: flex; }
+      .nav-link { padding: 10px 20px; border-radius: 0; font-size: 13px; white-space: normal; }
+
+      main { padding: 24px 16px 60px; }
+      .section-label { margin-bottom: 16px; }
+    }
+
+    @media (max-width: 480px) {
+      .workspace-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .workspace-card { min-height: 180px; padding: 18px 10px 16px; gap: 10px; }
+      .card-icon { width: 90px; height: 90px; }
+      .card-icon img { width: 90px; height: 90px; }
+      .card-label { font-size: 11px; }
+      .card-name { font-size: 11px; }
+      .brand-bar { padding: 0 14px; height: 68px; }
+      .logo-305 img { height: 50px; }
+      .logo-farmrio img { height: 24px; }
+      .logo-anthro img { height: 18px; }
+      .brand-logos { gap: 12px; }
+      .brand-divider { height: 24px; }
+    }
   </style>
 </head>
 <body>
@@ -206,18 +284,24 @@
 
 <!-- NAV -->
 <nav>
-  <a class="nav-link active" href="/">Home</a>
-  <a class="nav-link" href="warehouse.html">Warehouse Now</a>
-  <a class="nav-link" href="production.html">Production</a>
-  <a class="nav-link" href="samples.html">Samples Tracking</a>
-  <a class="nav-link" href="design.html">Design</a>
-  <a class="nav-link" href="dhl.html">DHL Duties Cost</a>
-  <a class="nav-link" href="shipment.html">New Shipment</a>
-  <a class="nav-link" href="map.html">Map Updates</a>
-  <a class="nav-link" href="forecast.html">Forecast</a>
-  <a class="nav-link" href="gantt.html">Gantt Chart</a>
-  <a class="nav-link" href="tradestone.html">Tradestone Updates</a>
-  <a class="nav-link" href="rlm.html">RLM Updates</a>
+  <div class="nav-brand">305 <span>Workspace</span></div>
+  <button class="nav-hamburger" onclick="toggleNav()" aria-label="Menu">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div class="nav-links" id="nav-links">
+    <a class="nav-link active" href="/">Home</a>
+    <a class="nav-link" href="warehouse.html">Warehouse Now</a>
+    <a class="nav-link" href="production.html">Production</a>
+    <a class="nav-link" href="samples.html">Samples Tracking</a>
+    <a class="nav-link" href="design.html">Design</a>
+    <a class="nav-link" href="shipment.html">New Shipment</a>
+    <a class="nav-link" href="map.html">Map Updates</a>
+    <a class="nav-link" href="forecast.html">Forecast</a>
+    <a class="nav-link" href="gantt.html">Gantt Chart</a>
+    <a class="nav-link" href="tradestone.html">Tradestone Updates</a>
+    <a class="nav-link" href="rlm.html">RLM Updates</a>
+    <a class="nav-link" href="dhl.html">DHL Duties Cost</a>
+  </div>
 </nav>
 
 <!-- MAIN -->
@@ -228,105 +312,86 @@
 
     <!-- JHONNY — Warehouse Now -->
     <a class="workspace-card" href="warehouse.html">
-      <div class="card-icon">
-        <img src="WAREHOUSE.png" alt="Warehouse Now" />
-      </div>
+      <div class="card-icon"><img src="WAREHOUSE.png" alt="Warehouse Now" /></div>
       <div class="card-label">Warehouse Now</div>
       <div class="card-name">Jhonny</div>
     </a>
 
     <!-- SUSAN — Production -->
     <a class="workspace-card" href="production.html">
-      <div class="card-icon">
-        <img src="PRODUCTION.png" alt="Production" />
-      </div>
+      <div class="card-icon"><img src="PRODUCTION.png" alt="Production" /></div>
       <div class="card-label">Production</div>
       <div class="card-name">Susan</div>
     </a>
 
     <!-- PAUL — Samples Tracking -->
     <a class="workspace-card" href="samples.html">
-      <div class="card-icon">
-        <img src="SAMPLES.png" alt="Samples Tracking" />
-      </div>
+      <div class="card-icon"><img src="SAMPLES.png" alt="Samples Tracking" /></div>
       <div class="card-label">Samples Tracking</div>
       <div class="card-name">Paul</div>
     </a>
 
     <!-- REBECA — Design -->
     <a class="workspace-card" href="design.html">
-      <div class="card-icon">
-        <img src="DESIGN.png" alt="Design" />
-      </div>
+      <div class="card-icon"><img src="DESIGN.png" alt="Design" /></div>
       <div class="card-label">Design</div>
       <div class="card-name">Rebeca</div>
     </a>
 
-    <!-- DAVID — DHL -->
-    <a class="workspace-card" href="dhl.html">
-      <div class="card-icon">
-        <img src="DHL_Logo.svg.png" alt="DHL" />
-      </div>
-      <div class="card-label">DHL Duties Cost</div>
-      <div class="card-name">David</div>
-    </a>
-
     <!-- BRUNA — New Shipment -->
     <a class="workspace-card" href="shipment.html">
-      <div class="card-icon">
-        <img src="NEW SHIPMENT LOGO.png" alt="New Shipment" />
-      </div>
+      <div class="card-icon"><img src="NEW SHIPMENT LOGO.png" alt="New Shipment" /></div>
       <div class="card-label">New Shipment</div>
       <div class="card-name">Bruna</div>
     </a>
 
     <!-- GABRIEL — Map Updates -->
     <a class="workspace-card" href="map.html">
-      <div class="card-icon">
-        <img src="MAP UPDATED LOGO.png" alt="Map Updates" />
-      </div>
+      <div class="card-icon"><img src="MAP UPDATED LOGO.png" alt="Map Updates" /></div>
       <div class="card-label">Map Updates</div>
       <div class="card-name">Gabriel</div>
     </a>
 
     <!-- JIMMY — Forecast -->
     <a class="workspace-card" href="forecast.html">
-      <div class="card-icon">
-        <img src="FORECAST.png" alt="Forecast" />
-      </div>
+      <div class="card-icon"><img src="FORECAST.png" alt="Forecast" /></div>
       <div class="card-label">Forecast</div>
       <div class="card-name">Jimmy</div>
     </a>
 
     <!-- MILEY — Gantt Chart -->
     <a class="workspace-card" href="gantt.html">
-      <div class="card-icon">
-        <img src="GANTT.png" alt="Gantt Chart" />
-      </div>
+      <div class="card-icon"><img src="GANTT.png" alt="Gantt Chart" /></div>
       <div class="card-label">Gantt Chart</div>
       <div class="card-name">Miley</div>
     </a>
 
     <!-- SAMANTHA — Tradestone Updates -->
     <a class="workspace-card" href="tradestone.html">
-      <div class="card-icon">
-        <img src="TRADESTONE LOGO.png" alt="Tradestone" />
-      </div>
+      <div class="card-icon"><img src="TRADESTONE LOGO.png" alt="Tradestone" /></div>
       <div class="card-label">Tradestone Updates</div>
       <div class="card-name">Samantha</div>
     </a>
 
     <!-- CAROLINE — RLM Updates -->
     <a class="workspace-card" href="rlm.html">
-      <div class="card-icon">
-        <img src="RLM LOGO.png" alt="RLM" />
-      </div>
+      <div class="card-icon"><img src="RLM LOGO.png" alt="RLM" /></div>
       <div class="card-label">RLM Updates</div>
       <div class="card-name">Caroline</div>
+    </a>
+
+    <!-- DAVID — DHL Duties Cost -->
+    <a class="workspace-card" href="dhl.html">
+      <div class="card-icon"><img src="DHL_Logo.svg.png" alt="DHL Duties Cost" /></div>
+      <div class="card-label">DHL Duties Cost</div>
+      <div class="card-name">David</div>
     </a>
 
   </div>
 </main>
 
+<script>
+function toggleNav() { document.getElementById('nav-links').classList.toggle('open'); }
+</script>
 </body>
 </html>

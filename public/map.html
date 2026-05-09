@@ -68,24 +68,39 @@
     .card-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.55; }
     .toast { position: fixed; bottom: 24px; right: 24px; background: var(--text); color: #fff; font-size: 13px; font-weight: 500; padding: 10px 16px; border-radius: 8px; opacity: 0; transform: translateY(8px); transition: all 0.2s; pointer-events: none; z-index: 100; }
     .toast.show { opacity: 1; transform: translateY(0); }
+    .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--text-secondary); line-height: 1; }
+    .nav-hamburger:hover { color: var(--text); }
+    @media (max-width: 768px) {
+      nav { padding: 0 16px; height: auto; min-height: 52px; position: relative; }
+      .nav-hamburger { display: flex; align-items: center; }
+      .nav-links { display: none; position: absolute; top: 52px; left: 0; right: 0; background: var(--surface); border-bottom: 1px solid var(--border); flex-direction: column; padding: 6px 0 10px; gap: 0; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+      .nav-links.open { display: flex; }
+      .nav-link { padding: 10px 20px; border-radius: 0; font-size: 13px; white-space: normal; }
+      .layout { flex-direction: column; padding: 20px 16px 40px; gap: 16px; }
+      .sidebar { width: 100%; position: static; }
+      .sidebar-agent { max-width: 360px; margin-left: auto; margin-right: auto; }
+      .content { width: 100%; }
+      .grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
 <nav>
   <div class="nav-brand">305 <span>Workspace</span></div>
-  <div class="nav-links">
+  <button class="nav-hamburger" onclick="toggleNav()" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  <div class="nav-links" id="nav-links">
     <a class="nav-link" href="/">&#8592; Home</a>
     <a class="nav-link" href="warehouse.html">Warehouse Now</a>
     <a class="nav-link" href="production.html">Production</a>
     <a class="nav-link" href="samples.html">Samples Tracking</a>
     <a class="nav-link" href="design.html">Design</a>
-    <a class="nav-link" href="dhl.html">DHL Duties Cost</a>
     <a class="nav-link" href="shipment.html">New Shipment</a>
     <a class="nav-link active" href="map.html">Map Updates</a>
     <a class="nav-link" href="forecast.html">Forecast</a>
     <a class="nav-link" href="gantt.html">Gantt Chart</a>
     <a class="nav-link" href="tradestone.html">Tradestone Updates</a>
     <a class="nav-link" href="rlm.html">RLM Updates</a>
+    <a class="nav-link" href="dhl.html">DHL Duties Cost</a>
   </div>
 </nav>
 
@@ -165,6 +180,7 @@
 
 <div class="toast" id="toast"></div>
 <script>
+function toggleNav() { document.getElementById('nav-links').classList.toggle('open'); }
 function toggleChat() { document.getElementById('chat-panel').classList.toggle('open'); }
 async function sendChat() {
   const name = document.getElementById('chat-name').value.trim();
