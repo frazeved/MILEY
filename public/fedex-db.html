@@ -253,7 +253,7 @@ function build(rows) {
 
   // Only rows shipped within the last 20 days
   const now   = new Date();
-  const cutoff = new Date(now - 20 * 86400000);
+  const cutoff = new Date(now - 30 * 86400000);
   const shipped = data.filter(r => {
     const sd = parseDate(C.shipDate >= 0 ? (r[C.shipDate]||'') : '');
     return sd && sd >= cutoff;
