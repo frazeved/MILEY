@@ -78,6 +78,22 @@ app.post('/api/run-all', async (req, res) => {
   }
 });
 
+app.post('/api/run-jhonny', async (req, res) => {
+  try {
+    const r = await ghFetch(`https://api.github.com/repos/frazeved/JHONNY/actions/workflows/update-fedex-status.yml/dispatches`, {
+      method: 'POST',
+      body: JSON.stringify({ ref: 'main' }),
+    });
+    if (r.status !== 204) {
+      const body = await r.text();
+      return res.status(500).json({ error: `GitHub returned ${r.status}: ${body}` });
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.post('/api/contact', async (req, res) => {
   const { name, email, message } = req.body;
   if (!name || !message) return res.status(400).json({ error: 'Name and message are required.' });
@@ -106,63 +122,6 @@ app.post('/api/contact', async (req, res) => {
   }
 });
 
-// ── FEDEX TRACKING ──────────────────────────────────────────────────────────
-let _fedexToken = null, _fedexTokenExp = 0;
-const trackCache = new Map(); // trackingNumber → { data, exp }
-
-async function getFedexToken() {
-  if (_fedexToken && Date.now() < _fedexTokenExp) return _fedexToken;
-  const res = await fetch('https://apis.fedex.com/oauth/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `grant_type=client_credentials&client_id=${process.env.FEDEX_CLIENT_ID}&client_secret=${process.env.FEDEX_CLIENT_SECRET}`,
-  });
-  const d = await res.json();
-  if (!d.access_token) throw new Error('FedEx auth failed: ' + JSON.stringify(d));
-  _fedexToken = d.access_token;
-  _fedexTokenExp = Date.now() + (d.expires_in - 60) * 1000;
-  return _fedexToken;
-}
-
-app.get('/api/fedex-track/:number', async (req, res) => {
-  if (!process.env.FEDEX_CLIENT_ID || !process.env.FEDEX_CLIENT_SECRET) {
-    return res.json({ status: 'NO_API_KEY', label: 'API not configured' });
-  }
-  const num = req.params.number.trim();
-  const cached = trackCache.get(num);
-  if (cached && Date.now() < cached.exp) return res.json(cached.data);
-
-  try {
-    const token = await getFedexToken();
-    const r = await fetch('https://apis.fedex.com/track/v1/trackingnumbers', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({
-        includeDetailedScans: false,
-        trackingInfo: [{ trackingNumberInfo: { trackingNumber: num } }],
-      }),
-    });
-    const d = await r.json();
-    const pkg = d?.output?.completeTrackResults?.[0]?.trackResults?.[0];
-    const latest = pkg?.latestStatusDetail;
-    const times  = pkg?.dateAndTimes || [];
-    const getTime = type => times.find(t => t.type === type)?.dateTime || null;
-
-    const data = {
-      status: latest?.code || 'UNKNOWN',
-      label:  latest?.description || 'Unknown',
-      location: latest?.scanLocation
-        ? [latest.scanLocation.city, latest.scanLocation.stateOrProvinceCode].filter(Boolean).join(', ')
-        : '',
-      estimatedDelivery: getTime('ESTIMATED_DELIVERY'),
-      actualDelivery:    getTime('ACTUAL_DELIVERY'),
-    };
-    trackCache.set(num, { data, exp: Date.now() + 15 * 60 * 1000 }); // cache 15 min
-    res.json(data);
-  } catch(e) {
-    res.json({ status: 'ERROR', label: e.message });
-  }
-});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
