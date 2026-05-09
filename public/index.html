@@ -96,9 +96,9 @@
 
     /* ── MAIN ── */
     main {
-      max-width: 1100px;
+      max-width: 1400px;
       margin: 0 auto;
-      padding: 48px 32px 80px;
+      padding: 48px 40px 80px;
     }
 
     .section-label {
@@ -113,33 +113,38 @@
     /* ── WORKSPACE GRID ── */
     .workspace-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
     }
+
+    @media (max-width: 900px) { .workspace-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 500px) { .workspace-grid { grid-template-columns: 1fr; } }
 
     .workspace-card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 28px 16px 22px;
+      border-radius: 20px;
+      padding: 36px 20px 28px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 14px;
+      gap: 18px;
       text-decoration: none;
       color: var(--text);
       transition: box-shadow 0.18s, transform 0.18s, border-color 0.18s;
       cursor: pointer;
+      min-height: 280px;
+      justify-content: center;
     }
 
     .workspace-card:hover {
-      box-shadow: 0 8px 28px rgba(0,0,0,0.09);
-      transform: translateY(-2px);
+      box-shadow: 0 12px 36px rgba(0,0,0,0.1);
+      transform: translateY(-3px);
       border-color: #c7d7f9;
     }
 
     .workspace-card.soon {
-      opacity: 0.55;
+      opacity: 0.6;
       cursor: default;
     }
     .workspace-card.soon:hover {
@@ -149,30 +154,44 @@
     }
 
     .card-icon {
-      width: 96px;
-      height: 96px;
-      border-radius: 20px;
+      width: 140px;
+      height: 140px;
+      border-radius: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 12px;
+      padding: 16px;
+      background: #ffffff;
+      border: 1.5px solid var(--border);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+
+    .card-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .card-icon svg {
+      width: 64px;
+      height: 64px;
     }
 
     .card-label {
-      font-size: 11px;
+      font-size: 13px;
       font-weight: 700;
-      letter-spacing: 0.8px;
+      letter-spacing: 0.6px;
       text-transform: uppercase;
-      color: var(--accent);
+      color: var(--text);
       text-align: center;
     }
 
     .card-name {
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 500;
       color: var(--text-secondary);
       text-align: center;
-      margin-top: -8px;
+      margin-top: -10px;
     }
 
     .soon-badge {
@@ -180,25 +199,9 @@
       background: var(--border);
       color: var(--text-muted);
       border-radius: 4px;
-      padding: 2px 7px;
+      padding: 3px 8px;
       font-weight: 500;
       margin-top: -6px;
-    }
-
-    /* ── ICON COLORS ── */
-    .icon-blue   { background: #eff6ff; }
-    .icon-green  { background: #f0fdf4; }
-    .icon-amber  { background: #fffbeb; }
-    .icon-purple { background: #faf5ff; }
-    .icon-rose   { background: #fff1f2; }
-    .icon-teal   { background: #f0fdfa; }
-    .icon-indigo { background: #eef2ff; }
-    .icon-white  { background: #ffffff; border: 1px solid var(--border); }
-
-    .card-icon img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
     }
   </style>
 </head>
@@ -235,42 +238,42 @@
 
     <!-- SAMANTHA — Tradestone Updates -->
     <a class="workspace-card" href="tradestone.html">
-      <div class="card-icon icon-blue">
+      <div class="card-icon">
         <img src="TRADESTONE LOGO.png" alt="Tradestone" />
       </div>
-      <div class="card-label">Tradestone</div>
+      <div class="card-label">Tradestone Updates</div>
       <div class="card-name">Samantha</div>
     </a>
 
     <!-- JHONNY — Warehouse Now -->
     <div class="workspace-card soon">
-      <div class="card-icon icon-amber">
-        <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
           <polyline points="9 22 9 12 15 12 15 22"/>
         </svg>
       </div>
-      <div class="card-label">Warehouse</div>
+      <div class="card-label">Warehouse Now</div>
       <div class="card-name">Jhonny</div>
       <span class="soon-badge">soon</span>
     </div>
 
     <!-- SUSAN — Production E-mails -->
     <div class="workspace-card soon">
-      <div class="card-icon icon-rose">
-        <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
           <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
           <polyline points="22,6 12,13 2,6"/>
         </svg>
       </div>
-      <div class="card-label">Production</div>
+      <div class="card-label">Production E-mails</div>
       <div class="card-name">Susan</div>
       <span class="soon-badge">soon</span>
     </div>
 
     <!-- CAROLINE — RLM Updates -->
     <div class="workspace-card soon">
-      <div class="card-icon icon-purple">
+      <div class="card-icon">
         <img src="RLM LOGO.png" alt="RLM" />
       </div>
       <div class="card-label">RLM Updates</div>
@@ -280,7 +283,7 @@
 
     <!-- GABRIEL — Map Updates -->
     <div class="workspace-card soon">
-      <div class="card-icon icon-teal">
+      <div class="card-icon">
         <img src="MAP UPDATED LOGO.png" alt="Map Updates" />
       </div>
       <div class="card-label">Map Updates</div>
@@ -290,7 +293,7 @@
 
     <!-- JIMMY — Forecast -->
     <div class="workspace-card soon">
-      <div class="card-icon icon-green">
+      <div class="card-icon">
         <img src="FORECAST.png" alt="Forecast" />
       </div>
       <div class="card-label">Forecast</div>
@@ -300,13 +303,12 @@
 
     <!-- MILEY — Gantt Chart -->
     <div class="workspace-card soon">
-      <div class="card-icon icon-indigo">
-        <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3"  y="4"  width="9" height="3" rx="1"/>
           <rect x="8"  y="9"  width="11" height="3" rx="1"/>
           <rect x="5"  y="14" width="7" height="3" rx="1"/>
-          <rect x="10" y="19" width="8" height="3" rx="1" opacity="0.5"/>
-          <line x1="3" y1="2" x2="3" y2="22" stroke-dasharray="2 2" opacity="0.3"/>
+          <rect x="10" y="19" width="8" height="3" rx="1"/>
         </svg>
       </div>
       <div class="card-label">Gantt Chart</div>
