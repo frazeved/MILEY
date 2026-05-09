@@ -32,7 +32,7 @@
       background: #fff;
       border-bottom: 1px solid var(--border);
       padding: 0 48px;
-      height: 72px;
+      height: 80px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -41,69 +41,25 @@
     .brand-logos {
       display: flex;
       align-items: center;
-      gap: 36px;
+      gap: 40px;
     }
 
-    /* FARM RIO logo style */
-    .logo-farmrio {
-      display: flex;
-      align-items: baseline;
-      gap: 6px;
-      font-family: 'Inter', sans-serif;
-    }
-    .logo-farmrio .farm {
-      font-size: 26px;
-      font-weight: 800;
-      letter-spacing: -1px;
-      color: #111;
-    }
-    .logo-farmrio .rio {
-      font-size: 26px;
-      font-weight: 300;
-      letter-spacing: 2px;
-      color: #111;
+    .brand-logos img {
+      height: 48px;
+      width: auto;
+      object-fit: contain;
+      display: block;
     }
 
-    /* URBN badge next to FARM RIO */
-    .logo-urbn {
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 2px;
-      color: #555;
-      border: 1.5px solid #bbb;
-      padding: 3px 8px;
-      border-radius: 3px;
+    .brand-divider {
+      width: 1px;
+      height: 32px;
+      background: var(--border);
     }
 
-    /* ANTHROPOLOGIE logo style */
-    .logo-anthropologie {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      line-height: 1.2;
-    }
-    .logo-anthropologie .ant-main {
-      font-size: 16px;
-      font-weight: 400;
-      letter-spacing: 6px;
-      color: #111;
-      text-transform: uppercase;
-    }
-    .logo-anthropologie .ant-sub {
-      font-size: 11px;
-      font-weight: 400;
-      letter-spacing: 3px;
-      color: #888;
-      text-transform: lowercase;
-    }
-
-    .brand-right {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-muted);
-      letter-spacing: 0.3px;
-    }
-    .brand-right span { color: var(--accent); }
+    .logo-305 img { height: 52px; }
+    .logo-farmrio img { height: 38px; }
+    .logo-anthro img { height: 28px; }
 
     /* ── NAV ── */
     nav {
@@ -234,17 +190,11 @@
 <!-- BRAND BAR -->
 <div class="brand-bar">
   <div class="brand-logos">
-    <div class="logo-farmrio">
-      <span class="farm">FARM</span>
-      <span class="rio">RIO</span>
-    </div>
-    <div class="logo-urbn">URBN</div>
-    <div class="logo-anthropologie">
-      <span class="ant-main">Anthropologie</span>
-      <span class="ant-sub">nuuly</span>
-    </div>
+    <div class="logo-farmrio"><img src="FARM RIO LOGO.png" alt="Farm Rio" /></div>
+    <div class="brand-divider"></div>
+    <div class="logo-anthro"><img src="ANTHROPOLOGIE LOGO.png" alt="Anthropologie" /></div>
   </div>
-  <div class="brand-right">305 <span>Workspace</span></div>
+  <div class="logo-305"><img src="305 LOGO.png" alt="305 Consulting & Production" /></div>
 </div>
 
 <!-- NAV -->
