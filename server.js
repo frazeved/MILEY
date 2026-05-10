@@ -177,8 +177,8 @@ app.post('/api/fedex-status', async (req, res) => {
 
     const H = rows[0].map(h => h.trim().replace(/^﻿/, ''));
     const CI = {
-      style:  findCol(H, 'style #', 'style#'),
-      po:     findCol(H, 'po#', 'po #'),
+      style:  0,
+      po:     1,
       status: findCol(H, 'warehouse status', 'wh status', 'status'),
       ship:   findCol(H, 'ship date tradestone', 'ship date'),
       cancel: findCol(H, 'cancel date'),
