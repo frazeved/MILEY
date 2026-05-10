@@ -352,16 +352,23 @@ async function loadData() {
 
     const get = (r,i) => i>=0 ? (r[i]||'').trim() : '';
 
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+
     let lastStyle = '';
     rows = data
       .map(r => {
         const statusRaw = get(r, C.status);
         if (!statusRaw.toLowerCase().includes('shipped')) return null;
+        const shipDate = get(r, C.shipDate);
+        if (shipDate) {
+          const d = new Date(shipDate);
+          if (!isNaN(d) && d < cutoff) return null;
+        }
         const styleRaw = get(r, C.style);
         if (styleRaw) lastStyle = styleRaw;
         const style    = lastStyle;
         const po       = get(r, C.po);
-        const shipDate = get(r, C.shipDate);
         const cancel   = get(r, C.cancel);
         const tracking = get(r, C.tracking);
         const delivery = get(r, C.delivery);
