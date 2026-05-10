@@ -247,7 +247,7 @@ function showToast(msg) {
 
 function renderRows() {
   if (!rows.length) {
-    document.getElementById('tbody').innerHTML = '<tr class="msg-row"><td colspan="4">No shipped items in the last 30 days.</td></tr>';
+    document.getElementById('tbody').innerHTML = '<tr class="msg-row"><td colspan="4">No shipped items found.</td></tr>';
     return;
   }
 
@@ -308,29 +308,21 @@ async function loadData() {
     const data = raw.slice(1);
 
     const C = {
-      style:    colIdx(H, 'style #','style#','style name','style'),
-      shipDate: colIdx(H, 'ship date tradestone','tradestone ship date','ts ship date','ship date ts','tradestone date','ship date','ex-factory','exfactory','ex factory'),
-      tracking: colIdx(H, 'tracking number','tracking#','tracking no','tracking','fedex tracking','awb','airway bill'),
-      delivery: colIdx(H, 'delivery status','fedex status','fedex delivery','delivery'),
-      status:   colIdx(H, 'warehouse status','wh status','status'),
+      style:    colIdx(H, 'style #', 'style#', 'style'),
+      status:   colIdx(H, 'status'),
+      shipDate: colIdx(H, 'ship date tradestone', 'ship date', 'ex-factory', 'exfactory'),
+      tracking: colIdx(H, 'tracking number', 'tracking#', 'tracking'),
+      delivery: colIdx(H, 'delivery status', 'delivery'),
     };
 
-    const now = new Date();
-    const cutoff = new Date(now - 30 * 24 * 60 * 60 * 1000);
     const get = (r,i) => i>=0 ? (r[i]||'').trim() : '';
 
     rows = data
       .map(r => {
         const statusRaw = get(r, C.status);
         if (!statusRaw.toLowerCase().includes('shipped')) return null;
-
-        const shipDate = get(r, C.shipDate);
-        if (shipDate) {
-          const d = new Date(shipDate);
-          if (!isNaN(d) && d < cutoff) return null;
-        }
-
         const style    = get(r, C.style);
+        const shipDate = get(r, C.shipDate);
         const tracking = get(r, C.tracking);
         const delivery = get(r, C.delivery);
         const cls      = classifyDelivery(delivery);
@@ -348,7 +340,7 @@ async function loadData() {
 
     renderRows();
     document.getElementById('status-text').textContent =
-      `${rows.length} shipment${rows.length!==1?'s':''} · Shipped · Last 30 days`;
+      `${rows.length} shipment${rows.length!==1?'s':''} · Status: Shipped`;
 
   } catch(e) {
     document.getElementById('tbody').innerHTML =
