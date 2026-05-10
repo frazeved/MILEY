@@ -12,16 +12,13 @@
       --bg: #f5f6fa; --surface: #fff; --border: #e4e7ed;
       --text: #1a1d23; --muted: #6b7280;
       --accent: #4D148C; --accent-lt: #f3e8ff;
-      --fedex-orange: #FF6200; --fedex-orange-lt: #fff3e8;
       --green: #16a34a; --green-lt: #dcfce7;
       --blue: #0891b2; --blue-lt: #cffafe;
-      --orange: #d97706; --orange-lt: #fef3c7;
+      --orange: #FF6200; --orange-lt: #fff3e8;
       --red: #dc2626; --red-lt: #fee2e2;
-      --gray-lt: #f3f4f6;
     }
     body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
 
-    /* NAV */
     nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 60; }
     .nav-brand { font-size: 16px; font-weight: 700; display: none; }
     .nav-brand span { color: var(--accent); }
@@ -31,105 +28,69 @@
     .nav-link.active { background: var(--accent-lt); color: var(--accent); }
     .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--muted); }
 
-    /* MODE BAR */
     .mode-bar { background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 10px 28px; font-size: 14px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; }
     .mode-bar-left { display: flex; align-items: center; gap: 10px; }
-    .fedex-badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); border-radius: 6px; padding: 2px 10px; font-size: 11px; font-weight: 700; letter-spacing: 1px; color: #fff; }
+    .fedex-badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); border-radius: 6px; padding: 2px 10px; font-size: 11px; font-weight: 700; letter-spacing: 1px; }
     .mode-bar a { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
     .mode-bar a:hover { color: #fff; }
 
-    /* PAGE WRAP */
-    .page-wrap { flex: 1; padding: 16px 24px 40px; max-width: 1600px; margin: 0 auto; width: 100%; }
+    .page-wrap { flex: 1; padding: 16px 24px 40px; margin: 0 auto; width: 100%; }
 
-    /* TOOLBAR */
-    .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
-    .status-text { font-size: 12px; color: var(--muted); flex: 1; min-width: 0; }
-    .search-wrap { position: relative; }
-    .search-input { font-family: inherit; font-size: 12px; padding: 6px 10px 6px 30px; border: 1px solid var(--border); border-radius: 7px; outline: none; color: var(--text); background: var(--surface); width: 180px; transition: border-color 0.15s; }
-    .search-input:focus { border-color: var(--accent); }
-    .search-icon { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
-    .tb-btn { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 6px 12px; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s; color: var(--accent); }
+    .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .status-text { font-size: 12px; color: var(--muted); flex: 1; }
+    .tb-btn { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 6px 12px; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--accent); transition: background 0.15s; }
     .tb-btn:hover { background: var(--accent-lt); }
-    .tb-btn.jhonny { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .tb-btn.jhonny:hover { background: #3a0e6b; border-color: #3a0e6b; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .tb-btn.loading svg { animation: spin 0.8s linear infinite; }
 
-    /* FILTER PILLS */
-    .pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-    .pill { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; color: var(--muted); }
-    .pill:hover { border-color: currentColor; }
-    .pill .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
-    .pill .cnt { font-size: 11px; opacity: 0.7; }
-    .pill.all   { color: var(--text); }
-    .pill.del   { color: var(--green); }
-    .pill.tr    { color: var(--blue); }
-    .pill.out   { color: var(--fedex-orange); }
-    .pill.pend  { color: var(--muted); }
-    .pill.exc   { color: var(--red); }
-    .pill.active { background: currentColor; border-color: currentColor; }
-    .pill.active span { color: #fff !important; }
-
-    /* TABLE CONTAINER */
-    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: inline-block; min-width: 100%; }
     .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-    table { width: 100%; border-collapse: collapse; min-width: 640px; }
+    table { border-collapse: collapse; table-layout: auto; white-space: nowrap; }
     thead { background: #f8f9fb; border-bottom: 2px solid var(--border); }
-    th { padding: 11px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); text-align: left; white-space: nowrap; cursor: pointer; user-select: none; }
+    th { padding: 10px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); text-align: left; cursor: pointer; user-select: none; }
     th:hover { color: var(--text); }
-    th .sort-icon { display: inline-block; margin-left: 4px; opacity: 0.4; font-size: 10px; }
+    th .sort-icon { margin-left: 4px; opacity: 0.4; font-size: 10px; }
     th.sorted .sort-icon { opacity: 1; color: var(--accent); }
 
     tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
     tbody tr:last-child { border-bottom: none; }
     tbody tr:hover { background: #fafbfc; }
-    td { padding: 12px 16px; font-size: 13px; vertical-align: middle; }
+    td { padding: 10px 18px; font-size: 13px; vertical-align: middle; }
 
-    /* STYLE # cell */
     .style-cell { font-weight: 700; color: var(--text); }
+    .date-cell  { font-size: 12px; color: var(--muted); }
 
-    /* SHIP DATE cell */
-    .date-cell { font-size: 12px; color: var(--muted); white-space: nowrap; }
-    .date-cell.past { color: var(--red); font-weight: 600; }
-
-    /* TRACKING NUMBER cell */
     .tracking-wrap { display: flex; align-items: center; gap: 6px; }
-    .tracking-link { font-size: 12px; font-weight: 600; color: var(--accent); text-decoration: none; font-family: 'Courier New', monospace; letter-spacing: 0.3px; }
+    .tracking-link  { font-size: 12px; font-weight: 600; color: var(--accent); text-decoration: none; font-family: 'Courier New', monospace; }
     .tracking-link:hover { text-decoration: underline; }
     .tracking-empty { font-size: 12px; color: var(--muted); font-style: italic; }
     .copy-btn { background: none; border: none; cursor: pointer; color: var(--muted); padding: 2px 3px; border-radius: 3px; display: flex; transition: color 0.15s; flex-shrink: 0; }
     .copy-btn:hover { color: var(--accent); }
 
-    /* DELIVERY STATUS cell */
     .status-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
-    .status-badge .s-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .s-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
     .badge-del  { background: var(--green-lt);  color: #166534; }
-    .badge-del .s-dot  { background: var(--green); }
+    .badge-del  .s-dot { background: var(--green); }
     .badge-tr   { background: var(--blue-lt);   color: #155e75; }
-    .badge-tr .s-dot   { background: var(--blue); }
-    .badge-out  { background: var(--fedex-orange-lt); color: #c04e00; }
-    .badge-out .s-dot  { background: var(--fedex-orange); animation: pulse-orange 1.5s ease-in-out infinite; }
-    .badge-pend { background: var(--gray-lt);   color: var(--muted); }
-    .badge-pend .s-dot { background: #9ca3af; }
+    .badge-tr   .s-dot { background: var(--blue); }
+    .badge-out  { background: var(--orange-lt); color: #c04e00; }
+    .badge-out  .s-dot { background: var(--orange); animation: pulse-o 1.5s ease-in-out infinite; }
     .badge-exc  { background: var(--red-lt);    color: #991b1b; }
-    .badge-exc .s-dot  { background: var(--red); animation: pulse-red 1.5s ease-in-out infinite; }
-    .badge-api  { background: var(--accent-lt); color: #6b21a8; font-style: italic; }
-    .badge-api .s-dot  { background: var(--accent); }
+    .badge-exc  .s-dot { background: var(--red); animation: pulse-r 1.5s ease-in-out infinite; }
+    .badge-pend { background: #f3f4f6; color: var(--muted); }
+    .badge-pend .s-dot { background: #9ca3af; }
+    .badge-api  { background: var(--accent-lt); color: #6b21a8; }
+    .badge-api  .s-dot { background: var(--accent); }
 
-    @keyframes pulse-red    { 0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,0.4)} 50%{box-shadow:0 0 0 4px rgba(220,38,38,0)} }
-    @keyframes pulse-orange { 0%,100%{box-shadow:0 0 0 0 rgba(255,98,0,0.4)}  50%{box-shadow:0 0 0 4px rgba(255,98,0,0)} }
+    @keyframes pulse-r { 0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.4)} 50%{box-shadow:0 0 0 4px rgba(220,38,38,0)} }
+    @keyframes pulse-o { 0%,100%{box-shadow:0 0 0 0 rgba(255,98,0,.4)}  50%{box-shadow:0 0 0 4px rgba(255,98,0,0)} }
 
-    /* EMPTY / ERROR */
     .msg-row td { padding: 60px 24px; text-align: center; color: var(--muted); font-size: 13px; }
-    .spinner { width: 30px; height: 30px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px; }
+    .spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px; }
 
-    /* TOAST */
     .toast { position: fixed; bottom: 24px; right: 24px; background: var(--text); color: #fff; font-size: 13px; font-weight: 500; padding: 10px 16px; border-radius: 8px; opacity: 0; transform: translateY(8px); transition: all 0.2s; pointer-events: none; z-index: 100; }
     .toast.show { opacity: 1; transform: translateY(0); }
-
-    /* LAST UPDATED BANNER */
-    .last-updated { font-size: 11px; color: var(--muted); text-align: right; margin-bottom: 8px; }
 
     @media (max-width: 768px) {
       nav { padding: 0 16px; height: auto; min-height: 52px; position: relative; }
@@ -140,13 +101,6 @@
       .nav-link { padding: 11px 20px; border-radius: 0; font-size: 14px; }
       .mode-bar { padding: 10px 16px; font-size: 12px; }
       .page-wrap { padding: 12px 12px 40px; }
-      .toolbar { gap: 8px; }
-      .search-input { width: 140px; }
-      .pills { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
-      .pills::-webkit-scrollbar { display: none; }
-      .pill { flex-shrink: 0; }
-      td { padding: 10px 12px; font-size: 12px; }
-      th { padding: 9px 12px; }
     }
   </style>
 </head>
@@ -188,36 +142,24 @@
 <div class="page-wrap">
   <div class="toolbar">
     <span class="status-text" id="status-text">Loading…</span>
-    <div class="search-wrap">
-      <svg class="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input class="search-input" type="text" id="search-input" placeholder="Style # or tracking…" oninput="applyFilters()" />
-    </div>
     <button class="tb-btn" id="reload-btn" onclick="loadData()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
       Refresh
     </button>
-    <button class="tb-btn jhonny" onclick="runJhonny()" id="jhonny-btn">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-      Run Jhonny
-    </button>
   </div>
-
-  <div class="pills" id="pills"></div>
-
-  <div class="last-updated" id="last-updated"></div>
 
   <div class="table-wrap">
     <div class="table-scroll">
       <table id="data-table">
         <thead>
           <tr>
-            <th onclick="sortTable(0)" id="th-0">Style # <span class="sort-icon">&#8597;</span></th>
-            <th onclick="sortTable(1)" id="th-1">Ship Date Tradestone <span class="sort-icon">&#8597;</span></th>
-            <th onclick="sortTable(2)" id="th-2">Tracking Number <span class="sort-icon">&#8597;</span></th>
-            <th onclick="sortTable(3)" id="th-3">Delivery Status <span class="sort-icon">&#8597;</span></th>
+            <th onclick="sortBy(0)" id="th-0">Style # <span class="sort-icon">&#8597;</span></th>
+            <th onclick="sortBy(1)" id="th-1">Ship Date Tradestone <span class="sort-icon">&#8597;</span></th>
+            <th onclick="sortBy(2)" id="th-2">Tracking Number <span class="sort-icon">&#8597;</span></th>
+            <th onclick="sortBy(3)" id="th-3">Delivery Status <span class="sort-icon">&#8597;</span></th>
           </tr>
         </thead>
-        <tbody id="table-body">
+        <tbody id="tbody">
           <tr class="msg-row"><td colspan="4"><div class="spinner"></div>Fetching data…</td></tr>
         </tbody>
       </table>
@@ -231,17 +173,25 @@
 const SHEET_ID = '1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q';
 const CSV_URL  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=99866922`;
 
-let allRows = [];
-let activeFilter = 'all';
-let sortCol = -1;
-let sortAsc = true;
+let rows = [];
+let sortCol = 1; // default: ship date
+let sortAsc = false; // newest first
 
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-function col(headers, ...kws) {
-  return headers.findIndex(h => kws.some(k => h.toLowerCase().includes(k.toLowerCase())));
+function colIdx(headers, ...kws) {
+  // exact match first, then partial
+  for (const kw of kws) {
+    const i = headers.findIndex(h => h.trim().toLowerCase() === kw.toLowerCase());
+    if (i >= 0) return i;
+  }
+  for (const kw of kws) {
+    const i = headers.findIndex(h => h.trim().toLowerCase().includes(kw.toLowerCase()));
+    if (i >= 0) return i;
+  }
+  return -1;
 }
 
 function parseCSV(text) {
@@ -250,228 +200,163 @@ function parseCSV(text) {
     const c = text[i];
     if (inQ) {
       if (c==='"' && text[i+1]==='"') { field+='"'; i++; }
-      else if (c==='"') inQ = false; else field += c;
+      else if (c==='"') inQ=false; else field+=c;
     } else {
-      if (c==='"') inQ = true;
-      else if (c===',') { row.push(field); field = ''; }
-      else if (c==='\n' || (c==='\r' && text[i+1]==='\n')) {
-        if (c==='\r') i++;
-        row.push(field); field = '';
-        if (row.some(f => f.trim())) rows.push(row); row = [];
-      } else field += c;
+      if (c==='"') inQ=true;
+      else if (c===',') { row.push(field); field=''; }
+      else if (c==='\n'||(c==='\r'&&text[i+1]==='\n')) {
+        if(c==='\r')i++;
+        row.push(field); field='';
+        if(row.some(f=>f.trim())) rows.push(row); row=[];
+      } else field+=c;
     }
   }
-  if (row.length) { row.push(field); if (row.some(f => f.trim())) rows.push(row); }
+  if(row.length){row.push(field);if(row.some(f=>f.trim()))rows.push(row);}
   return rows;
 }
 
-function classifyStatus(v) {
+function classifyDelivery(v) {
   const s = (v||'').toLowerCase();
-  if (s.includes('delivered'))                                        return 'del';
-  if (s.includes('out for delivery') || s.includes('on fedex vehicle')) return 'out';
-  if (s.includes('transit') || s.includes('in transit') || s.includes('picked up') || s.includes('departed') || s.includes('arrived at') || s.includes('at fedex')) return 'tr';
-  if (s.includes('exception') || s.includes('delay') || s.includes('failed') || s.includes('unable') || s.includes('returned')) return 'exc';
-  if (s.includes('label') || s.includes('pending') || s.includes('not yet') || s.includes('created')) return 'pend';
+  if (s.includes('delivered'))                                                              return 'del';
+  if (s.includes('out for delivery') || s.includes('on fedex vehicle'))                    return 'out';
+  if (s.includes('transit')||s.includes('picked up')||s.includes('departed')||s.includes('at fedex')) return 'tr';
+  if (s.includes('exception')||s.includes('delay')||s.includes('failed')||s.includes('returned')) return 'exc';
   return 'pend';
 }
 
-function statusBadge(raw, cls) {
-  if (!raw || raw.trim() === '') {
+function badge(raw, cls) {
+  if (!raw || !raw.trim()) {
     return `<span class="status-badge badge-api"><span class="s-dot"></span>Pending API</span>`;
   }
-  const map = { del:'badge-del', tr:'badge-tr', out:'badge-out', pend:'badge-pend', exc:'badge-exc' };
+  const map = {del:'badge-del',tr:'badge-tr',out:'badge-out',exc:'badge-exc',pend:'badge-pend'};
   return `<span class="status-badge ${map[cls]||'badge-pend'}"><span class="s-dot"></span>${esc(raw)}</span>`;
 }
 
-function fmt(s) {
-  if (!s || s.trim() === '') return '';
+function fmtDate(s) {
+  if (!s||!s.trim()) return '';
   const d = new Date(s);
-  if (isNaN(d)) return s;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+  if (isNaN(d)) return s.trim();
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'});
 }
 
-function isPast(s) {
-  const d = new Date(s);
-  return !isNaN(d) && d < new Date();
-}
-
-function showToast(msg, dur = 2000) {
+function showToast(msg) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), dur);
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2000);
 }
 
-function copyTracking(num) {
-  navigator.clipboard?.writeText(num).then(() => showToast('Copied: ' + num));
-}
+function renderRows() {
+  if (!rows.length) {
+    document.getElementById('tbody').innerHTML = '<tr class="msg-row"><td colspan="4">No shipped items in the last 30 days.</td></tr>';
+    return;
+  }
 
-function buildTableRows(rows) {
-  if (!rows.length) return '<tr class="msg-row"><td colspan="4">No data found.</td></tr>';
-  return rows.map((r, i) => {
-    const style    = r[0];
-    const shipDate = r[1];
-    const tracking = r[2];
-    const status   = r[3];
-    const statusCls = r[4];
-    const past = shipDate && isPast(shipDate);
+  const sorted = [...rows].sort((a,b) => {
+    let va = a[sortCol]||'', vb = b[sortCol]||'';
+    if (sortCol === 1) {
+      const da = new Date(va), db = new Date(vb);
+      if (!isNaN(da)&&!isNaN(db)) return sortAsc ? da-db : db-da;
+    }
+    va = va.toString().toLowerCase(); vb = vb.toString().toLowerCase();
+    return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+  });
 
-    const trackingCell = tracking
+  document.getElementById('tbody').innerHTML = sorted.map((r,i) => {
+    const [style, shipDate, tracking, delivery, cls] = r;
+    const track = tracking
       ? `<div class="tracking-wrap">
            <a class="tracking-link" href="https://www.fedex.com/apps/fedextrack/?tracknumbers=${encodeURIComponent(tracking)}" target="_blank" rel="noopener">${esc(tracking)}</a>
-           <button class="copy-btn" title="Copy tracking number" onclick="copyTracking('${tracking.replace(/'/g,"\\'")}')">
+           <button class="copy-btn" title="Copy" onclick="navigator.clipboard?.writeText('${tracking.replace(/'/g,"\\'")}').then(()=>showToast('Copied'))">
              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
            </button>
          </div>`
       : `<span class="tracking-empty">No tracking yet</span>`;
 
-    return `<tr data-cls="${statusCls}" data-style="${esc(style)}" data-tracking="${esc(tracking)}">
-      <td class="style-cell">${esc(style) || '—'}</td>
-      <td class="date-cell${past?' past':''}">${fmt(shipDate) || '—'}</td>
-      <td>${trackingCell}</td>
-      <td>${statusBadge(status, statusCls)}</td>
+    return `<tr>
+      <td class="style-cell">${esc(style)||'—'}</td>
+      <td class="date-cell">${fmtDate(shipDate)||'—'}</td>
+      <td>${track}</td>
+      <td>${badge(delivery,cls)}</td>
     </tr>`;
   }).join('');
 }
 
-function applyFilters() {
-  const search = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
-  const rows = document.querySelectorAll('#table-body tr[data-cls]');
-  let visible = 0;
-  rows.forEach(r => {
-    const matchFilter  = activeFilter === 'all' || r.dataset.cls === activeFilter;
-    const matchSearch  = !search
-      || (r.dataset.style||'').toLowerCase().includes(search)
-      || (r.dataset.tracking||'').toLowerCase().includes(search);
-    const show = matchFilter && matchSearch;
-    r.style.display = show ? '' : 'none';
-    if (show) visible++;
+function sortBy(col) {
+  if (sortCol === col) { sortAsc = !sortAsc; }
+  else { sortCol = col; sortAsc = col !== 1; }
+
+  document.querySelectorAll('th').forEach((th,i) => {
+    th.classList.toggle('sorted', i===col);
+    const ic = th.querySelector('.sort-icon');
+    if(ic) ic.innerHTML = i===col ? (sortAsc?'&#8593;':'&#8595;') : '&#8597;';
   });
-
-  document.querySelectorAll('.pill').forEach(p => {
-    p.classList.toggle('active', p.dataset.f === activeFilter);
-  });
-
-  const total = rows.length;
-  document.getElementById('status-text').textContent = `${visible} of ${total} shipments`;
-}
-
-function sortTable(colIdx) {
-  if (sortCol === colIdx) {
-    sortAsc = !sortAsc;
-  } else {
-    sortCol = colIdx;
-    sortAsc = true;
-  }
-
-  document.querySelectorAll('th').forEach((th, i) => {
-    th.classList.toggle('sorted', i === colIdx);
-    const icon = th.querySelector('.sort-icon');
-    if (icon) icon.innerHTML = i === colIdx ? (sortAsc ? '&#8593;' : '&#8595;') : '&#8597;';
-  });
-
-  allRows.sort((a, b) => {
-    const va = (a[colIdx]||'').toString().toLowerCase();
-    const vb = (b[colIdx]||'').toString().toLowerCase();
-    if (colIdx === 1) {
-      const da = new Date(a[colIdx]), db = new Date(b[colIdx]);
-      if (!isNaN(da) && !isNaN(db)) return sortAsc ? da - db : db - da;
-    }
-    return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
-  });
-
-  document.getElementById('table-body').innerHTML = buildTableRows(allRows);
-  applyFilters();
-}
-
-function build(rawRows) {
-  const H = rawRows[0];
-  const data = rawRows.slice(1);
-
-  const C = {
-    style:    col(H, 'style #', 'style#', 'style name', 'style'),
-    shipDate: col(H, 'ship date tradestone', 'tradestone ship', 'ts ship date', 'tradestone date', 'ship date ts', 'ship date'),
-    tracking: col(H, 'tracking number', 'tracking#', 'tracking no', 'tracking', 'fedex tracking'),
-    delivery: col(H, 'delivery status', 'fedex status', 'fedex delivery', 'delivery'),
-  };
-
-  const get = (r, ci) => ci >= 0 ? (r[ci]||'').trim() : '';
-
-  const counts = { del:0, tr:0, out:0, pend:0, exc:0 };
-
-  allRows = data
-    .map(r => {
-      const style    = get(r, C.style);
-      const shipDate = get(r, C.shipDate);
-      const tracking = get(r, C.tracking);
-      const delivery = get(r, C.delivery);
-      if (!style && !tracking && !shipDate) return null;
-      const cls = classifyStatus(delivery);
-      counts[cls] = (counts[cls]||0) + 1;
-      return [style, shipDate, tracking, delivery, cls];
-    })
-    .filter(Boolean);
-
-  document.getElementById('table-body').innerHTML = buildTableRows(allRows);
-
-  const total = allRows.length;
-
-  document.getElementById('pills').innerHTML = `
-    <div class="pill all" data-f="all"  onclick="activeFilter='all';applyFilters()"><div class="dot" style="background:#6b7280"></div><span>All <span class="cnt">(${total})</span></span></div>
-    <div class="pill del" data-f="del"  onclick="activeFilter='del';applyFilters()"><div class="dot"></div><span>Delivered <span class="cnt">(${counts.del})</span></span></div>
-    <div class="pill out" data-f="out"  onclick="activeFilter='out';applyFilters()"><div class="dot"></div><span>Out for Delivery <span class="cnt">(${counts.out})</span></span></div>
-    <div class="pill tr"  data-f="tr"   onclick="activeFilter='tr';applyFilters()"><div class="dot"></div><span>In Transit <span class="cnt">(${counts.tr})</span></span></div>
-    <div class="pill pend" data-f="pend" onclick="activeFilter='pend';applyFilters()"><div class="dot"></div><span>Pending <span class="cnt">(${counts.pend})</span></span></div>
-    ${counts.exc ? `<div class="pill exc"  data-f="exc"  onclick="activeFilter='exc';applyFilters()"><div class="dot"></div><span>Exception <span class="cnt">(${counts.exc})</span></span></div>` : ''}
-  `;
-
-  document.getElementById('status-text').textContent = `${total} shipments`;
-  const now = new Date();
-  document.getElementById('last-updated').textContent = `Last synced: ${now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
-
-  applyFilters();
+  renderRows();
 }
 
 async function loadData() {
-  document.getElementById('table-body').innerHTML = '<tr class="msg-row"><td colspan="4"><div class="spinner"></div>Fetching data…</td></tr>';
-  document.getElementById('pills').innerHTML = '';
+  document.getElementById('tbody').innerHTML = '<tr class="msg-row"><td colspan="4"><div class="spinner"></div>Fetching data…</td></tr>';
   document.getElementById('status-text').textContent = 'Loading…';
-  document.getElementById('last-updated').textContent = '';
   document.getElementById('reload-btn').classList.add('loading');
-  activeFilter = 'all';
-  allRows = [];
 
   try {
     const res = await fetch(CSV_URL);
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    const rows = parseCSV(await res.text());
-    if (rows.length < 2) throw new Error('No data rows found');
-    build(rows);
+    const raw = parseCSV(await res.text());
+    if (raw.length < 2) throw new Error('No data');
+
+    const H = raw[0];
+    const data = raw.slice(1);
+
+    const C = {
+      style:    colIdx(H, 'style #','style#','style name','style'),
+      shipDate: colIdx(H, 'ship date tradestone','tradestone ship date','ts ship date','ship date ts','tradestone date','ship date','ex-factory','exfactory','ex factory'),
+      tracking: colIdx(H, 'tracking number','tracking#','tracking no','tracking','fedex tracking','awb','airway bill'),
+      delivery: colIdx(H, 'delivery status','fedex status','fedex delivery','delivery'),
+      status:   colIdx(H, 'warehouse status','wh status','status'),
+    };
+
+    const now = new Date();
+    const cutoff = new Date(now - 30 * 24 * 60 * 60 * 1000);
+    const get = (r,i) => i>=0 ? (r[i]||'').trim() : '';
+
+    rows = data
+      .map(r => {
+        const statusRaw = get(r, C.status);
+        if (!statusRaw.toLowerCase().includes('shipped')) return null;
+
+        const shipDate = get(r, C.shipDate);
+        if (shipDate) {
+          const d = new Date(shipDate);
+          if (!isNaN(d) && d < cutoff) return null;
+        }
+
+        const style    = get(r, C.style);
+        const tracking = get(r, C.tracking);
+        const delivery = get(r, C.delivery);
+        const cls      = classifyDelivery(delivery);
+        return [style, shipDate, tracking, delivery, cls];
+      })
+      .filter(Boolean);
+
+    // default sort: ship date newest first
+    sortCol = 1; sortAsc = false;
+    document.querySelectorAll('th').forEach((th,i) => {
+      th.classList.toggle('sorted', i===1);
+      const ic = th.querySelector('.sort-icon');
+      if(ic) ic.innerHTML = i===1 ? '&#8595;' : '&#8597;';
+    });
+
+    renderRows();
+    document.getElementById('status-text').textContent =
+      `${rows.length} shipment${rows.length!==1?'s':''} · Shipped · Last 30 days`;
+
   } catch(e) {
-    document.getElementById('table-body').innerHTML = `<tr class="msg-row"><td colspan="4">&#9888;&#65039; Could not load data.<br><small style="color:#9ca3af">${esc(e.message)}</small></td></tr>`;
+    document.getElementById('tbody').innerHTML =
+      `<tr class="msg-row"><td colspan="4">&#9888;&#65039; Could not load data — ${esc(e.message)}</td></tr>`;
     document.getElementById('status-text').textContent = 'Error';
   }
 
   document.getElementById('reload-btn').classList.remove('loading');
-}
-
-async function runJhonny() {
-  const btn = document.getElementById('jhonny-btn');
-  btn.disabled = true;
-  btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Running…`;
-
-  try {
-    const res = await fetch('/api/run-jhonny', { method: 'POST' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    showToast('Jhonny is running — refresh in a minute for updated statuses.', 4000);
-  } catch(e) {
-    showToast('Could not trigger Jhonny. Check connection.', 3000);
-  }
-
-  setTimeout(() => {
-    btn.disabled = false;
-    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Run Jhonny`;
-  }, 8000);
 }
 
 loadData();
