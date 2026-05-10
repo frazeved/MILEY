@@ -194,20 +194,23 @@ function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+function norm(s) {
+  return String(s).replace(/﻿/g,'').replace(/[^\x20-\x7E]/g,'').trim().toLowerCase();
+}
 function colIdx(headers, ...kws) {
-  // exact match first, then partial
   for (const kw of kws) {
-    const i = headers.findIndex(h => h.trim().toLowerCase() === kw.toLowerCase());
+    const i = headers.findIndex(h => norm(h) === norm(kw));
     if (i >= 0) return i;
   }
   for (const kw of kws) {
-    const i = headers.findIndex(h => h.trim().toLowerCase().includes(kw.toLowerCase()));
+    const i = headers.findIndex(h => norm(h).includes(norm(kw)));
     if (i >= 0) return i;
   }
   return -1;
 }
 
 function parseCSV(text) {
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1); // strip BOM
   const rows = []; let row = [], field = '', inQ = false;
   for (let i = 0; i < text.length; i++) {
     const c = text[i];
@@ -327,7 +330,7 @@ function sortBy(col) {
 }
 
 async function loadData() {
-  document.getElementById('tbody').innerHTML = '<tr class="msg-row"><td colspan="4"><div class="spinner"></div>Fetching data…</td></tr>';
+  document.getElementById('tbody').innerHTML = '<tr class="msg-row"><td colspan="7"><div class="spinner"></div>Fetching data…</td></tr>';
   document.getElementById('status-text').textContent = 'Loading…';
   document.getElementById('reload-btn').classList.add('loading');
 
@@ -342,13 +345,15 @@ async function loadData() {
 
     const C = {
       style:    colIdx(H, 'style #', 'style#', 'style'),
-      po:       colIdx(H, 'po#', 'po #', 'po number', 'purchase order'),
+      po:       colIdx(H, 'po#', 'po #', 'po', 'purchase order', 'order#', 'order #'),
       status:   colIdx(H, 'status'),
       shipDate: colIdx(H, 'ship date tradestone', 'ship date', 'ex-factory', 'exfactory'),
       cancel:   colIdx(H, 'cancel date', 'cancel'),
       tracking: colIdx(H, 'tracking number', 'tracking#', 'tracking'),
       delivery: colIdx(H, 'delivery status', 'delivery'),
     };
+    console.log('Headers (first 10):', H.slice(0,10));
+    console.log('Column indices:', C);
 
     const get = (r,i) => i>=0 ? (r[i]||'').trim() : '';
 
