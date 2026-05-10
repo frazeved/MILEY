@@ -38,6 +38,10 @@
 
     .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
     .status-text { font-size: 12px; color: var(--muted); flex: 1; }
+    .search-wrap { position: relative; }
+    .search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+    .search-input { font-family: inherit; font-size: 12px; padding: 6px 10px 6px 30px; border: 1px solid var(--border); border-radius: 7px; outline: none; color: var(--text); background: var(--surface); width: 230px; transition: border-color 0.15s; }
+    .search-input:focus { border-color: var(--accent); }
     .tb-btn { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 6px 12px; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--accent); transition: background 0.15s; }
     .tb-btn:hover { background: var(--accent-lt); }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -82,6 +86,8 @@
     .badge-pend .s-dot { background: #9ca3af; }
     .badge-api  { background: var(--accent-lt); color: #6b21a8; }
     .badge-api  .s-dot { background: var(--accent); }
+    .badge-sh   { background: #dcfce7; color: #166534; }
+    .badge-sh   .s-dot { background: #16a34a; }
 
     @keyframes pulse-r { 0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.4)} 50%{box-shadow:0 0 0 4px rgba(220,38,38,0)} }
     @keyframes pulse-o { 0%,100%{box-shadow:0 0 0 0 rgba(255,98,0,.4)}  50%{box-shadow:0 0 0 4px rgba(255,98,0,0)} }
@@ -142,6 +148,10 @@
 <div class="page-wrap">
   <div class="toolbar">
     <span class="status-text" id="status-text">Loading…</span>
+    <div class="search-wrap">
+      <svg class="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="search-input" id="search-input" type="text" placeholder="Search PO#, Style or Tracking…" oninput="renderRows(this.value)" />
+    </div>
     <button class="tb-btn" id="reload-btn" onclick="loadData()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
       Refresh
@@ -154,13 +164,16 @@
         <thead>
           <tr>
             <th onclick="sortBy(0)" id="th-0">Style # <span class="sort-icon">&#8597;</span></th>
-            <th onclick="sortBy(1)" id="th-1">Ship Date Tradestone <span class="sort-icon">&#8597;</span></th>
-            <th onclick="sortBy(2)" id="th-2">Tracking Number <span class="sort-icon">&#8597;</span></th>
-            <th onclick="sortBy(3)" id="th-3">Delivery Status <span class="sort-icon">&#8597;</span></th>
+            <th onclick="sortBy(1)" id="th-1">PO# <span class="sort-icon">&#8597;</span></th>
+            <th onclick="sortBy(2)" id="th-2">Status <span class="sort-icon">&#8597;</span></th>
+            <th onclick="sortBy(3)" id="th-3">Ship Date Tradestone <span class="sort-icon">&#8597;</span></th>
+            <th onclick="sortBy(4)" id="th-4">Cancel Date <span class="sort-icon">&#8597;</span></th>
+            <th onclick="sortBy(5)" id="th-5">Tracking Number <span class="sort-icon">&#8597;</span></th>
+            <th onclick="sortBy(6)" id="th-6">Delivery Status <span class="sort-icon">&#8597;</span></th>
           </tr>
         </thead>
         <tbody id="tbody">
-          <tr class="msg-row"><td colspan="4"><div class="spinner"></div>Fetching data…</td></tr>
+          <tr class="msg-row"><td colspan="7"><div class="spinner"></div>Fetching data…</td></tr>
         </tbody>
       </table>
     </div>
@@ -174,7 +187,7 @@ const SHEET_ID = '1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q';
 const CSV_URL  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=99866922`;
 
 let rows = [];
-let sortCol = 1; // default: ship date
+let sortCol = 3; // default: ship date tradestone
 let sortAsc = false; // newest first
 
 function esc(s) {
@@ -245,15 +258,28 @@ function showToast(msg) {
   setTimeout(()=>t.classList.remove('show'), 2000);
 }
 
-function renderRows() {
-  if (!rows.length) {
-    document.getElementById('tbody').innerHTML = '<tr class="msg-row"><td colspan="4">No shipped items found.</td></tr>';
+function renderRows(filter) {
+  const q = (filter||'').toLowerCase().trim();
+  const visible = rows.filter(r => {
+    if (!q) return true;
+    const [style,,, , , tracking] = r;
+    const po = r[1];
+    return (style||'').toLowerCase().includes(q)
+        || (po||'').toLowerCase().includes(q)
+        || (tracking||'').toLowerCase().includes(q);
+  });
+
+  if (!visible.length) {
+    document.getElementById('tbody').innerHTML = `<tr class="msg-row"><td colspan="7">${q ? 'No results for "'+esc(q)+'".' : 'No shipped items found.'}</td></tr>`;
+    document.getElementById('status-text').textContent = q
+      ? `${visible.length} of ${rows.length} shipments · Status: Shipped`
+      : `${rows.length} shipment${rows.length!==1?'s':''} · Status: Shipped`;
     return;
   }
 
-  const sorted = [...rows].sort((a,b) => {
+  const sorted = [...visible].sort((a,b) => {
     let va = a[sortCol]||'', vb = b[sortCol]||'';
-    if (sortCol === 1) {
+    if (sortCol === 3 || sortCol === 4) {
       const da = new Date(va), db = new Date(vb);
       if (!isNaN(da)&&!isNaN(db)) return sortAsc ? da-db : db-da;
     }
@@ -261,8 +287,8 @@ function renderRows() {
     return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
   });
 
-  document.getElementById('tbody').innerHTML = sorted.map((r,i) => {
-    const [style, shipDate, tracking, delivery, cls] = r;
+  document.getElementById('tbody').innerHTML = sorted.map(r => {
+    const [style, po, status, shipDate, cancel, tracking, delivery, cls] = r;
     const track = tracking
       ? `<div class="tracking-wrap">
            <a class="tracking-link" href="https://www.fedex.com/apps/fedextrack/?tracknumbers=${encodeURIComponent(tracking)}" target="_blank" rel="noopener">${esc(tracking)}</a>
@@ -270,27 +296,34 @@ function renderRows() {
              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
            </button>
          </div>`
-      : `<span class="tracking-empty">No tracking yet</span>`;
+      : `<span class="tracking-empty">—</span>`;
 
     return `<tr>
       <td class="style-cell">${esc(style)||'—'}</td>
+      <td class="date-cell">${esc(po)||'—'}</td>
+      <td><span class="status-badge badge-sh"><span class="s-dot"></span>${esc(status)}</span></td>
       <td class="date-cell">${fmtDate(shipDate)||'—'}</td>
+      <td class="date-cell">${fmtDate(cancel)||'—'}</td>
       <td>${track}</td>
       <td>${badge(delivery,cls)}</td>
     </tr>`;
   }).join('');
+
+  document.getElementById('status-text').textContent = q
+    ? `${visible.length} of ${rows.length} shipments · Status: Shipped`
+    : `${rows.length} shipment${rows.length!==1?'s':''} · Status: Shipped`;
 }
 
 function sortBy(col) {
   if (sortCol === col) { sortAsc = !sortAsc; }
-  else { sortCol = col; sortAsc = col !== 1; }
+  else { sortCol = col; sortAsc = (col !== 3 && col !== 4); }
 
   document.querySelectorAll('th').forEach((th,i) => {
     th.classList.toggle('sorted', i===col);
     const ic = th.querySelector('.sort-icon');
     if(ic) ic.innerHTML = i===col ? (sortAsc?'&#8593;':'&#8595;') : '&#8597;';
   });
-  renderRows();
+  renderRows(document.getElementById('search-input')?.value || '');
 }
 
 async function loadData() {
@@ -309,38 +342,42 @@ async function loadData() {
 
     const C = {
       style:    colIdx(H, 'style #', 'style#', 'style'),
+      po:       colIdx(H, 'po#', 'po #', 'po number', 'purchase order'),
       status:   colIdx(H, 'status'),
       shipDate: colIdx(H, 'ship date tradestone', 'ship date', 'ex-factory', 'exfactory'),
+      cancel:   colIdx(H, 'cancel date', 'cancel'),
       tracking: colIdx(H, 'tracking number', 'tracking#', 'tracking'),
       delivery: colIdx(H, 'delivery status', 'delivery'),
     };
 
     const get = (r,i) => i>=0 ? (r[i]||'').trim() : '';
 
+    let lastStyle = '';
     rows = data
       .map(r => {
         const statusRaw = get(r, C.status);
         if (!statusRaw.toLowerCase().includes('shipped')) return null;
-        const style    = get(r, C.style);
+        const styleRaw = get(r, C.style);
+        if (styleRaw) lastStyle = styleRaw;
+        const style    = lastStyle;
+        const po       = get(r, C.po);
         const shipDate = get(r, C.shipDate);
+        const cancel   = get(r, C.cancel);
         const tracking = get(r, C.tracking);
         const delivery = get(r, C.delivery);
         const cls      = classifyDelivery(delivery);
-        return [style, shipDate, tracking, delivery, cls];
+        return [style, po, statusRaw, shipDate, cancel, tracking, delivery, cls];
       })
       .filter(Boolean);
 
-    // default sort: ship date newest first
-    sortCol = 1; sortAsc = false;
+    sortCol = 3; sortAsc = false;
     document.querySelectorAll('th').forEach((th,i) => {
-      th.classList.toggle('sorted', i===1);
+      th.classList.toggle('sorted', i===3);
       const ic = th.querySelector('.sort-icon');
-      if(ic) ic.innerHTML = i===1 ? '&#8595;' : '&#8597;';
+      if(ic) ic.innerHTML = i===3 ? '&#8595;' : '&#8597;';
     });
 
-    renderRows();
-    document.getElementById('status-text').textContent =
-      `${rows.length} shipment${rows.length!==1?'s':''} · Status: Shipped`;
+    renderRows(document.getElementById('search-input')?.value || '');
 
   } catch(e) {
     document.getElementById('tbody').innerHTML =
