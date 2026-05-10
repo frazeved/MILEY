@@ -158,8 +158,6 @@
     </button>
   </div>
 
-  <div id="raw-debug" style="font-size:11px;font-family:monospace;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;margin-bottom:12px;display:none;line-height:1.8;overflow-x:auto;white-space:nowrap"></div>
-
   <div class="table-wrap">
     <div class="table-scroll">
       <table id="data-table">
@@ -186,7 +184,7 @@
 
 <script>
 const SHEET_ID = '1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q';
-const CSV_URL  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=99866922`;
+const CSV_URL  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=99866922`;
 
 let rows = [];
 let sortCol = 3; // default: ship date tradestone
@@ -356,35 +354,32 @@ async function loadData() {
       delivery: colIdx(H, 'delivery status', 'delivery'),
     };
 
-    // Visible debug — shows exactly what the CSV is delivering
-    const dbg = document.getElementById('raw-debug');
-    const firstRow = data[0] || [];
-    dbg.style.display = 'block';
-    dbg.innerHTML =
-      '<b>CSV Headers [0-5]:</b> ' + H.slice(0,6).map((h,i)=>`[${i}]&nbsp;<b>${esc(h)||'(empty)'}</b>`).join(' &nbsp;|&nbsp; ') +
-      '<br><b>First data row [0-5]:</b> ' + firstRow.slice(0,6).map((v,i)=>`[${i}]&nbsp;<b>${esc(v)||'(empty)'}</b>`).join(' &nbsp;|&nbsp; ') +
-      `<br><b>Cols detected:</b> tracking=${C.tracking} delivery=${C.delivery}`;
-
     const get = (r,i) => i>=0 ? (r[i]||'').trim() : '';
 
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 30);
 
+    // Pass 1: build style carry-forward across ALL rows (before any filtering)
     let lastStyle = '';
+    const styleByRow = data.map(r => {
+      const v = get(r, 0);
+      if (v) lastStyle = v;
+      return lastStyle;
+    });
+
+    // Pass 2: filter to SHIPPED + last 30 days, attach the pre-computed style
     rows = data
-      .map(r => {
-        const statusRaw = get(r, C.status);
+      .map((r, i) => {
+        const statusRaw = get(r, 2);
         if (!statusRaw.toLowerCase().includes('shipped')) return null;
-        const shipDate = get(r, C.shipDate);
+        const shipDate = get(r, 3);
         if (shipDate) {
           const d = new Date(shipDate);
           if (!isNaN(d) && d < cutoff) return null;
         }
-        const styleRaw = get(r, C.style);
-        if (styleRaw) lastStyle = styleRaw;
-        const style    = lastStyle;
-        const po       = get(r, C.po);
-        const cancel   = get(r, C.cancel);
+        const style    = styleByRow[i];
+        const po       = get(r, 1);
+        const cancel   = get(r, 4);
         const tracking = get(r, C.tracking);
         const delivery = get(r, C.delivery);
         const cls      = classifyDelivery(delivery);
