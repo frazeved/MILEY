@@ -119,27 +119,30 @@
     /* Modal styles */
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.3); z-index: 200; }
     .modal-overlay.open { display: flex; align-items: center; justify-content: center; }
-    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; max-width: 400px; width: 90%; max-height: 75vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
-    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-    .modal-title { font-size: 18px; font-weight: 700; color: var(--text); }
-    .modal-close { background: none; border: none; font-size: 24px; color: var(--text-muted); cursor: pointer; padding: 0; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; max-width: 620px; width: 95%; overflow: visible; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .modal-title { font-size: 15px; font-weight: 700; color: var(--text); }
+    .modal-close { background: none; border: none; font-size: 22px; color: var(--text-muted); cursor: pointer; padding: 0; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
     .modal-close:hover { color: var(--text); }
 
-    .form-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-    .form-full { grid-column: 1 / -1; }
-    .form-group { display: flex; flex-direction: column; gap: 4px; }
-    .form-label { font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
-    .form-input, .form-select, .form-textarea { font-family: inherit; font-size: 12px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; color: var(--text); background: var(--surface); outline: none; transition: border-color 0.15s; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px 10px; }
+    .form-full  { grid-column: 1 / -1; }
+    .form-span2 { grid-column: span 2; }
+    .form-group { display: flex; flex-direction: column; gap: 3px; }
+    .form-label { font-size: 9px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; }
+    .form-input, .form-select, .form-textarea { font-family: inherit; font-size: 12px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; color: var(--text); background: var(--surface); outline: none; transition: border-color 0.15s; width: 100%; }
     .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
-    .form-row { display: flex; gap: 8px; }
-    .form-row .form-input { flex: 1; }
-    .btn-search { background: #f3f4f6; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 6px; padding: 9px 12px; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
-    .btn-search:hover { background: #e5e7eb; border-color: #d1d5db; }
+    .form-row { display: flex; gap: 6px; }
+    .form-row .form-input { flex: 1; min-width: 0; }
+    .form-display { font-family: inherit; font-size: 12px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; color: var(--text-secondary); background: #f9fafb; }
+    .btn-search { background: #f3f4f6; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.15s; flex-shrink: 0; }
+    .btn-search:hover { background: #e5e7eb; }
 
-    .form-actions { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; }
-    .btn-primary { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+    .form-divider { grid-column: 1/-1; border: none; border-top: 1px solid var(--border); margin: 2px 0; }
+    .form-actions { display: flex; gap: 8px; margin-top: 10px; justify-content: flex-end; }
+    .btn-primary { background: var(--accent); color: #fff; border: none; border-radius: 7px; padding: 8px 18px; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
     .btn-primary:hover { background: var(--accent-hover); }
-    .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 10px 20px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+    .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 7px; padding: 8px 18px; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
     .btn-secondary:hover { background: #eeeff3; }
   </style>
 </head>
@@ -363,7 +366,9 @@
     </div>
 
     <form class="form-grid">
-      <div class="form-group">
+
+      <!-- Row 1: Style search — full width -->
+      <div class="form-group form-full">
         <label class="form-label">Style #</label>
         <div class="form-row">
           <input type="text" name="style" class="form-input" />
@@ -371,31 +376,31 @@
         </div>
       </div>
 
+      <hr class="form-divider" />
+
+      <!-- Row 2: Supplier | Category | Sub-Category -->
       <div class="form-group">
         <label class="form-label">Supplier</label>
         <input type="text" name="supplier" class="form-input" />
       </div>
-
       <div class="form-group">
         <label class="form-label">Category</label>
         <input type="text" name="category" class="form-input" />
       </div>
-
       <div class="form-group">
         <label class="form-label">Sub-Category</label>
         <input type="text" name="subcategory" class="form-input" />
       </div>
 
+      <!-- Row 3: PI Received | Top Sent to Anthro | Top Sample Status -->
       <div class="form-group">
         <label class="form-label">PI Received</label>
         <input type="date" name="piReceived" class="form-input" />
       </div>
-
       <div class="form-group">
         <label class="form-label">Top Sent to Anthro</label>
         <input type="date" name="topSent" class="form-input" />
       </div>
-
       <div class="form-group">
         <label class="form-label">Top Sample Status</label>
         <select name="topSampleStatus" class="form-select">
@@ -407,36 +412,35 @@
         </select>
       </div>
 
-      <div class="form-group">
+      <!-- Row 4: Base PO (2 cols) | Final NDC -->
+      <div class="form-group form-span2">
         <label class="form-label">Base PO Import Farm</label>
         <input type="text" name="basePo" class="form-input" />
       </div>
-
       <div class="form-group">
         <label class="form-label">Final NDC</label>
         <input type="date" name="finalNDC" class="form-input" />
       </div>
 
+      <!-- Row 5: Top Deadline | Top Deadline Days | Ex Factory -->
       <div class="form-group">
         <label class="form-label">Top Deadline</label>
         <input type="date" name="topDeadline" class="form-input" onchange="updateTopDeadlineDays()" />
       </div>
-
       <div class="form-group">
         <label class="form-label">Top Deadline Days</label>
-        <div id="topDeadlineDays-display" class="form-input" style="background:#f9fafb; color:#6b7280; cursor:default;">—</div>
+        <div id="topDeadlineDays-display" class="form-display">—</div>
       </div>
-
       <div class="form-group">
         <label class="form-label">Ex Factory / Flight Date</label>
         <input type="date" name="exFactory" class="form-input" />
       </div>
 
+      <!-- Row 6: Cost | Freight | Duty -->
       <div class="form-group">
         <label class="form-label">Cost</label>
         <input type="number" name="cost" class="form-input" step="0.01" />
       </div>
-
       <div class="form-group">
         <label class="form-label">Freight</label>
         <select name="freight" class="form-select">
@@ -446,23 +450,24 @@
           <option>CIF</option>
         </select>
       </div>
-
       <div class="form-group">
         <label class="form-label">Duty</label>
         <input type="number" name="duty" class="form-input" step="0.01" />
       </div>
 
-      <div class="form-group">
+      <!-- Row 7: HTS (full) -->
+      <div class="form-group form-full">
         <label class="form-label">HTS</label>
         <input type="text" name="hts" class="form-input" />
       </div>
 
+      <!-- Row 8: Message -->
       <div class="form-group form-full">
         <label class="form-label">Message</label>
-        <textarea class="form-textarea"></textarea>
+        <textarea class="form-textarea" rows="2"></textarea>
       </div>
 
-      <div class="form-actions">
+      <div class="form-actions form-full">
         <button type="button" class="btn-secondary" onclick="closeModal('po-breakdown-modal')">Cancel</button>
         <button type="submit" class="btn-primary">Send Breakdown</button>
       </div>
