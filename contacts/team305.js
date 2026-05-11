@@ -16,7 +16,7 @@ const breakdownCC = [
 const nameMap = {
   "support@creativetwotwelve.com":    "Flavio Azevedo",
   "logistics@creativetwotwelve.com":  "Eduardo Moraes",
-  "inspection@creativetwotwelve.com": "Eduin Quintero",
+  "inspection@creativetwotwelve.com": "Julian Fajardo",
   "paula@creativetwotwelve.com":      "Paula Erthal",
   "kamilla@creativetwotwelve.com":    "Kamilla Aguiar",
   "business@creativetwotwelve.com":   "Manuela Carvalho",

@@ -4,6 +4,6 @@ module.exports = [
   { id: 'ozan',     name: 'Ozan Guruscu',       email: 'ozan.guruscu@creativetwotwelve.com'   },
   { id: 'flavio',   name: 'Flavio Azevedo',     email: 'support@creativetwotwelve.com'        },
   { id: 'eduardo',  name: 'Eduardo Moraes',     email: 'logistics@creativetwotwelve.com'      },
-  { id: 'eduin',    name: 'Eduin Quintero',     email: 'inspection@creativetwotwelve.com'     },
+  { id: 'julian',   name: 'Julian Fajardo',     email: 'inspection@creativetwotwelve.com'     },
   { id: 'manuela',  name: 'Manuela Carvalho',   email: 'business@creativetwotwelve.com'       },
 ];

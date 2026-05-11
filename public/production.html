@@ -510,19 +510,21 @@ async function loadSendingAsUsers() {
   const sel = document.getElementById('sendingAs-select');
   try {
     const users = await fetch('/api/users').then(r => r.json());
-    const current = sel.value;
+    const saved = localStorage.getItem('305_sendingAs') || sel.value;
     sel.innerHTML = '<option value="">— Select your name —</option>';
     users.forEach(u => {
       const opt = document.createElement('option');
       opt.value = u.id;
-      opt.textContent = u.connected ? `${u.name} ✓` : u.name;
-      opt.disabled = !u.connected;
-      opt.style.color = u.connected ? '#166534' : '#9ca3af';
-      if (u.id === current) opt.selected = true;
+      opt.textContent = u.connected ? `${u.name}  ✓ Connected` : u.name;
+      if (u.id === saved) opt.selected = true;
       sel.appendChild(opt);
     });
   } catch (_) {}
 }
+
+document.getElementById('sendingAs-select').addEventListener('change', function() {
+  if (this.value) localStorage.setItem('305_sendingAs', this.value);
+});
 
 function closeModal(modalId) {
   document.getElementById(modalId).classList.remove('open');
