@@ -97,6 +97,117 @@ async function triggerJhonnyUpdate(req, res) {
 app.post('/api/run-jhonny', triggerJhonnyUpdate);
 app.post('/api/fedex/update', triggerJhonnyUpdate);
 
+app.post('/api/po/search', async (req, res) => {
+  try {
+    const { style } = req.body;
+    if (!style || !style.trim()) {
+      return res.status(400).json({ error: 'Style # is required' });
+    }
+
+    const styleToSearch = style.toString().trim();
+    const csvUrl = 'https://docs.google.com/spreadsheets/d/1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q/export?format=csv&gid=0';
+    
+    const response = await fetch(csvUrl);
+    if (!response.ok) {
+      return res.status(500).json({ error: 'Failed to fetch sheet data' });
+    }
+    
+    const csvText = await response.text();
+    const lines = csvText.split(/\r?\n/).filter(line => line.trim());
+    const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim().toLowerCase());
+    
+    const getColIndex = (targetName) => {
+      const normalized = targetName.trim().toLowerCase();
+      return headers.findIndex(h => h === normalized);
+    };
+
+    const colMap = {
+      style: getColIndex("style #"),
+      status: getColIndex("status"),
+      supplier: getColIndex("supplier"),
+      category: getColIndex("category"),
+      subcategory: getColIndex("sub-category"),
+      piReceived: getColIndex("pi received"),
+      topSent: getColIndex("top sent to anthro"),
+      topSampleStatus: getColIndex("top sample status"),
+      basePo: getColIndex("base po import farm"),
+      finalNDC: getColIndex("final ndc"),
+      topDeadline: getColIndex("top deadline"),
+      exFactory: getColIndex("ex factory / flight date"),
+      cost: getColIndex("cost"),
+      freight: getColIndex("freight"),
+      duty: getColIndex("duty"),
+      hts: getColIndex("hts code")
+    };
+
+    // Check if all required columns exist
+    for (const key in colMap) {
+      if (colMap[key] === -1) {
+        return res.status(500).json({ error: `Missing column: ${key.toUpperCase()}` });
+      }
+    }
+
+    let found = false;
+    let result = null;
+
+    for (let i = 1; i < lines.length; i++) {
+      const cells = lines[i].split(',').map(cell => cell.replace(/"/g, '').trim());
+      const rowStyle = cells[colMap.style]?.trim();
+      const rowStatus = cells[colMap.status]?.trim();
+
+      if (rowStyle === styleToSearch && (rowStatus === "PO'd + production ok" || rowStatus === "PO'd")) {
+        const finalNDC = cells[colMap.finalNDC]?.trim();
+        const topDeadline = cells[colMap.topDeadline]?.trim();
+        
+        let topDeadlineDays = '';
+        if (finalNDC && topDeadline) {
+          try {
+            const finalNDCDate = new Date(finalNDC);
+            const topDeadlineDate = new Date(topDeadline);
+            if (!isNaN(finalNDCDate) && !isNaN(topDeadlineDate)) {
+              const diffDays = Math.round((finalNDCDate - topDeadlineDate) / (1000 * 60 * 60 * 24));
+              topDeadlineDays = diffDays.toString();
+            }
+          } catch (e) {
+            // Ignore date parsing errors
+          }
+        }
+
+        result = {
+          style: cells[colMap.style] || '',
+          supplier: cells[colMap.supplier] || '',
+          category: cells[colMap.category] || '',
+          subcategory: cells[colMap.subcategory] || '',
+          piReceived: cells[colMap.piReceived] || '',
+          topSent: cells[colMap.topSent] || '',
+          topSampleStatus: cells[colMap.topSampleStatus] || '',
+          basePo: cells[colMap.basePo] || '',
+          finalNDC: cells[colMap.finalNDC] || '',
+          topDeadline: cells[colMap.topDeadline] || '',
+          topDeadlineDays: topDeadlineDays,
+          exFactory: cells[colMap.exFactory] || '',
+          cost: cells[colMap.cost] || '',
+          freight: cells[colMap.freight] || '',
+          duty: cells[colMap.duty] || '',
+          hts: cells[colMap.hts] || ''
+        };
+        
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      return res.status(404).json({ error: 'Style not found or status is not valid for PO breakdown' });
+    }
+
+    res.json(result);
+  } catch (e) {
+    console.error('PO search error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.post('/api/contact', async (req, res) => {
   const { name, email, message } = req.body;
   if (!name || !message) return res.status(400).json({ error: 'Name and message are required.' });
