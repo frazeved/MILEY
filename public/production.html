@@ -357,6 +357,24 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- GMAIL NOT CONNECTED MODAL -->
+<div class="modal-overlay" id="gmail-setup-modal" onclick="closeModalOnOverlay(event)">
+  <div class="modal" style="max-width:380px;text-align:center;">
+    <div style="width:52px;height:52px;border-radius:50%;background:#fef2f2;border:1.5px solid #fca5a5;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+    </div>
+    <div style="font-size:16px;font-weight:700;color:#1a1d23;margin-bottom:8px;">Gmail Not Connected</div>
+    <p id="gmail-setup-msg" style="font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:20px;"></p>
+    <div style="display:flex;gap:8px;justify-content:center;">
+      <button class="btn-secondary" onclick="closeModal('gmail-setup-modal')" style="flex:1;">Not Now</button>
+      <a id="gmail-setup-link" href="/setup" class="btn-primary" style="flex:1;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Connect Gmail
+      </a>
+    </div>
+  </div>
+</div>
+
 <!-- PO BREAKDOWN MODAL -->
 <div class="modal-overlay" id="po-breakdown-modal" onclick="closeModalOnOverlay(event)">
   <div class="modal">
@@ -654,6 +672,13 @@ document.querySelector('#po-breakdown-modal form').addEventListener('submit', as
       body: JSON.stringify(body),
     });
     const data = await res.json();
+    if (res.status === 401) {
+      const userName = document.querySelector(`#sendingAs-select option[value="${body.sendingAs}"]`)?.textContent?.replace(/\s*✓.*/, '').trim() || body.sendingAs;
+      document.getElementById('gmail-setup-msg').textContent = `${userName}'s Gmail account hasn't been connected yet. This only takes a minute — click "Connect Gmail" below, sign in with your Google account, and you'll be all set.`;
+      document.getElementById('gmail-setup-link').href = `/setup`;
+      openModal('gmail-setup-modal');
+      return;
+    }
     if (!res.ok) throw new Error(data.error || 'Failed to send');
     showToast('Draft created in Gmail!');
     closeModal('po-breakdown-modal');
