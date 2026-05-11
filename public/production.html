@@ -584,6 +584,55 @@ async function breakdownSearch() {
   }
 }
 
+document.querySelector('#po-breakdown-modal form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = this.querySelector('.btn-primary');
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+
+  const g = name => (this.querySelector(`[name="${name}"]`)?.value || '').trim();
+  const body = {
+    style:           g('style'),
+    supplier:        g('supplier'),
+    category:        g('category'),
+    subcategory:     g('subcategory'),
+    piReceived:      g('piReceived'),
+    topSent:         g('topSent'),
+    topSampleStatus: g('topSampleStatus'),
+    basePo:          g('basePo'),
+    finalNDC:        g('finalNDC'),
+    topDeadline:     g('topDeadline'),
+    exFactory:       g('exFactory'),
+    cost:            g('cost'),
+    freight:         g('freight'),
+    duty:            g('duty'),
+    hts:             g('hts'),
+    message:         (this.querySelector('textarea')?.value || '').trim(),
+  };
+
+  if (!body.style)    { showToast('Style # is required');  btn.disabled = false; btn.textContent = orig; return; }
+  if (!body.supplier) { showToast('Supplier is required'); btn.disabled = false; btn.textContent = orig; return; }
+
+  try {
+    const res = await fetch('/api/po/breakdown-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to send');
+    showToast('Breakdown email sent!');
+    closeModal('po-breakdown-modal');
+  } catch (err) {
+    showToast('Error: ' + err.message);
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+});
+
 function showToast(message) {
   const toast = document.getElementById('toast');
   toast.textContent = message;
