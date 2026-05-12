@@ -829,26 +829,45 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
     }
     await Promise.all(writes);
 
-    // Full dedup pass — read fresh, remove any duplicate PO# rows, rewrite if needed
+    // Full dedup pass — read fresh, remove duplicate PO# rows, rewrite with corrected formula row refs
     const freshData = await readTab('TRADESTONE DATABASE', true);
     const freshH = freshData[0] || [];
     const freshPOcol = hMap(freshH)['po#'] ?? tsPO;
+
+    // Build deduped list keeping track of each row's original sheet position
     const seenAll = new Set();
-    const dedupedAll = freshData.slice(1).filter(row => {
+    const dedupedWithPos = [];
+    for (let i = 1; i < freshData.length; i++) {
+      const row = freshData[i];
       const po = String(row[freshPOcol] || '').trim().toUpperCase();
-      if (!po) return true; // keep blank-PO rows as-is
-      if (seenAll.has(po)) return false;
-      seenAll.add(po);
-      return true;
-    });
-    const removedCount = (freshData.length - 1) - dedupedAll.length;
+      if (po && seenAll.has(po)) continue;
+      if (po) seenAll.add(po);
+      dedupedWithPos.push({ row, origRow: i + 1 }); // origRow = 1-indexed sheet row
+    }
+
+    const removedCount = (freshData.length - 1) - dedupedWithPos.length;
     if (removedCount > 0) {
-      // Clear existing data rows and rewrite deduplicated rows
+      // Adjust formula row references to match each row's new sheet position
+      // e.g. =YEAR(H2939) in a row that moves to row 100 becomes =YEAR(H100)
+      const adjustFormulas = (row, origRow, newRow) => {
+        if (origRow === newRow) return row;
+        return row.map(cell => {
+          if (!isFormulaPB(cell)) return cell;
+          return cell.replace(/([A-Z]+)(\d+)/g, (match, col, num) =>
+            parseInt(num) === origRow ? col + newRow : match
+          );
+        });
+      };
+
+      const writeRows = dedupedWithPos.map(({ row, origRow }, j) =>
+        adjustFormulas(row, origRow, j + 2) // new sheet row = j+2 (data starts at row 2)
+      );
+
       await sheets.spreadsheets.values.clear({ spreadsheetId: SHEET_ID, range: `'TRADESTONE DATABASE'!A2:ZZ` });
-      if (dedupedAll.length) {
+      if (writeRows.length) {
         await sheets.spreadsheets.values.update({
           spreadsheetId: SHEET_ID, range: `'TRADESTONE DATABASE'!A2`,
-          valueInputOption: 'USER_ENTERED', requestBody: { values: dedupedAll },
+          valueInputOption: 'USER_ENTERED', requestBody: { values: writeRows },
         });
       }
     }
