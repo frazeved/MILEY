@@ -321,9 +321,10 @@ function build(rows) {
     units:  col(H,'units','pcs','pieces','unit qty','qty'),
     ws:     col(H,'wholesale','wsp','total value','amount'),
     awb:    col(H,'awb','tracking','airway'),
-    al:     col(H,'anthro label','al ','anthro lbl'),
-    pl:     col(H,'packing list','pack list','pl '),
-    fx:     col(H,'fedex label','fedex lbl','fed ex'),
+    inv:    col(H,'urbn invoice','invoice total','inv total','urbn inv'),
+    al:     col(H,'anthro label','anthro lbl'),
+    pl:     col(H,'packing list','pack list'),
+    fx:     col(H,'fedex label','fedex lbl','fed ex label'),
   };
 
   const g = v => (v !== null && v >= 0 ? (data[0]?.[v]??'') : ''); // just for ref
@@ -343,6 +344,7 @@ function build(rows) {
     const units  = get(r, C.units);
     const ws     = get(r, C.ws);
     const awb    = get(r, C.awb);
+    const inv    = get(r, C.inv);
     const al     = get(r, C.al);
     const pl     = get(r, C.pl);
     const fx     = get(r, C.fx);
@@ -431,9 +433,10 @@ function build(rows) {
         </div>` : ''}
         <div class="bottom-row">
           <div class="label-row">
+            <div class="lbl ${inv?'done':'pending'}">INV</div>
             <div class="lbl ${al?'done':'pending'}">AL</div>
             <div class="lbl ${pl?'done':'pending'}">PL</div>
-            <div class="lbl ${fx?'done':'pending'}">FEDEX</div>
+            <div class="lbl ${fx?'done':'pending'}">FDEX</div>
           </div>
           ${awb ? `<div class="awb-row">
             <a class="awb-link" id="awb-${ri}" href="https://www.google.com/search?q=${encodeURIComponent(awb)}+airway+bill+cargo+tracking" target="_blank" rel="noopener">${esc(awb)}</a>
