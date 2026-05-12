@@ -21,7 +21,7 @@
     .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: #6b7280; }
 
     /* LAYOUT */
-    .layout { display: flex; gap: 20px; max-width: 1280px; margin: 0 auto; padding: 24px 20px 60px; align-items: flex-start; }
+    .layout { display: flex; gap: 20px; max-width: 1320px; margin: 0 auto; padding: 24px 20px 60px; align-items: flex-start; }
     .sidebar { width: 200px; flex-shrink: 0; position: sticky; top: 72px; display: flex; flex-direction: column; gap: 12px; }
     .content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
 
@@ -34,7 +34,7 @@
     .agent-role { font-size: 10px; color: #6b7280; line-height: 1.4; }
 
     .image-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
-    .image-box { border: 2px dashed #c4b5fd; border-radius: 8px; aspect-ratio: 3/4; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f5f3ff; gap: 6px; }
+    .image-box { border: 2px dashed #c4b5fd; border-radius: 8px; aspect-ratio: 3/4; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f5f3ff; gap: 6px; cursor: pointer; }
     .image-box svg { opacity: 0.5; }
     .image-box span { font-size: 10px; font-weight: 600; color: #a78bfa; }
 
@@ -51,13 +51,17 @@
     .action-btn.red .btn-icon { background: #fee2e2; }
 
     /* STYLE BAR */
-    .style-bar { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 12px 18px; display: flex; align-items: center; gap: 12px; }
+    .style-bar { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 12px 18px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .logo-fr { height: 28px; width: auto; object-fit: contain; }
     .logo-urbn { font-size: 16px; font-weight: 900; letter-spacing: -1px; color: #1a1d23; border-left: 1.5px solid #e4e7ed; padding-left: 12px; font-style: italic; }
     .bar-spacer { flex: 1; }
     .style-input { width: 160px; padding: 7px 12px; border: 1.5px solid #e4e7ed; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 700; text-align: center; background: #f5f6fa; letter-spacing: 1px; outline: none; text-transform: uppercase; color: #1a1d23; }
     .style-input:focus { border-color: #7c3aed; background: #fff; }
-    .style-input::placeholder { color: #9ca3af; font-weight: 500; letter-spacing: 0; }
+    .style-input::placeholder { color: #9ca3af; font-weight: 500; letter-spacing: 0; text-transform: none; }
+    .ndc-wrap { display: flex; flex-direction: column; gap: 2px; }
+    .ndc-label { font-size: 9px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; }
+    .ndc-input { width: 120px; padding: 5px 8px; border: 1.5px solid #e4e7ed; border-radius: 6px; font-family: inherit; font-size: 12px; background: #f5f6fa; outline: none; color: #1a1d23; }
+    .ndc-input:focus { border-color: #7c3aed; background: #fff; }
     .icon-btn { width: 36px; height: 36px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: filter 0.15s; }
     .icon-btn:hover { filter: brightness(0.88); }
     .icon-btn.red { background: #dc2626; }
@@ -71,9 +75,9 @@
 
     /* FIELDS — 2 column grid */
     .fields { display: grid; grid-template-columns: 1fr 1fr; }
-    .field { display: flex; align-items: center; border-bottom: 1px solid #f0ecfb; }
-    .field:nth-last-child(-n+2) { border-bottom: none; }
-    .field-label { font-size: 10px; font-weight: 700; color: #4c3a8a; letter-spacing: 0.3px; white-space: nowrap; padding: 7px 10px; background: #f3f0fc; border-right: 1px solid #e2daf5; min-width: 140px; flex-shrink: 0; }
+    .field { display: flex; align-items: center; border-bottom: 1px solid #f0ecfb; min-height: 34px; }
+    .field.no-border { border-bottom: none; }
+    .field-label { font-size: 10px; font-weight: 700; color: #4c3a8a; letter-spacing: 0.3px; white-space: nowrap; padding: 6px 10px; background: #f3f0fc; border-right: 1px solid #e2daf5; min-width: 150px; flex-shrink: 0; }
     .field-input { flex: 1; padding: 3px 8px; }
     .field-input input, .field-input select { width: 100%; font-family: inherit; font-size: 12px; color: #1a1d23; background: transparent; border: 1px solid transparent; border-radius: 4px; padding: 4px 7px; outline: none; }
     .field-input input:focus, .field-input select:focus { border-color: #7c3aed; background: #fdf8ff; }
@@ -99,7 +103,7 @@
       .layout { flex-direction: column; padding: 16px 14px 40px; }
       .sidebar { width: 100%; position: static; }
       .fields { grid-template-columns: 1fr; }
-      .field:nth-last-child(-n+2) { border-bottom: 1px solid #f0ecfb; }
+      .field.no-border { border-bottom: 1px solid #f0ecfb; }
       .field:last-child { border-bottom: none; }
     }
   </style>
@@ -139,9 +143,9 @@
     </div>
 
     <div class="image-card">
-      <div class="image-box">
+      <div class="image-box" title="CAD Image">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-        <span>Style Image</span>
+        <span>CAD IMAGE</span>
       </div>
       <button class="action-btn blue">
         <span class="btn-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
@@ -166,6 +170,10 @@
       <img src="FARM RIO LOGO.png" alt="Farm Rio" class="logo-fr" />
       <span class="logo-urbn">URBN</span>
       <div class="bar-spacer"></div>
+      <div class="ndc-wrap">
+        <span class="ndc-label">NDC Month / Year</span>
+        <input type="text" class="ndc-input" placeholder="MM/YYYY" />
+      </div>
       <button class="icon-btn red" title="All Styles">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="#fff"/><circle cx="3" cy="12" r="1" fill="#fff"/><circle cx="3" cy="18" r="1" fill="#fff"/></svg>
       </button>
@@ -219,7 +227,7 @@
           <div class="field-input"><input type="text" /></div>
         </div>
         <div class="field">
-          <span class="field-label">PRINT INFO TO MARKER MAKER</span>
+          <span class="field-label">COLOR APPROVED (SMS or S/O)</span>
           <div class="field-input"><input type="text" /></div>
         </div>
 
@@ -228,7 +236,7 @@
           <div class="field-input"><input type="text" /></div>
         </div>
         <div class="field">
-          <span class="field-label">PRINT INFO FROM MARKER MAKER</span>
+          <span class="field-label">PRINT INFO SENT TO MARKER MAKER</span>
           <div class="field-input"><input type="text" /></div>
         </div>
 
@@ -237,7 +245,16 @@
           <div class="field-input"><select><option value="">--</option><option>Yes</option><option>No</option></select></div>
         </div>
         <div class="field">
-          <span class="field-label">PATTERN REQUEST (Existing)</span>
+          <span class="field-label">PRINT INFO FROM MARKER MAKER</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">PROTO NOTES</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+        <div class="field">
+          <span class="field-label">PATTERN REQUEST (Existing Styles)</span>
           <div class="field-input"><input type="text" /></div>
         </div>
 
@@ -246,7 +263,7 @@
           <div class="field-input"><input type="text" /></div>
         </div>
         <div class="field">
-          <span class="field-label">PATTERN RECEIVE (Existing)</span>
+          <span class="field-label">PATTERN RECEIVE (Existing Styles)</span>
           <div class="field-input"><input type="text" /></div>
         </div>
 
@@ -259,8 +276,11 @@
           <div class="field-input"><input type="text" /></div>
         </div>
 
-        <div class="field" style="border-bottom:none;"></div>
-        <div class="field" style="border-bottom:none;">
+        <div class="field no-border">
+          <span class="field-label">APPROVAL NOTES</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+        <div class="field no-border">
           <span class="field-label">PATTERN RECEIVE (New Styles)</span>
           <div class="field-input"><input type="text" /></div>
         </div>
@@ -336,12 +356,30 @@
           <div class="field-input"><input type="text" /></div>
         </div>
 
-        <div class="field" style="border-bottom:none;">
+        <div class="field">
           <span class="field-label">TECH PACK MODEL</span>
           <div class="field-input"><select><option value="">--</option></select></div>
         </div>
-        <div class="field" style="border-bottom:none;">
+        <div class="field">
           <span class="field-label">LINK A/W SUPPLIER</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">COLOR GROUP</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+        <div class="field">
+          <span class="field-label">PRODUCTION STATUS</span>
+          <div class="field-input"><select><option value="">--</option></select></div>
+        </div>
+
+        <div class="field no-border">
+          <span class="field-label">YEAR</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+        <div class="field no-border">
+          <span class="field-label">MONTH</span>
           <div class="field-input"><input type="text" /></div>
         </div>
 
