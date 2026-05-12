@@ -50,16 +50,9 @@
     .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: inline-block; min-width: 100%; }
     .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-    table { border-collapse: collapse; table-layout: fixed; white-space: nowrap; width: 100%; }
-    col.col-style   { width: 100px; }
-    col.col-po      { width: 90px; }
-    col.col-status  { width: 100px; }
-    col.col-ship    { width: 110px; }
-    col.col-cancel  { width: 100px; }
-    col.col-track   { width: 180px; }
-    col.col-del     { width: 140px; }
+    table { border-collapse: collapse; table-layout: auto; white-space: nowrap; }
     thead { background: #f8f9fb; border-bottom: 2px solid var(--border); }
-    th { padding: 8px 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); text-align: left; cursor: pointer; user-select: none; overflow: hidden; text-overflow: ellipsis; }
+    th { padding: 8px 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); text-align: left; cursor: pointer; user-select: none; }
     th:hover { color: var(--text); }
     th .sort-icon { margin-left: 3px; opacity: 0.4; font-size: 9px; }
     th.sorted .sort-icon { opacity: 1; color: var(--accent); }
@@ -67,7 +60,7 @@
     tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
     tbody tr:last-child { border-bottom: none; }
     tbody tr:hover { background: #fafbfc; }
-    td { padding: 8px 10px; font-size: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; }
+    td { padding: 7px 10px; font-size: 12px; vertical-align: middle; }
 
     .style-cell { font-weight: 700; color: var(--text); }
     .date-cell  { font-size: 11px; color: var(--muted); }
@@ -174,15 +167,6 @@
   <div class="table-wrap">
     <div class="table-scroll">
       <table id="data-table">
-        <colgroup>
-          <col class="col-style">
-          <col class="col-po">
-          <col class="col-status">
-          <col class="col-ship">
-          <col class="col-cancel">
-          <col class="col-track">
-          <col class="col-del">
-        </colgroup>
         <thead>
           <tr>
             <th onclick="sortBy(0)" id="th-0">Style # <span class="sort-icon">&#8597;</span></th>
