@@ -136,66 +136,89 @@ router.delete('/delete-style', async (req, res) => {
   const styleNum = String(req.query.style || '').trim().toUpperCase();
   if (!styleNum) return res.status(400).json({ error: 'STYLE # required' });
   if (!requireCreds(res)) return;
-  try {
-    const sheets = sheetsClient(false);
-    const tabs   = ['Design DataBase', 'Production & PO DataBase', 'Print DataBase', 'PowerBI database Process'];
 
-    // Fetch sheet metadata + all tab data in parallel
-    const [meta, ...tabResults] = await Promise.all([
-      sheets.spreadsheets.get({ spreadsheetId: SHEET_ID }),
-      ...tabs.map(tab => sheets.spreadsheets.values.get({
+  const sheets = sheetsClient(false);
+  const tabs   = ['Design DataBase', 'Production & PO DataBase', 'Print DataBase', 'PowerBI database Process'];
+
+  // Fetch sheet metadata to get numeric sheetIds for deleteDimension
+  let sheetIdMap = {};
+  try {
+    const meta = await sheets.spreadsheets.get({
+      spreadsheetId: SHEET_ID,
+      fields: 'sheets.properties',
+    });
+    for (const s of (meta.data.sheets || [])) {
+      sheetIdMap[s.properties.title] = s.properties.sheetId;
+    }
+  } catch (e) {
+    const detail = e.response?.data?.error?.message || e.message;
+    console.error('[rebeca/delete-style] metadata fetch failed:', detail);
+    return res.status(500).json({ error: `Could not read sheet metadata: ${detail}` });
+  }
+
+  const deletedFrom = [];
+  const skipped     = [];
+
+  for (const tab of tabs) {
+    // Read this tab's data
+    let rows;
+    try {
+      const r = await sheets.spreadsheets.values.get({
         spreadsheetId: SHEET_ID, range: `'${tab}'`,
         valueRenderOption: 'FORMATTED_VALUE',
-      }).catch(() => null)),
-    ]);
+      });
+      rows = r.data.values || [];
+    } catch (e) {
+      const detail = e.response?.data?.error?.message || e.message;
+      skipped.push(`${tab} (read: ${detail})`);
+      continue;
+    }
 
-    const sheetIdMap = {};
-    for (const s of meta.data.sheets) sheetIdMap[s.properties.title] = s.properties.sheetId;
+    const headers  = (rows[0] || []).map(h => String(h).trim());
+    const styleCol = headers.findIndex(h => h.toUpperCase() === 'STYLE #');
+    if (styleCol < 0) continue;
 
-    const deletedFrom = [];
-    const skipped     = [];
+    const rowIdx = rows.slice(1).findIndex(r => String(r[styleCol] || '').trim().toUpperCase() === styleNum);
+    if (rowIdx < 0) continue;
 
-    for (let i = 0; i < tabs.length; i++) {
-      const tab    = tabs[i];
-      const result = tabResults[i];
-      if (!result) { skipped.push(tab); continue; }
+    const sheetId = sheetIdMap[tab];
+    if (sheetId === undefined) {
+      skipped.push(`${tab} (sheetId not found)`);
+      continue;
+    }
 
-      const rows     = result.data.values || [];
-      const headers  = (rows[0] || []).map(h => String(h).trim());
-      const styleCol = headers.findIndex(h => h.toUpperCase() === 'STYLE #');
-      if (styleCol < 0) continue;
-
-      const rowIdx = rows.slice(1).findIndex(r => String(r[styleCol] || '').trim().toUpperCase() === styleNum);
-      if (rowIdx < 0) continue;
-
-      const sheetId = sheetIdMap[tab];
-      if (sheetId === undefined) continue;
-
+    // Attempt delete with one retry on transient failure
+    let lastErr = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
       try {
+        if (attempt > 0) await new Promise(r => setTimeout(r, 2000));
         await sheets.spreadsheets.batchUpdate({
           spreadsheetId: SHEET_ID,
           requestBody: { requests: [{ deleteDimension: {
             range: { sheetId, dimension: 'ROWS', startIndex: rowIdx + 1, endIndex: rowIdx + 2 },
           }}]},
         });
-        deletedFrom.push(tab);
-      } catch (tabErr) {
-        const detail = tabErr.response?.data?.error?.message || tabErr.message;
-        console.error(`[rebeca/delete-style] ${tab} row ${rowIdx + 1} sheetId ${sheetId}:`, detail);
-        skipped.push(`${tab} (${detail})`);
+        lastErr = null;
+        break;
+      } catch (e) {
+        lastErr = e;
       }
     }
 
-    if (deletedFrom.length === 0) {
-      const reason = skipped.length ? skipped.join('; ') : `Style "${styleNum}" not found`;
-      return res.status(404).json({ error: reason });
+    if (lastErr) {
+      const detail = lastErr.response?.data?.error?.message || lastErr.message;
+      console.error(`[rebeca/delete-style] ${tab} row ${rowIdx + 1} sheetId ${sheetId}:`, detail);
+      skipped.push(`${tab} (${detail})`);
+    } else {
+      deletedFrom.push(tab);
     }
-    res.json({ ok: true, deletedFrom, skipped });
-  } catch (e) {
-    const detail = e.response?.data?.error?.message || e.message;
-    console.error('[rebeca/delete-style]', detail);
-    res.status(500).json({ error: detail });
   }
+
+  if (deletedFrom.length === 0) {
+    const reason = skipped.length ? skipped.join('; ') : `Style "${styleNum}" not found`;
+    return res.status(404).json({ error: reason });
+  }
+  res.json({ ok: true, deletedFrom, skipped });
 });
 
 // ─── Dashboard stats ──────────────────────────────────────────────────────────
@@ -250,7 +273,7 @@ router.get('/dashboard', async (req, res) => {
         return { label: MONTH_NAMES[m] || mm, sortKey: m, ...stats };
       })
       .filter(m => !isNaN(m.sortKey))
-      .sort((a, b) => b.sortKey - a.sortKey)
+      .sort((a, b) => a.sortKey - b.sortKey)
       .slice(0, 4);
 
     res.json({ total, missingTp, missingPrint, months });
