@@ -166,22 +166,26 @@ router.delete('/delete-style', async (req, res) => {
     const rowIdx = rows.slice(1).findIndex(r => String(r[styleCol] || '').trim().toUpperCase() === styleNum);
     if (rowIdx < 0) continue;
 
-    const totalRows = rows.length;
-    // New data: header + all data rows except the one being deleted
-    const newData = [rows[0], ...rows.slice(1).filter((_, i) => i !== rowIdx)];
+    // Sheet row of the deleted style (1-based): header=1, first data=2
+    const deletedSheetRow = rowIdx + 2;
+    const lastSheetRow    = rows.length;
+    // Rows that need to shift up: everything after the deleted row
+    const rowsToShift = rows.slice(rowIdx + 2);
 
     try {
-      // Overwrite from A1 — shifts remaining rows up
-      await sheets.spreadsheets.values.update({
-        spreadsheetId: SHEET_ID,
-        range: `'${tab}'!A1`,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: { values: newData },
-      });
-      // Clear the now-duplicate last row
+      // Write shifted rows starting at the deleted row's position (never touches header row 1)
+      if (rowsToShift.length > 0) {
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: SHEET_ID,
+          range: `'${tab}'!A${deletedSheetRow}`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: { values: rowsToShift },
+        });
+      }
+      // Clear the now-empty last row
       await sheets.spreadsheets.values.clear({
         spreadsheetId: SHEET_ID,
-        range: `'${tab}'!A${totalRows}:ZZ${totalRows}`,
+        range: `'${tab}'!A${lastSheetRow}:ZZ${lastSheetRow}`,
       });
       deletedFrom.push(tab);
     } catch (e) {
