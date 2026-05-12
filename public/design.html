@@ -125,17 +125,78 @@
     .field-input input.yellow { background: #fffde7; border-color: #e5c84a; }
     .field-input input.yellow:focus { background: #fffde7; border-color: #c4a010; }
 
+    /* ── TABLET (≤900px) ──────────────────────────────────────── */
     @media (max-width: 900px) {
       nav { padding: 0 16px; height: auto; min-height: 52px; position: relative; }
       .nav-hamburger { display: flex; align-items: center; }
       .nav-links { display: none; position: absolute; top: 52px; left: 0; right: 0; background: #fff; border-bottom: 1px solid #e4e7ed; flex-direction: column; padding: 6px 0 10px; gap: 0; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
       .nav-links.open { display: flex; }
       .nav-link { padding: 10px 20px; border-radius: 0; font-size: 13px; }
-      .layout { flex-direction: column; padding: 16px 14px 40px; }
-      .sidebar { width: 100%; position: static; }
+      .layout { flex-direction: column; padding: 16px 14px 40px; gap: 14px; }
+      .sidebar { width: 100%; position: static; flex-direction: row; flex-wrap: wrap; gap: 10px; }
+      .agent-card { flex: 1; min-width: 200px; }
+      .chat-toggle, .chat-panel { width: 100%; }
+      .image-card { flex: 1; min-width: 200px; }
       .fields { grid-template-columns: 1fr; }
       .field.no-border { border-bottom: 1px solid #f0ecfb; }
       .field:last-child { border-bottom: none; }
+    }
+
+    /* ── PHONE (≤640px) ───────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .layout { padding: 10px 10px 50px; gap: 12px; }
+
+      /* Sidebar: full-width column stack */
+      .sidebar { flex-direction: column; gap: 10px; }
+      .agent-card { min-width: unset; display: flex; flex-direction: row; align-items: center; gap: 14px; text-align: left; padding: 14px 14px; }
+      .avatar { width: 56px; height: 56px; margin: 0; flex-shrink: 0; box-shadow: 0 0 0 3px #f5f3ff, 0 0 0 5px #ddd6fe; }
+      .agent-tags { justify-content: flex-start; }
+      .agent-title { margin-bottom: 6px; }
+
+      /* CAD image: shorter on phone */
+      .image-box { min-height: 180px; }
+
+      /* Action buttons: 2-up grid */
+      .image-card { flex-direction: row; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
+      .image-box { width: 100%; order: -2; min-height: 180px; }
+      .style-ref { width: 100%; order: -1; }
+      .card-divider { width: 100%; order: 3; }
+      .image-card .action-btn { width: calc(50% - 3px); }
+      .image-card > a { width: calc(50% - 3px); }
+      .image-card > a > .action-btn { width: 100%; }
+      .image-card .action-btn.save-btn { width: 100%; order: 10; }
+
+      /* Style bar: stacked */
+      .style-bar { padding: 10px 12px; gap: 8px; }
+      .logo-fr { height: 22px; }
+      .logo-urbn { font-size: 13px; padding-left: 8px; }
+      .bar-spacer { display: none; }
+      .ndc-wrap { order: 3; }
+      .ndc-input { width: 140px; }
+      .style-input { order: 4; width: 100%; font-size: 16px; letter-spacing: 1px; padding: 10px 14px; }
+      .search-btn { order: 5; flex: 1; justify-content: center; min-height: 44px; }
+      .clear-btn { order: 5; flex: 1; justify-content: center; min-height: 44px; }
+      .search-msg { order: 6; width: 100%; text-align: center; }
+
+      /* Form fields: label stacked above input */
+      .field { flex-direction: column; align-items: stretch; min-height: unset; }
+      .field-label { min-width: unset; width: 100%; white-space: normal; line-height: 1.3; border-right: none; border-bottom: 1px solid #e2daf5; padding: 7px 12px; font-size: 10px; }
+      .field-label.dup { border-bottom-color: #fde68a; }
+      .field-input { padding: 6px 12px 8px; }
+      /* 16px min font size prevents iOS zoom */
+      .field-input input,
+      .field-input select { font-size: 16px; padding: 9px 10px; border: 1px solid #e4e7ed; border-radius: 6px; background: #f9f8ff; }
+      .field-input input[type="date"] { font-size: 15px; }
+      .field-input input:focus, .field-input select:focus { border-color: #7c3aed; background: #fdf8ff; }
+      .field-input input.yellow { background: #fffde7; border-color: #e5c84a; }
+      .other-input { font-size: 15px; padding: 9px 10px; margin-top: 6px; }
+
+      /* Print database thumbnail a bit larger on phone */
+      #print-cad-thumb { width: 72px; height: 72px; }
+
+      /* Touch targets */
+      .action-btn { min-height: 44px; }
+      .chat-toggle { min-height: 44px; }
     }
   </style>
 </head>
