@@ -451,10 +451,22 @@
 <script>
 const CAD_PLACEHOLDER = `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.5" opacity="0.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>CAD IMAGE</span>`;
 
+function driveImgUrl(url) {
+  if (!url) return url;
+  // Extract file ID from /file/d/FILEID/view format
+  const m = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (m) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
+  // Already a uc?id= URL
+  const m2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (m2) return `https://drive.google.com/uc?export=view&id=${m2[1]}`;
+  return url;
+}
+
 function showCadImage(url) {
   const box = document.getElementById('cad-box');
   if (url) {
-    box.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:contain;border-radius:6px;" onerror="document.getElementById('cad-box').innerHTML=CAD_PLACEHOLDER" />`;
+    const src = driveImgUrl(url);
+    box.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:contain;border-radius:6px;" onerror="document.getElementById('cad-box').innerHTML=CAD_PLACEHOLDER" />`;
   } else {
     box.innerHTML = CAD_PLACEHOLDER;
   }
