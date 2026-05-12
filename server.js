@@ -746,6 +746,25 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
     const pdPO  = smartIdx(pdH,  'Purchase Order', 'PO#', 'PO');
     const tsNorm = tsH.map(h => h.toString().trim().toLowerCase());
 
+    // IP CLASS → CATEGORY mapping
+    const IP_TO_CATEGORY = {
+      1501:'Blouses',1502:'SWTRS & SWTSHRTS',1504:'Pants',1505:'Skirts',
+      1506:'SHORTS',1508:'Dresses',1509:'Dresses',1515:'Dresses',
+      4110:'Blouses',4114:'Sweaters',4120:'Skirts',4123:'Pants',
+      4124:'Jumpsuit',4125:'Shorts',4130:'Dresses',4134:'Dresses',
+      4141:'LOUNGE',4142:'Swimwear',4148:'Blouses',4152:'Hats',
+      4153:'Accessories',4157:'Wraps',4428:'Dresses',4915:'Waters Edge',
+      4920:'Blouses',4925:'Skirts',4927:'Pants',4928:'Dresses',4942:'Swimwear',
+    };
+    const ipToCategory = ip => { const v = parseInt(ip); return IP_TO_CATEGORY[v] || 'OTHER'; };
+
+    // Convert 0-based column index to spreadsheet letter (A, B, ... Z, AA, AB ...)
+    const colLetter = n => {
+      let s = '', m = n + 1;
+      while (m > 0) { s = String.fromCharCode(64 + ((m - 1) % 26 + 1)) + s; m = Math.floor((m - 1) / 26); }
+      return s;
+    };
+
     const tgt = {
       period:        idx(tgtH, 'PERIOD'),
       invoiceDate:   idx(tgtH, 'URBN INVOICE DATE'),
@@ -758,6 +777,7 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
       styleDesc:     idx(tgtH, 'Style Description'),
       vendorColor:   idx(tgtH, 'Vendor Color'),
       ipClass:       idx(tgtH, 'IP CLASS'),
+      category:      idx(tgtH, 'CATEGORY'),
       customsDesc:   idx(tgtH, 'Customs Description'),
       brand:         idx(tgtH, 'BRAND'),
       deliverTo:     idx(tgtH, 'Deliver To'),
@@ -902,19 +922,41 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
         setSrc(row, tgt.brand,         pd, pd_.brand);
         setSrc(row, tgt.deliverTo,     pd, pd_.deliverTo);
         setSrc(row, tgt.fobPrice,      pd, pd_.fobPrice);
+        // Derive CATEGORY from IP CLASS
+        if (tgt.category >= 0 && pd_.ipClass >= 0) {
+          const ip = pd[pd_.ipClass];
+          if (ip != null && ip !== '') row[tgt.category] = ipToCategory(ip);
+        }
       }
       if (ptMap.has(po) && tgt.channel >= 0) row[tgt.channel] = ptMap.get(po);
     }
 
-    // Write all in two targeted calls (update existing + append new)
+    // Write only the specific columns we touched (preserves all formulas in other columns)
+    const writeCols = [
+      ...Object.values(tgtCI),                           // Pass 1 cols (COST, EX FACTORY, SUPPLIER, HTS CODE, DUTY, FREIGHT)
+      tgtSubCat,                                          // SUB-CATEGORY
+      tgt.period, tgt.invoiceDate, tgt.invoiceTotal,     // Tradestone
+      tgt.totalQty, tgt.wholesale, tgt.shipDate, tgt.cancelDate,
+      tgt.originCountry, tgt.styleDesc, tgt.vendorColor, // PO DETAIL
+      tgt.ipClass, tgt.category, tgt.customsDesc,
+      tgt.brand, tgt.deliverTo, tgt.fobPrice,
+      tgt.channel,                                        // PO TRADE
+    ].filter(ci => ci != null && ci >= 0);
+
+    const uniqueCols = [...new Set(writeCols)];
+
+    const batchData = uniqueCols.map(ci => ({
+      range: `'ANTHRO MAP 2026'!${colLetter(ci)}2`,
+      values: mapRows.map(r => [r[ci] ?? '']),
+    }));
+
     const writes = [
-      sheets.spreadsheets.values.update({
+      sheets.spreadsheets.values.batchUpdate({
         spreadsheetId: MAP_SHEET_ID,
-        range: `'ANTHRO MAP 2026'!A2`,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: { values: mapRows },
+        requestBody: { valueInputOption: 'USER_ENTERED', data: batchData },
       }),
     ];
+
     if (newRows.length) {
       writes.push(sheets.spreadsheets.values.append({
         spreadsheetId: MAP_SHEET_ID,
