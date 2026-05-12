@@ -176,6 +176,59 @@ router.delete('/delete-style', async (req, res) => {
   }
 });
 
+// ─── Dashboard stats ──────────────────────────────────────────────────────────
+router.get('/dashboard', async (req, res) => {
+  if (!requireCreds(res)) return;
+  try {
+    const sheets = sheetsClient(true);
+    const r = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: `'Design DataBase'`,
+      valueRenderOption: 'FORMATTED_VALUE',
+      dateTimeRenderOption: 'FORMATTED_STRING',
+    });
+    const rows = r.data.values || [];
+    if (rows.length < 2) return res.json({ total: 0, missingTp: 0, missingPrint: 0, months: [] });
+
+    const headers  = rows[0].map(h => String(h).trim());
+    const col      = (name) => headers.findIndex(h => h.toUpperCase() === name.toUpperCase());
+    const styleCol = col('STYLE #');
+    const tpCol    = col('TP SENT TO SUPPLIER');
+    const printCol = col('PRINT SENT TO SUPPLIER');
+    const ndcCol   = col('NDC MONTH/YEAR');
+
+    const styleRows = rows.slice(1).filter(r => String(r[styleCol] || '').trim());
+
+    const total        = styleRows.length;
+    const missingTp    = styleRows.filter(r => !String(r[tpCol]    || '').trim()).length;
+    const missingPrint = styleRows.filter(r => !String(r[printCol] || '').trim()).length;
+
+    // Group by NDC MONTH/YEAR (MM/YYYY) → last 4 months with data
+    const monthCounts = {};
+    styleRows.forEach(r => {
+      const ndc = String(r[ndcCol] || '').trim();
+      if (ndc) monthCounts[ndc] = (monthCounts[ndc] || 0) + 1;
+    });
+
+    const MONTH_NAMES = ['', 'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+                              'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    const months = Object.entries(monthCounts)
+      .map(([key, count]) => {
+        const [mm, yyyy] = key.split('/');
+        const m = parseInt(mm), y = parseInt(yyyy);
+        return { label: `${MONTH_NAMES[m] || mm} ${yyyy}`, count, sortKey: y * 100 + m };
+      })
+      .filter(m => !isNaN(m.sortKey))
+      .sort((a, b) => b.sortKey - a.sortKey)
+      .slice(0, 4);
+
+    res.json({ total, missingTp, missingPrint, months });
+  } catch (e) {
+    console.error('[rebeca/dashboard]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── CAD Image proxy (bypasses Google Drive embed restrictions) ───────────────
 router.get('/cad-image', async (req, res) => {
   const fileId = String(req.query.id || '').trim();

@@ -125,6 +125,25 @@
     .field-input input.yellow { background: #fffde7; border-color: #e5c84a; }
     .field-input input.yellow:focus { background: #fffde7; border-color: #c4a010; }
 
+    /* DASHBOARD */
+    .dash-section { display: flex; flex-direction: column; gap: 12px; }
+    .dash-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .kpi-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px; }
+    .kpi-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; }
+    .kpi-value { font-size: 32px; font-weight: 800; color: #1a1d23; line-height: 1; }
+    .kpi-card.warn .kpi-value { color: #dc2626; }
+    .kpi-card.warn .kpi-label { color: #fca5a5; }
+    .kpi-card.warn { background: #fef2f2; border-color: #fecaca; }
+    .kpi-card.purple-kpi { background: #f5f3ff; border-color: #ddd6fe; }
+    .kpi-card.purple-kpi .kpi-value { color: #7c3aed; }
+    .kpi-card.purple-kpi .kpi-label { color: #a78bfa; }
+    .dash-months { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .month-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px 18px; text-align: center; }
+    .month-card-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; margin-bottom: 8px; }
+    .month-card-count { font-size: 36px; font-weight: 800; color: #7c3aed; line-height: 1; }
+    .month-card-sub { font-size: 10px; color: #9ca3af; margin-top: 4px; }
+    .dash-loading { font-size: 11px; color: #9ca3af; padding: 20px 0; text-align: center; }
+
     /* ── TABLET (≤900px) ──────────────────────────────────────── */
     @media (max-width: 900px) {
       nav { padding: 0 16px; height: auto; min-height: 52px; position: relative; }
@@ -193,6 +212,12 @@
 
       /* Print database thumbnail a bit larger on phone */
       #print-cad-thumb { width: 72px; height: 72px; }
+
+      /* Dashboard */
+      .dash-kpis { grid-template-columns: 1fr; gap: 8px; }
+      .dash-months { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .kpi-value { font-size: 26px; }
+      .month-card-count { font-size: 28px; }
 
       /* Touch targets */
       .action-btn { min-height: 44px; }
@@ -503,6 +528,35 @@
     </div>
 
 
+    <!-- DASHBOARD -->
+    <div class="dash-section" id="dashboard">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;">Overview</span>
+        <button onclick="loadDashboard()" title="Refresh" style="background:none;border:1px solid #e4e7ed;border-radius:6px;padding:3px 6px;cursor:pointer;color:#9ca3af;font-size:10px;display:flex;align-items:center;gap:3px;transition:all 0.15s;" onmouseover="this.style.background='#f5f6fa';this.style.color='#6b7280'" onmouseout="this.style.background='none';this.style.color='#9ca3af'">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Refresh
+        </button>
+      </div>
+      <div class="dash-loading" id="dash-loading">Loading dashboard...</div>
+
+      <div class="dash-kpis" id="dash-kpis" style="display:none;">
+        <div class="kpi-card purple-kpi">
+          <div class="kpi-label">Total Styles</div>
+          <div class="kpi-value" id="kpi-total">—</div>
+        </div>
+        <div class="kpi-card warn">
+          <div class="kpi-label">Missing TP Sent</div>
+          <div class="kpi-value" id="kpi-tp">—</div>
+        </div>
+        <div class="kpi-card warn">
+          <div class="kpi-label">Missing Print Sent</div>
+          <div class="kpi-value" id="kpi-print">—</div>
+        </div>
+      </div>
+
+      <div class="dash-months" id="dash-months" style="display:none;"></div>
+    </div>
+
   </div>
 </div>
 
@@ -714,6 +768,34 @@ async function deleteStyle() {
     btn.disabled = false;
   }
 }
+
+async function loadDashboard() {
+  try {
+    const res  = await fetch('/api/rebeca/dashboard');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed');
+
+    document.getElementById('dash-loading').style.display = 'none';
+
+    document.getElementById('kpi-total').textContent = data.total;
+    document.getElementById('kpi-tp').textContent    = data.missingTp;
+    document.getElementById('kpi-print').textContent = data.missingPrint;
+    document.getElementById('dash-kpis').style.display = '';
+
+    const grid = document.getElementById('dash-months');
+    grid.innerHTML = data.months.map(m => `
+      <div class="month-card">
+        <div class="month-card-label">${m.label}</div>
+        <div class="month-card-count">${m.count}</div>
+        <div class="month-card-sub">styles</div>
+      </div>`).join('');
+    grid.style.display = '';
+  } catch (e) {
+    document.getElementById('dash-loading').textContent = 'Dashboard unavailable';
+  }
+}
+
+loadDashboard();
 
 async function sendChat() {
   const name = document.getElementById('chat-name').value.trim();
