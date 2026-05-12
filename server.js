@@ -755,6 +755,13 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
     }
 
     // Step 2 — add only NEW POs (not already in TRADESTONE DATABASE)
+    // Detect formula columns from last existing data row — used to carry formulas into new rows
+    const lastExistRow = tsData.length > 1 ? tsData[tsData.length - 1] : [];
+    const formulaCols = []; // [{colIdx, formula}]
+    lastExistRow.forEach((cell, ci) => {
+      if (isFormulaPB(cell)) formulaCols.push({ colIdx: ci, formula: cell });
+    });
+
     const newRows = [];
     for (let si = 1; si < poNewData.length; si++) {
       const pnRow = poNewData[si];
@@ -771,6 +778,10 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       if (inv) { nr[COL_AJ] = inv.AJ; nr[COL_AK] = inv.AK; }
       nr[COL_H] = colH(nr);
       if (tsIPcol >= 0) nr[COL_V] = IP_CAT[parseInt(nr[tsIPcol])] || 'OTHER';
+      // Carry formula columns from the last existing row (relative refs auto-adjust on append)
+      for (const { colIdx, formula } of formulaCols) {
+        if (nr[colIdx] === '') nr[colIdx] = formula;
+      }
       newRows.push(nr);
     }
 
