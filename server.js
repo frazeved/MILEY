@@ -675,16 +675,19 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
     const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
     const sheets = google.sheets({ version: 'v4', auth });
 
-    const readTab = async tab => {
+    const readTab = async (tab, formula = false) => {
       const r = await sheets.spreadsheets.values.get({
         spreadsheetId: SHEET_ID, range: `'${tab}'`,
-        valueRenderOption: 'UNFORMATTED_VALUE', dateTimeRenderOption: 'FORMATTED_STRING',
+        valueRenderOption: formula ? 'FORMULA' : 'UNFORMATTED_VALUE',
+        dateTimeRenderOption: 'FORMATTED_STRING',
       });
       return r.data.values || [];
     };
+    const isFormulaPB = v => typeof v === 'string' && v.startsWith('=');
 
     const [tsData, poNewData, poInvData] = await Promise.all([
-      readTab('TRADESTONE DATABASE'), readTab('PO NEW'), readTab('PO INVOICE'),
+      readTab('TRADESTONE DATABASE', true), // FORMULA mode — preserves existing formulas
+      readTab('PO NEW'), readTab('PO INVOICE'),
     ]);
 
     const tsH = tsData[0] || [], poNewH = poNewData[0] || [], poInvH = poInvData[0] || [];
@@ -771,13 +774,14 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       newRows.push(nr);
     }
 
-    // Write AJ/AK updates to existing rows (only those columns, not full rows)
-    const ajColLetter = 'AJ', akColLetter = 'AK', hColLetter = 'H';
+    // Write AJ/AK/H updates — preserve any existing formula cells
     const ajVals = [], akVals = [], hVals = [];
     for (let i = 1; i < tsData.length; i++) {
-      ajVals.push([tsData[i][COL_AJ] ?? '']);
-      akVals.push([tsData[i][COL_AK] ?? '']);
-      hVals.push([tsData[i][COL_H]  ?? '']);
+      const orig = tsData[i];
+      // If cell is a formula, write the formula back unchanged; otherwise write computed value
+      ajVals.push([isFormulaPB(orig[COL_AJ]) ? orig[COL_AJ] : (orig[COL_AJ] ?? '')]);
+      akVals.push([isFormulaPB(orig[COL_AK]) ? orig[COL_AK] : (orig[COL_AK] ?? '')]);
+      hVals.push([isFormulaPB(orig[COL_H])  ? orig[COL_H]  : (orig[COL_H]  ?? '')]);
     }
 
     const writes = [];
@@ -822,17 +826,19 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
     const sheets = google.sheets({ version: 'v4', auth });
 
     // Read all 5 sheets in parallel — MAP is a separate spreadsheet
-    const readSheet = async (sheetId, tab) => {
+    // Target sheet (MAP) is read with FORMULA mode so we can detect and preserve formula cells
+    const readSheet = async (sheetId, tab, formula = false) => {
       const r = await sheets.spreadsheets.values.get({
         spreadsheetId: sheetId,
         range: `'${tab}'`,
-        valueRenderOption: 'UNFORMATTED_VALUE',
+        valueRenderOption: formula ? 'FORMULA' : 'UNFORMATTED_VALUE',
         dateTimeRenderOption: 'FORMATTED_STRING',
       });
       return r.data.values || [];
     };
+    const isFormula = v => typeof v === 'string' && v.startsWith('=');
     const [targetData, tsData, pdData, ptData, sourceData] = await Promise.all([
-      readSheet(MAP_SHEET_ID, 'ANTHRO MAP 2026'),
+      readSheet(MAP_SHEET_ID, 'ANTHRO MAP 2026', true), // FORMULA mode — preserves formulas on write-back
       readSheet(SHEET_ID,     'TRADESTONE DATABASE'),
       readSheet(SHEET_ID,     'PO DETAIL'),
       readSheet(SHEET_ID,     'PO TRADE'),
@@ -1018,9 +1024,10 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
       }
     }
 
-    // helper: only write if src column found and value is non-empty
+    // helper: only write if src column found, value is non-empty, and target cell is NOT a formula
     const setSrc = (row, tgtIdx, srcRow, srcIdx) => {
       if (tgtIdx < 0 || srcIdx < 0) return;
+      if (isFormula(row[tgtIdx])) return;
       const v = srcRow[srcIdx];
       if (v != null && v !== '') row[tgtIdx] = v;
     };
@@ -1047,7 +1054,7 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
         setSrc(row, tgt.cancelDate,   ts, ts_.cancelDate);
       }
       // PERIOD rule: month name of URBN INVOICE DATE if populated, else Cancel Date
-      if (tgt.period >= 0) {
+      if (tgt.period >= 0 && !isFormula(row[tgt.period])) {
         const invDateVal    = tgt.invoiceDate >= 0 ? row[tgt.invoiceDate] : '';
         const cancelDateVal = tgt.cancelDate  >= 0 ? row[tgt.cancelDate]  : '';
         const src = (invDateVal !== '' && invDateVal != null) ? invDateVal : cancelDateVal;
@@ -1063,7 +1070,7 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
         setSrc(row, tgt.brand,         pd, pd_.brand);
         setSrc(row, tgt.deliverTo,     pd, pd_.deliverTo);
         setSrc(row, tgt.fobPrice,      pd, pd_.fobPrice);
-        if (tgt.category >= 0 && pd_.ipClass >= 0) {
+        if (tgt.category >= 0 && pd_.ipClass >= 0 && !isFormula(row[tgt.category])) {
           const ip = pd[pd_.ipClass];
           if (ip != null && ip !== '') row[tgt.category] = ipToCategory(ip);
         }
@@ -1080,14 +1087,17 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
       for (const c of allCols) {
         const ti = tgtCI[c];
         if (ti < 0) continue;
+        if (isFormula(row[ti])) continue;
         const nv = match[c];
         if (nv === undefined) continue;
         const cur = row[ti];
         const blank = cur === '' || cur === null || cur === undefined;
         if (alwaysWrite.includes(c) || (onlyIfBlank.includes(c) && blank)) row[ti] = nv;
       }
-      const subBlank = row[tgtSubCat] === '' || row[tgtSubCat] === null || row[tgtSubCat] === undefined;
-      if (subBlank && match['SUB-CATEGORY'] !== undefined) row[tgtSubCat] = match['SUB-CATEGORY'];
+      if (!isFormula(row[tgtSubCat])) {
+        const subBlank = row[tgtSubCat] === '' || row[tgtSubCat] === null || row[tgtSubCat] === undefined;
+        if (subBlank && match['SUB-CATEGORY'] !== undefined) row[tgtSubCat] = match['SUB-CATEGORY'];
+      }
     };
 
     // Apply to existing rows (Pass 1 + Pass 2/3)
