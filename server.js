@@ -674,6 +674,65 @@ app.get('/api/rebeca/search-style', async (req, res) => {
   }
 });
 
+// ─── Rebeca: Save / Create Style ─────────────────────────────────────────────
+app.post('/api/rebeca/save-style', async (req, res) => {
+  const formData = req.body || {};
+  const styleNum = String(formData['STYLE #'] || '').trim().toUpperCase();
+  if (!styleNum) return res.status(400).json({ error: 'STYLE # required' });
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+    return res.status(500).json({ error: 'Google credentials not configured' });
+  }
+  try {
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    const readTab = async (tab) => {
+      const r = await sheets.spreadsheets.values.get({
+        spreadsheetId: SHEET_ID, range: `'${tab}'`,
+        valueRenderOption: 'FORMATTED_VALUE', dateTimeRenderOption: 'FORMATTED_STRING',
+      });
+      return r.data.values || [];
+    };
+
+    const designRows = await readTab('Design DataBase');
+    const headers    = (designRows[0] || []).map(h => String(h).trim());
+    const styleCol   = headers.findIndex(h => h.toUpperCase() === 'STYLE #');
+    const buildRow   = (hdrs) => hdrs.map(h => formData[h] ?? '');
+
+    const existIdx = styleCol >= 0
+      ? designRows.slice(1).findIndex(r => String(r[styleCol] || '').trim().toUpperCase() === styleNum)
+      : -1;
+
+    if (existIdx >= 0) {
+      // UPDATE existing row
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SHEET_ID,
+        range: `'Design DataBase'!A${existIdx + 2}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [buildRow(headers)] },
+      });
+      return res.json({ ok: true, action: 'updated' });
+    }
+
+    // NEW style — append to all 4 tabs
+    const tabs = ['Design DataBase', 'Production & PO DataBase', 'Print DataBase', 'PowerBI database Process'];
+    for (const tab of tabs) {
+      const tabRows = await readTab(tab);
+      const tabHdrs = (tabRows[0] || []).map(h => String(h).trim());
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SHEET_ID, range: `'${tab}'!A1`,
+        valueInputOption: 'USER_ENTERED', insertDataOption: 'INSERT_ROWS',
+        requestBody: { values: [buildRow(tabHdrs)] },
+      });
+    }
+    res.json({ ok: true, action: 'created' });
+  } catch (e) {
+    console.error('[rebeca/save-style]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── Gabriel: MAP DATA (chart feed) ──────────────────────────────────────────
 app.get('/api/gabriel/map-data', async (req, res) => {
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
