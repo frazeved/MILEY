@@ -652,21 +652,34 @@ app.get('/api/rebeca/search-style', async (req, res) => {
     const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
     const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'] });
     const sheets = google.sheets({ version: 'v4', auth });
-    const r = await sheets.spreadsheets.values.get({
-      spreadsheetId: SHEET_ID,
-      range: `'Design DataBase'`,
-      valueRenderOption: 'FORMATTED_VALUE',
-      dateTimeRenderOption: 'FORMATTED_STRING',
-    });
-    const rows = r.data.values || [];
+    const [rFmt, rFormula] = await Promise.all([
+      sheets.spreadsheets.values.get({
+        spreadsheetId: SHEET_ID,
+        range: `'Design DataBase'`,
+        valueRenderOption: 'FORMATTED_VALUE',
+        dateTimeRenderOption: 'FORMATTED_STRING',
+      }),
+      sheets.spreadsheets.values.get({
+        spreadsheetId: SHEET_ID,
+        range: `'Design DataBase'`,
+        valueRenderOption: 'FORMULA',
+      }),
+    ]);
+    const rows = rFmt.data.values || [];
     if (rows.length < 2) return res.status(404).json({ error: 'Sheet is empty' });
     const headers = rows[0].map(h => String(h).trim());
     const styleCol = headers.findIndex(h => h.toUpperCase() === 'STYLE #');
     if (styleCol < 0) return res.status(500).json({ error: 'STYLE # column not found' });
-    const row = rows.slice(1).find(r => String(r[styleCol] || '').trim().toUpperCase() === styleNum);
-    if (!row) return res.status(404).json({ error: `Style "${styleNum}" not found` });
+    const rowIdx = rows.slice(1).findIndex(r => String(r[styleCol] || '').trim().toUpperCase() === styleNum);
+    if (rowIdx < 0) return res.status(404).json({ error: `Style "${styleNum}" not found` });
+    const row = rows.slice(1)[rowIdx];
+    const formulaRow = (rFormula.data.values || []).slice(1)[rowIdx] || [];
     const result = {};
-    headers.forEach((h, i) => { result[h] = row[i] ?? ''; });
+    headers.forEach((h, i) => {
+      const fVal = String(formulaRow[i] ?? '');
+      const imgMatch = fVal.match(/^=IMAGE\("([^"]+)"/i);
+      result[h] = imgMatch ? imgMatch[1] : (row[i] ?? '');
+    });
     res.json({ style: result });
   } catch (e) {
     console.error('[rebeca/search-style]', e.message);
