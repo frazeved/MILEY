@@ -311,7 +311,7 @@
           DATABASE
         </button>
       </a>
-      <button class="action-btn gold">
+      <button class="action-btn gold" onclick="generateTP()">
         <span class="btn-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
         TP GENERATOR
       </button>
@@ -810,6 +810,60 @@ async function loadDashboard() {
 }
 
 loadDashboard();
+
+async function generateTP() {
+  const style = document.getElementById('style-number').value.trim().toUpperCase();
+  if (!style) { alert('Search or enter a STYLE # first.'); return; }
+
+  const getVal = col => {
+    const el = document.querySelector(`[data-col="${col}"]`);
+    return el ? getSelectValue(el) : '';
+  };
+
+  const model          = getVal('TECH PACK MODEL');
+  const linkStyleFolder = getVal('LINK STYLE FOLDER');
+  if (!model)           { alert('TECH PACK MODEL is required.'); return; }
+  if (!linkStyleFolder) { alert('LINK STYLE FOLDER is required — fill in the Drive folder URL for this style first.'); return; }
+
+  const btn     = document.querySelector('.action-btn.gold');
+  const msg     = document.getElementById('search-msg');
+  const origHTML = btn.innerHTML;
+  btn.disabled  = true;
+  btn.innerHTML = `<span class="btn-icon">${btn.querySelector('.btn-icon')?.innerHTML||''}</span> Generating...`;
+  msg.textContent = '';
+  msg.className   = 'search-msg';
+
+  try {
+    const res = await fetch('/api/rebeca/generate-tp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        style,
+        model,
+        category:            getVal('CATEGORY'),
+        subCategory:         getVal('SUB-CATEGORY'),
+        fabric:              getVal('FABRIC'),
+        printType:           getVal('PRINT TYPE'),
+        printName:           getVal('PRINT NAME'),
+        supplier:            getVal('SUPPLIER'),
+        cadUrl:              getVal('CAD IMAGE'),
+        printSentToSupplier: getVal('PRINT SENT TO SUPPLIER'),
+        tpSentToSupplier:    getVal('TP SENT TO SUPPLIER'),
+        linkStyleFolder,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Generation failed');
+    msg.innerHTML = `TP generated — <a href="${data.presentationUrl}" target="_blank" style="color:#15803d;font-weight:700;">Open TP</a> &nbsp;·&nbsp; <a href="${data.folderUrl}" target="_blank" style="color:#15803d;">Open Folder</a>`;
+    msg.className = 'search-msg ok';
+  } catch (e) {
+    msg.textContent = 'TP error: ' + e.message;
+    msg.className   = 'search-msg err';
+  } finally {
+    btn.disabled  = false;
+    btn.innerHTML = origHTML;
+  }
+}
 
 async function sendChat() {
   const name = document.getElementById('chat-name').value.trim();

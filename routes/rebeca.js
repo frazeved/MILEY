@@ -202,6 +202,157 @@ router.delete('/delete-style', async (req, res) => {
   res.json({ ok: true, deletedFrom, skipped });
 });
 
+// ─── TP Generator ─────────────────────────────────────────────────────────────
+router.post('/generate-tp', async (req, res) => {
+  if (!requireCreds(res)) return;
+
+  const {
+    style, model, category, subCategory, fabric,
+    printType, printName, supplier, cadUrl,
+    printSentToSupplier, tpSentToSupplier, linkStyleFolder,
+  } = req.body;
+
+  if (!style)           return res.status(400).json({ error: 'STYLE # required' });
+  if (!model)           return res.status(400).json({ error: 'TECH PACK MODEL required' });
+  if (!linkStyleFolder) return res.status(400).json({ error: 'LINK STYLE FOLDER is required — fill in the Drive folder URL for this style first' });
+
+  const norm = s => (s || '').replace(/ /g, ' ').replace(/\s+/g, ' ').toUpperCase().trim();
+
+  const MODEL_TEMPLATES = {
+    'TP_FARM ANTHRO NEW BODY':    '1Zvg1gdMMzE3mgdDuKHTnqhgJJKrskeM3MIw2ZVpSRsY',
+    'TP_FARM ANTHRO REPEAT BODY': '1bMFvktTY0zb2rRmr1Fm4M3fqFYIdlAOXtFG9GsXL-00',
+  };
+  const templateId = MODEL_TEMPLATES[norm(model)];
+  if (!templateId) return res.status(400).json({ error: `Unknown model: "${model}"` });
+
+  // Extract folder ID from LINK STYLE FOLDER Drive URL
+  const folderIdMatch = (linkStyleFolder || '').match(/\/folders\/([a-zA-Z0-9_-]+)/);
+  if (!folderIdMatch) return res.status(400).json({ error: 'LINK STYLE FOLDER must be a valid Google Drive folder URL' });
+  const folderId = folderIdMatch[1];
+
+  // Extract Drive file ID from CAD URL (Drive sharing link or uc?id= URL)
+  const extractFileId = url => {
+    const m1 = (url || '').match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (m1) return m1[1];
+    const m2 = (url || '').match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    return m2 ? m2[1] : null;
+  };
+  const cadFileId = extractFileId(cadUrl);
+
+  // SAMPLE_DUE_DATE = tpSentToSupplier + 14 days
+  const padZ = n => String(n).padStart(2, '0');
+  const fmtDate = d => (!d || isNaN(d)) ? '' : `${padZ(d.getMonth()+1)}/${padZ(d.getDate())}/${d.getFullYear()}`;
+  const parseSheetDate = s => { // YYYY-MM-DD → display MM/DD/YYYY
+    if (!s) return '';
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return m ? `${m[2]}/${m[3]}/${m[1]}` : s;
+  };
+  let sampleDueDate = '';
+  if (tpSentToSupplier) {
+    const d = new Date(tpSentToSupplier + 'T12:00:00');
+    if (!isNaN(d)) { d.setDate(d.getDate() + 14); sampleDueDate = fmtDate(d); }
+  }
+
+  try {
+    const sa = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth = new google.auth.GoogleAuth({
+      credentials: sa,
+      scopes: ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/presentations'],
+    });
+    const authClient = await auth.getClient();
+    const drive  = google.drive({ version: 'v3', auth: authClient });
+    const slides = google.slides({ version: 'v1', auth: authClient });
+
+    // Build presentation file name
+    const safe = s => (s || '').replace(/[\\/:*?"<>|#\[\]\r\n]/g, '').trim();
+    const cleanStyle = (style || '').replace(/^[A-Za-z]+-?/, '');
+    const copyName = `${safe(norm(model))} – ${safe(supplier || '')} – ${safe(cleanStyle)}`;
+
+    // Copy template into LINK STYLE FOLDER
+    const copyRes = await drive.files.copy({
+      fileId: templateId,
+      requestBody: { name: copyName, parents: [folderId] },
+    });
+    const copyId = copyRes.data.id;
+
+    // Get presentation structure to find {{CAD_IMAGE}} placeholder shapes
+    const presData = await slides.presentations.get({ presentationId: copyId });
+
+    // Text token replacement requests
+    const tokens = {
+      '{{STYLE}}':                  style,
+      '{{STYLE #}}':                style,
+      '{{DESIGN_STYLE}}':           style,
+      '{{CATEGORY}}':               category || '',
+      '{{SUB_CATEGORY}}':           subCategory || '',
+      '{{FABRIC}}':                 fabric || '',
+      '{{PRINT_TYPE}}':             printType || '',
+      '{{PRINT_NAME}}':             printName || '',
+      '{{SUPPLIER}}':               supplier || '',
+      '{{PRINT_SENT_TO_SUPPLIER}}': parseSheetDate(printSentToSupplier),
+      '{{PRINT_SENT_TO_SUP}}':      parseSheetDate(printSentToSupplier),
+      '{{TP_SENT_TO_SUPPLIER}}':    parseSheetDate(tpSentToSupplier),
+      '{{SAMPLE_DUE_DATE}}':        sampleDueDate,
+      '{{SAMPLE_SIZE}}':            'SMALL 4/6',
+      '{{TECHNICAL_DESIGNER}}':     'bertha@creativetwotwelve.com',
+      '{{CAD_URL}}':                cadUrl || '',
+    };
+    const requests = Object.entries(tokens).map(([ph, val]) => ({
+      replaceAllText: { containsText: { text: ph, matchCase: true }, replaceText: String(val ?? '') },
+    }));
+
+    // Find {{CAD_IMAGE}} placeholder shapes and replace with actual image
+    if (cadFileId || cadUrl) {
+      const cadImgUrl = cadFileId
+        ? `https://drive.google.com/uc?export=view&id=${cadFileId}`
+        : cadUrl;
+      const INCH = 914400; // EMU per inch
+      for (const slide of (presData.data.slides || [])) {
+        for (const el of (slide.pageElements || [])) {
+          if (!el.shape?.text) continue;
+          const text = (el.shape.text.textElements || [])
+            .map(te => te.textRun?.content || '').join('').trim();
+          if (text === '{{CAD_IMAGE}}') {
+            requests.push(
+              { deleteObject: { objectId: el.objectId } },
+              {
+                createImage: {
+                  url: cadImgUrl,
+                  elementProperties: {
+                    pageObjectId: slide.objectId,
+                    size: {
+                      width:  { magnitude: Math.round(2.59 * INCH), unit: 'EMU' },
+                      height: { magnitude: Math.round(7.00 * INCH), unit: 'EMU' },
+                    },
+                    transform: {
+                      scaleX: 1, scaleY: 1, shearX: 0, shearY: 0,
+                      translateX: Math.round(0.97 * INCH),
+                      translateY: Math.round(1.61 * INCH),
+                      unit: 'EMU',
+                    },
+                  },
+                },
+              }
+            );
+          }
+        }
+      }
+    }
+
+    await slides.presentations.batchUpdate({ presentationId: copyId, requestBody: { requests } });
+
+    res.json({
+      ok: true,
+      presentationUrl: `https://docs.google.com/presentation/d/${copyId}/edit`,
+      folderUrl: `https://drive.google.com/drive/folders/${folderId}`,
+    });
+  } catch (e) {
+    const detail = e.response?.data?.error?.message || e.message;
+    console.error('[rebeca/generate-tp]', detail);
+    res.status(500).json({ error: detail });
+  }
+});
+
 // ─── Dashboard stats ──────────────────────────────────────────────────────────
 router.get('/dashboard', async (req, res) => {
   if (!requireCreds(res)) return;
