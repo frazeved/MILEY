@@ -86,7 +86,18 @@ router.post('/save-style', async (req, res) => {
     const designRows = await readTab('Design DataBase');
     const headers    = (designRows[0] || []).map(h => String(h).trim());
     const styleCol   = headers.findIndex(h => h.toUpperCase() === 'STYLE #');
-    const buildRow   = (hdrs) => hdrs.map(h => formData[h] ?? '');
+    const toImageFormula = (url) => {
+      if (!url) return '';
+      const m = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+      if (m) return `=IMAGE("https://drive.google.com/uc?id=${m[1]}")`;
+      const m2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      if (m2) return `=IMAGE("https://drive.google.com/uc?id=${m2[1]}")`;
+      return url;
+    };
+    const buildRow = (hdrs) => hdrs.map(h => {
+      const val = formData[h] ?? '';
+      return h === 'CAD IMAGE' ? toImageFormula(val) : val;
+    });
 
     const existIdx = styleCol >= 0
       ? designRows.slice(1).findIndex(r => String(r[styleCol] || '').trim().toUpperCase() === styleNum)

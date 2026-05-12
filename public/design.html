@@ -58,7 +58,7 @@
 
     /* IMAGE + ACTIONS CARD */
     .image-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
-    .image-box { border: 2px dashed #c4b5fd; border-radius: 8px; min-height: 280px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f5f3ff; gap: 8px; cursor: pointer; }
+    .image-box { border: 2px dashed #c4b5fd; border-radius: 8px; min-height: 140px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f5f3ff; gap: 8px; cursor: pointer; }
     .image-box span { font-size: 10px; font-weight: 600; color: #a78bfa; }
 
     .card-divider { height: 1px; background: #e4e7ed; margin: 2px 0; }
@@ -154,11 +154,11 @@
       .agent-title { margin-bottom: 6px; }
 
       /* CAD image: shorter on phone */
-      .image-box { min-height: 180px; }
+      .image-box { min-height: 100px; }
 
       /* Action buttons: 2-up grid */
       .image-card { flex-direction: row; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
-      .image-box { width: 100%; order: -2; min-height: 180px; }
+      .image-box { width: 100%; order: -2; min-height: 100px; }
       .style-ref { width: 100%; order: -1; }
       .card-divider { width: 100%; order: 3; }
       .image-card .action-btn { width: calc(50% - 3px); }
@@ -467,8 +467,8 @@
         </div>
 
         <div class="field">
-          <span class="field-label">CAD URL</span>
-          <div class="field-input"><input type="text" id="f-cad-url" data-col="CAD URL" /></div>
+          <span class="field-label">CAD IMAGE</span>
+          <div class="field-input"><input type="text" id="f-cad-url" data-col="CAD IMAGE" /></div>
         </div>
         <div class="field">
           <span class="field-label dup">LINK A/W INTERNAL</span>
@@ -617,7 +617,7 @@ function populateForm(style) {
     }
   });
   // Show CAD image from CAD URL field
-  const cadUrl = style['CAD URL'] || '';
+  const cadUrl = style['CAD IMAGE'] || '';
   showCadImage(cadUrl);
   // Show style # below image for reference
   document.getElementById('style-ref').textContent = style['STYLE #'] || '';
@@ -677,8 +677,10 @@ async function saveStyle() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Save failed');
+    const label = data.action === 'created' ? 'New style created in all databases' : 'Style updated';
+    clearForm();
     const msg = document.getElementById('search-msg');
-    msg.textContent = data.action === 'created' ? 'New style created in all databases' : 'Style updated';
+    msg.textContent = label;
     msg.className = 'search-msg ok';
   } catch (e) {
     const msg = document.getElementById('search-msg');
