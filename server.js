@@ -622,7 +622,7 @@ app.post('/api/fedex/create-label', async (req, res) => {
               ...(trackCol   >= 0 ? [{ range: `'${TAB}'!${colToLetter(trackCol)}${sheetRow}`,   values: [[tracking]]          }] : []),
               ...(carrierCol >= 0 ? [{ range: `'${TAB}'!${colToLetter(carrierCol)}${sheetRow}`,  values: [['FEDEX']]            }] : []),
               ...(serviceCol >= 0 ? [{ range: `'${TAB}'!${colToLetter(serviceCol)}${sheetRow}`,  values: [[serviceName]]        }] : []),
-              ...(costCol    >= 0 ? [{ range: `'${TAB}'!${colToLetter(costCol)}${sheetRow}`,     values: [[String(totalCharge)]}] : []),
+              ...(costCol    >= 0 ? [{ range: `'${TAB}'!${colToLetter(costCol)}${sheetRow}`,     values: [[String(totalCharge)]]}] : []),
             ];
             if (updates.length) await sheets.spreadsheets.values.batchUpdate({
               spreadsheetId: SHEET_ID,
