@@ -839,7 +839,7 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
       invoiceDate:  smartIdx(tsH, 'URBN INVOICE DATE', 'INVOICE DATE', 'Invoice Dt', 'Invoice Date'),
       invoiceTotal: smartIdx(tsH, 'URBN INVOICE TOTAL', 'INVOICE TOTAL', 'Invoice Amount', 'Invoice Total'),
       totalQty:     smartIdx(tsH, 'TOTAL QTY', 'Total Qty', 'Total Units', 'QTY'),
-      wholesale:    smartIdx(tsH, 'PO WHOLESALE', 'WHOLESALE', 'Unit Cost', 'Wholesale'),
+      wholesale:    smartIdx(tsH, 'TOTAL FOB', 'Total FOB', 'PO WHOLESALE', 'WHOLESALE', 'Unit Cost', 'Wholesale'),
       shipDate:     smartIdx(tsH, 'SHIP DATE', 'Ship Date', 'Shipment Date'),
       cancelDate:   smartIdx(tsH, 'CANCEL DATE', 'Cancel Date'),
     };
