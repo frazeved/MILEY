@@ -3,113 +3,104 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>305 Workspace — Style Form</title>
+  <title>305 Workspace - Style Form</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #f5f6fa; --surface: #fff; --border: #e4e7ed;
-      --text: #1a1d23; --text-secondary: #6b7280; --text-muted: #9ca3af;
-      --accent: #7c3aed; --accent-light: #f5f3ff; --accent-hover: #6d28d9;
-    }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    body { font-family: 'Inter', sans-serif; background: #f5f6fa; color: #1a1d23; min-height: 100vh; }
 
     /* NAV */
-    nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 50; }
-    .nav-brand { font-size: 16px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
-    .nav-brand span { color: var(--accent); }
+    nav { background: #fff; border-bottom: 1px solid #e4e7ed; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 50; }
+    .nav-brand { font-size: 16px; font-weight: 700; color: #1a1d23; }
+    .nav-brand span { color: #7c3aed; }
     .nav-links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-    .nav-link { font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: 6px; text-decoration: none; color: var(--text-secondary); transition: background 0.15s, color 0.15s; white-space: nowrap; }
-    .nav-link:hover { background: var(--bg); color: var(--text); }
-    .nav-link.active { background: var(--accent-light); color: var(--accent); }
-    .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--text-secondary); line-height: 1; }
-    .nav-hamburger:hover { color: var(--text); }
+    .nav-link { font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: 6px; text-decoration: none; color: #6b7280; transition: background 0.15s, color 0.15s; white-space: nowrap; }
+    .nav-link:hover { background: #f5f6fa; color: #1a1d23; }
+    .nav-link.active { background: #f5f3ff; color: #7c3aed; }
+    .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: #6b7280; }
 
     /* LAYOUT */
-    .layout { display: flex; align-items: flex-start; gap: 20px; max-width: 1280px; margin: 0 auto; padding: 28px 24px 60px; }
-    .sidebar { width: 210px; flex-shrink: 0; position: sticky; top: 72px; display: flex; flex-direction: column; gap: 12px; }
+    .layout { display: flex; gap: 20px; max-width: 1280px; margin: 0 auto; padding: 24px 20px 60px; align-items: flex-start; }
+    .sidebar { width: 200px; flex-shrink: 0; position: sticky; top: 72px; display: flex; flex-direction: column; gap: 12px; }
     .content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
 
-    /* SIDEBAR AGENT */
-    .sidebar-agent { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px 16px; text-align: center; }
-    .avatar-circle { width: 80px; height: 80px; border-radius: 50%; overflow: hidden; margin: 0 auto 12px; box-shadow: 0 0 0 3px var(--accent-light), 0 0 0 5px #c4b5fd; }
-    .avatar-circle img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
-    .sidebar-label { font-size: 10px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
-    .sidebar-name { font-size: 17px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; margin-bottom: 2px; }
-    .sidebar-title { font-size: 10px; color: var(--text-secondary); line-height: 1.5; }
+    /* SIDEBAR */
+    .agent-mini { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; text-align: center; }
+    .avatar { width: 64px; height: 64px; border-radius: 50%; overflow: hidden; margin: 0 auto 10px; box-shadow: 0 0 0 3px #f5f3ff, 0 0 0 5px #ddd6fe; }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
+    .agent-label { font-size: 9px; font-weight: 600; color: #7c3aed; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
+    .agent-name { font-size: 15px; font-weight: 700; color: #1a1d23; margin-bottom: 2px; }
+    .agent-role { font-size: 10px; color: #6b7280; line-height: 1.4; }
 
-    /* SIDEBAR IMAGE */
-    .image-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
-    .image-box { border: 2px dashed #c4b5fd; border-radius: 8px; aspect-ratio: 3/4; display: flex; align-items: center; justify-content: center; background: var(--accent-light); }
-    .img-placeholder { text-align: center; }
+    .image-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+    .image-box { border: 2px dashed #c4b5fd; border-radius: 8px; aspect-ratio: 3/4; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f5f3ff; gap: 6px; }
+    .image-box svg { opacity: 0.5; }
+    .image-box span { font-size: 10px; font-weight: 600; color: #a78bfa; }
 
-    /* SIDEBAR ACTION BUTTONS */
-    .side-actions { display: flex; flex-direction: column; gap: 8px; }
-    .side-btn { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 600; transition: background 0.15s, border-color 0.15s; width: 100%; text-align: left; }
-    .side-btn:hover { background: var(--bg); }
-    .side-btn.email1 { color: #1971c2; }
-    .side-btn.email1:hover { background: #eff6ff; border-color: #93c5fd; }
-    .side-btn.email2 { color: #0284c7; }
-    .side-btn.email2:hover { background: #f0f9ff; border-color: #7dd3fc; }
-    .side-btn.trash { color: #dc2626; }
-    .side-btn.trash:hover { background: #fff5f5; border-color: #fca5a5; }
-    .side-btn-icon { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .side-btn.email1 .side-btn-icon { background: #1971c2; }
-    .side-btn.email2 .side-btn-icon { background: #0284c7; }
-    .side-btn.trash .side-btn-icon { background: #fee2e2; }
+    .action-btn { width: 100%; display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 8px; border: 1px solid #e4e7ed; background: #fff; cursor: pointer; font-family: inherit; font-size: 11px; font-weight: 600; text-align: left; transition: background 0.15s; }
+    .action-btn.blue { color: #1d4ed8; }
+    .action-btn.blue:hover { background: #eff6ff; border-color: #bfdbfe; }
+    .action-btn.sky { color: #0284c7; }
+    .action-btn.sky:hover { background: #f0f9ff; border-color: #bae6fd; }
+    .action-btn.red { color: #dc2626; }
+    .action-btn.red:hover { background: #fef2f2; border-color: #fecaca; }
+    .btn-icon { width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .action-btn.blue .btn-icon { background: #1d4ed8; }
+    .action-btn.sky .btn-icon { background: #0284c7; }
+    .action-btn.red .btn-icon { background: #fee2e2; }
 
     /* STYLE BAR */
-    .style-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 20px; display: flex; align-items: center; gap: 14px; }
-    .style-bar-logo { height: 30px; width: auto; object-fit: contain; }
-    .logo-urbn { font-size: 17px; font-weight: 900; letter-spacing: -1px; color: var(--text); border-left: 1.5px solid var(--border); padding-left: 14px; }
-    .style-bar-divider { flex: 1; }
-    .style-num-wrap { flex: 0 0 170px; }
-    .style-num-input { width: 100%; padding: 8px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 700; text-align: center; background: var(--bg); letter-spacing: 1px; outline: none; text-transform: uppercase; color: var(--text); }
-    .style-num-input:focus { border-color: var(--accent); background: #fff; }
-    .style-num-input::placeholder { font-weight: 600; color: var(--text-muted); }
-    .bar-icon-btn { width: 38px; height: 38px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: filter 0.15s; flex-shrink: 0; }
-    .bar-icon-btn:hover { filter: brightness(0.88); }
-    .bar-icon-btn.red { background: #e03131; }
-    .bar-icon-btn.purple { background: var(--accent); }
+    .style-bar { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 12px 18px; display: flex; align-items: center; gap: 12px; }
+    .logo-fr { height: 28px; width: auto; object-fit: contain; }
+    .logo-urbn { font-size: 16px; font-weight: 900; letter-spacing: -1px; color: #1a1d23; border-left: 1.5px solid #e4e7ed; padding-left: 12px; font-style: italic; }
+    .bar-spacer { flex: 1; }
+    .style-input { width: 160px; padding: 7px 12px; border: 1.5px solid #e4e7ed; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 700; text-align: center; background: #f5f6fa; letter-spacing: 1px; outline: none; text-transform: uppercase; color: #1a1d23; }
+    .style-input:focus { border-color: #7c3aed; background: #fff; }
+    .style-input::placeholder { color: #9ca3af; font-weight: 500; letter-spacing: 0; }
+    .icon-btn { width: 36px; height: 36px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: filter 0.15s; }
+    .icon-btn:hover { filter: brightness(0.88); }
+    .icon-btn.red { background: #dc2626; }
+    .icon-btn.purple { background: #7c3aed; }
+    .back-link { font-size: 12px; font-weight: 500; color: #6b7280; text-decoration: none; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+    .back-link:hover { color: #1a1d23; }
 
-    /* FORM CARDS */
-    .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-    .card-section-hdr { background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-align: center; padding: 9px 16px; text-transform: uppercase; }
+    /* FORM CARD */
+    .form-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; overflow: hidden; }
+    .form-card-header { background: #7c3aed; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; text-align: center; padding: 9px 16px; }
 
-    /* FIELDS GRID */
-    .fields-grid { display: grid; grid-template-columns: 1fr 1fr; padding: 4px 0; }
-    .field-row { display: flex; align-items: center; border-bottom: 1px solid #f0ecfb; }
-    .field-row:last-child { border-bottom: none; }
-    .field-lbl { font-size: 10px; font-weight: 700; color: #4c3a8a; letter-spacing: 0.3px; white-space: nowrap; padding: 7px 10px; background: #f0ecfb; min-width: 130px; border-right: 1px solid #e2daf5; flex-shrink: 0; }
-    .field-inp { padding: 4px 8px; flex: 1; }
-    .field-inp input, .field-inp select { width: 100%; font-family: inherit; font-size: 12px; color: var(--text); background: transparent; border: 1px solid transparent; border-radius: 4px; padding: 4px 7px; outline: none; transition: border-color 0.12s, background 0.12s; }
-    .field-inp input:focus, .field-inp select:focus { border-color: var(--accent); background: #fdf8ff; }
-    .field-inp input.yellow { background: #fffde7; border-color: #e5c84a; }
-    .field-inp input.yellow:focus { border-color: #c4a010; background: #fffde7; }
+    /* FIELDS — 2 column grid */
+    .fields { display: grid; grid-template-columns: 1fr 1fr; }
+    .field { display: flex; align-items: center; border-bottom: 1px solid #f0ecfb; }
+    .field:nth-last-child(-n+2) { border-bottom: none; }
+    .field-label { font-size: 10px; font-weight: 700; color: #4c3a8a; letter-spacing: 0.3px; white-space: nowrap; padding: 7px 10px; background: #f3f0fc; border-right: 1px solid #e2daf5; min-width: 140px; flex-shrink: 0; }
+    .field-input { flex: 1; padding: 3px 8px; }
+    .field-input input, .field-input select { width: 100%; font-family: inherit; font-size: 12px; color: #1a1d23; background: transparent; border: 1px solid transparent; border-radius: 4px; padding: 4px 7px; outline: none; }
+    .field-input input:focus, .field-input select:focus { border-color: #7c3aed; background: #fdf8ff; }
+    .field-input input.yellow { background: #fffde7; border-color: #e5c84a; }
+    .field-input input.yellow:focus { background: #fffde7; border-color: #c4a010; }
 
     /* FOOTER */
-    .form-footer { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 24px; display: flex; align-items: center; justify-content: flex-end; gap: 28px; }
-    .footer-action { display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; }
-    .footer-label { font-size: 10px; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.8px; text-transform: uppercase; }
-    .footer-btn { width: 48px; height: 48px; border-radius: 10px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: filter 0.15s; }
-    .footer-btn:hover { filter: brightness(0.88); }
-    .footer-btn.db { background: var(--accent-light); border: 1px solid #c4b5fd; }
-    .footer-btn.tpgen { background: #fff3bf; border: 1px solid #f5d867; }
-    .footer-btn.save { background: var(--accent); }
-    .footer-btn svg { width: 26px; height: 26px; }
+    .form-footer { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px 24px; display: flex; align-items: center; justify-content: flex-end; gap: 28px; }
+    .foot-action { display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; }
+    .foot-label { font-size: 10px; font-weight: 700; color: #6b7280; letter-spacing: 0.8px; text-transform: uppercase; }
+    .foot-btn { width: 46px; height: 46px; border-radius: 10px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: filter 0.15s; }
+    .foot-btn:hover { filter: brightness(0.9); }
+    .foot-btn.db { background: #f5f3ff; border: 1px solid #ddd6fe; }
+    .foot-btn.tp { background: #fef9c3; border: 1px solid #fde68a; }
+    .foot-btn.save { background: #7c3aed; }
 
-    /* MOBILE */
     @media (max-width: 900px) {
       nav { padding: 0 16px; height: auto; min-height: 52px; position: relative; }
-      .nav-brand { display: block; }
       .nav-hamburger { display: flex; align-items: center; }
-      .nav-links { display: none; position: absolute; top: 52px; left: 0; right: 0; background: var(--surface); border-bottom: 1px solid var(--border); flex-direction: column; padding: 6px 0 10px; gap: 0; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+      .nav-links { display: none; position: absolute; top: 52px; left: 0; right: 0; background: #fff; border-bottom: 1px solid #e4e7ed; flex-direction: column; padding: 6px 0 10px; gap: 0; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
       .nav-links.open { display: flex; }
       .nav-link { padding: 10px 20px; border-radius: 0; font-size: 13px; }
       .layout { flex-direction: column; padding: 16px 14px 40px; }
-      .sidebar { width: 100%; position: static; flex-direction: row; flex-wrap: wrap; }
-      .fields-grid { grid-template-columns: 1fr; }
+      .sidebar { width: 100%; position: static; }
+      .fields { grid-template-columns: 1fr; }
+      .field:nth-last-child(-n+2) { border-bottom: 1px solid #f0ecfb; }
+      .field:last-child { border-bottom: none; }
     }
   </style>
 </head>
@@ -117,7 +108,7 @@
 
 <nav>
   <div class="nav-brand">305 <span>Workspace</span></div>
-  <button class="nav-hamburger" onclick="toggleNav()" aria-label="Menu">
+  <button class="nav-hamburger" onclick="document.getElementById('nav-links').classList.toggle('open')" aria-label="Menu">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
   </button>
   <div class="nav-links" id="nav-links">
@@ -140,34 +131,30 @@
 
   <!-- SIDEBAR -->
   <aside class="sidebar">
-    <div class="sidebar-agent">
-      <div class="avatar-circle"><img src="REBECA.png" alt="Rebeca" /></div>
-      <div class="sidebar-label">AI Agent</div>
-      <div class="sidebar-name">Rebeca</div>
-      <div class="sidebar-title">Design & Development<br>Style Tracking & Approvals</div>
+    <div class="agent-mini">
+      <div class="avatar"><img src="REBECA.png" alt="Rebeca" /></div>
+      <div class="agent-label">AI Agent</div>
+      <div class="agent-name">Rebeca</div>
+      <div class="agent-role">Design &amp; Development<br>Style Tracking</div>
     </div>
 
     <div class="image-card">
       <div class="image-box">
-        <div class="img-placeholder">
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-          <div style="margin-top:8px;font-size:10px;color:#a78bfa;font-weight:600;">Style Image</div>
-        </div>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>Style Image</span>
       </div>
-      <div class="side-actions">
-        <button class="side-btn email1">
-          <span class="side-btn-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
-          TP E-MAIL
-        </button>
-        <button class="side-btn email2">
-          <span class="side-btn-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
-          MEETING E-MAIL
-        </button>
-        <button class="side-btn trash">
-          <span class="side-btn-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></span>
-          DELETE STYLE
-        </button>
-      </div>
+      <button class="action-btn blue">
+        <span class="btn-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
+        TP E-MAIL
+      </button>
+      <button class="action-btn sky">
+        <span class="btn-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
+        MEETING E-MAIL
+      </button>
+      <button class="action-btn red">
+        <span class="btn-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></span>
+        DELETE STYLE
+      </button>
     </div>
   </aside>
 
@@ -176,108 +163,106 @@
 
     <!-- STYLE BAR -->
     <div class="style-bar">
-      <img src="FARM RIO LOGO.png" alt="Farm Rio" class="style-bar-logo" />
+      <img src="FARM RIO LOGO.png" alt="Farm Rio" class="logo-fr" />
       <span class="logo-urbn">URBN</span>
-      <div class="style-bar-divider"></div>
-      <button class="bar-icon-btn red" title="All Styles">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="#fff"/><circle cx="3" cy="12" r="1" fill="#fff"/><circle cx="3" cy="18" r="1" fill="#fff"/></svg>
+      <div class="bar-spacer"></div>
+      <button class="icon-btn red" title="All Styles">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="#fff"/><circle cx="3" cy="12" r="1" fill="#fff"/><circle cx="3" cy="18" r="1" fill="#fff"/></svg>
       </button>
-      <button class="bar-icon-btn purple" title="Edit">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      <button class="icon-btn purple" title="Edit">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       </button>
-      <div class="style-num-wrap">
-        <input id="style-number" type="text" class="style-num-input" placeholder="STYLE #" />
-      </div>
-      <button class="bar-icon-btn purple" title="Search">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" class="style-input" placeholder="STYLE #" />
+      <button class="icon-btn purple" title="Search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </button>
-      <a href="design.html" style="font-size:12px;font-weight:500;color:var(--text-secondary);text-decoration:none;display:flex;align-items:center;gap:4px;margin-left:4px;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+      <a href="design.html" class="back-link">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
         Back
       </a>
     </div>
 
     <!-- DEVELOPMENT PROCESS -->
     <div class="form-card">
-      <div class="card-section-hdr">Development Process</div>
-      <div class="fields-grid">
+      <div class="form-card-header">Development Process</div>
+      <div class="fields">
 
-        <div class="field-row">
-          <span class="field-lbl">PHASE</span>
-          <div class="field-inp"><select><option value="">—</option><option>Design</option><option>Development</option><option>Production</option></select></div>
+        <div class="field">
+          <span class="field-label">PHASE</span>
+          <div class="field-input"><select><option value="">--</option><option>Design</option><option>Development</option><option>Production</option></select></div>
         </div>
-        <div class="field-row">
-          <span class="field-lbl">TP SENT TO SUPPLIER</span>
-          <div class="field-inp"><input type="text" /></div>
-        </div>
-
-        <div class="field-row">
-          <span class="field-lbl">INTERNAL PRESENTATION</span>
-          <div class="field-inp"><input type="text" /></div>
-        </div>
-        <div class="field-row">
-          <span class="field-lbl">TP LINK</span>
-          <div class="field-inp"><input type="text" class="yellow" /></div>
+        <div class="field">
+          <span class="field-label">TP SENT TO SUPPLIER</span>
+          <div class="field-input"><input type="text" /></div>
         </div>
 
-        <div class="field-row">
-          <span class="field-lbl">INTERNAL APPROVAL</span>
-          <div class="field-inp"><input type="text" /></div>
+        <div class="field">
+          <span class="field-label">INTERNAL PRESENTATION</span>
+          <div class="field-input"><input type="text" /></div>
         </div>
-        <div class="field-row">
-          <span class="field-lbl">PRINT SENT TO SUPPLIER</span>
-          <div class="field-inp"><input type="text" /></div>
-        </div>
-
-        <div class="field-row">
-          <span class="field-lbl">BUYER PRESENTATION</span>
-          <div class="field-inp"><input type="text" /></div>
-        </div>
-        <div class="field-row">
-          <span class="field-lbl">PRINT INFO TO MARKER MAKER</span>
-          <div class="field-inp"><input type="text" /></div>
+        <div class="field">
+          <span class="field-label">TP LINK</span>
+          <div class="field-input"><input type="text" class="yellow" /></div>
         </div>
 
-        <div class="field-row">
-          <span class="field-lbl">BUYER APPROVAL</span>
-          <div class="field-inp"><input type="text" /></div>
+        <div class="field">
+          <span class="field-label">INTERNAL APPROVAL</span>
+          <div class="field-input"><input type="text" /></div>
         </div>
-        <div class="field-row">
-          <span class="field-lbl">PRINT INFO FROM MARKER MAKER</span>
-          <div class="field-inp"><input type="text" /></div>
-        </div>
-
-        <div class="field-row">
-          <span class="field-lbl">STYLE NEEDS PROTO?</span>
-          <div class="field-inp"><select><option value="">—</option><option>Yes</option><option>No</option></select></div>
-        </div>
-        <div class="field-row">
-          <span class="field-lbl">PATTERN REQUEST (Existing)</span>
-          <div class="field-inp"><input type="text" /></div>
+        <div class="field">
+          <span class="field-label">PRINT SENT TO SUPPLIER</span>
+          <div class="field-input"><input type="text" /></div>
         </div>
 
-        <div class="field-row">
-          <span class="field-lbl">TP DEVELOPMENT</span>
-          <div class="field-inp"><input type="text" /></div>
+        <div class="field">
+          <span class="field-label">BUYER PRESENTATION</span>
+          <div class="field-input"><input type="text" /></div>
         </div>
-        <div class="field-row">
-          <span class="field-lbl">PATTERN RECEIVE (Existing)</span>
-          <div class="field-inp"><input type="text" /></div>
-        </div>
-
-        <div class="field-row">
-          <span class="field-lbl">BRAND</span>
-          <div class="field-inp"><select><option value="">—</option><option>Farm Rio</option><option>URBN</option></select></div>
-        </div>
-        <div class="field-row">
-          <span class="field-lbl">PATTERN REQUEST (New Styles)</span>
-          <div class="field-inp"><input type="text" /></div>
+        <div class="field">
+          <span class="field-label">PRINT INFO TO MARKER MAKER</span>
+          <div class="field-input"><input type="text" /></div>
         </div>
 
-        <div class="field-row" style="border-bottom:none;"></div>
-        <div class="field-row">
-          <span class="field-lbl">PATTERN RECEIVE (New Styles)</span>
-          <div class="field-inp"><input type="text" /></div>
+        <div class="field">
+          <span class="field-label">BUYER APPROVAL</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+        <div class="field">
+          <span class="field-label">PRINT INFO FROM MARKER MAKER</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">STYLE NEEDS PROTO?</span>
+          <div class="field-input"><select><option value="">--</option><option>Yes</option><option>No</option></select></div>
+        </div>
+        <div class="field">
+          <span class="field-label">PATTERN REQUEST (Existing)</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">TP DEVELOPMENT</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+        <div class="field">
+          <span class="field-label">PATTERN RECEIVE (Existing)</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">BRAND</span>
+          <div class="field-input"><select><option value="">--</option><option>Farm Rio</option><option>URBN</option></select></div>
+        </div>
+        <div class="field">
+          <span class="field-label">PATTERN REQUEST (New Styles)</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+
+        <div class="field" style="border-bottom:none;"></div>
+        <div class="field" style="border-bottom:none;">
+          <span class="field-label">PATTERN RECEIVE (New Styles)</span>
+          <div class="field-input"><input type="text" /></div>
         </div>
 
       </div>
@@ -285,108 +270,108 @@
 
     <!-- STYLE DESCRIPTION / COMPOSITION -->
     <div class="form-card">
-      <div class="card-section-hdr">Style Description / Composition</div>
-      <div class="fields-grid">
+      <div class="form-card-header">Style Description / Composition</div>
+      <div class="fields">
 
-        <div class="field-row">
-          <span class="field-lbl">CATEGORY</span>
-          <div class="field-inp"><select><option value="">—</option></select></div>
+        <div class="field">
+          <span class="field-label">CATEGORY</span>
+          <div class="field-input"><select><option value="">--</option></select></div>
         </div>
-        <div class="field-row">
-          <span class="field-lbl">SEASON</span>
-          <div class="field-inp"><select><option value="">—</option></select></div>
-        </div>
-
-        <div class="field-row">
-          <span class="field-lbl">SUB-CATEGORY</span>
-          <div class="field-inp"><select><option value="">—</option></select></div>
-        </div>
-        <div class="field-row">
-          <span class="field-lbl">SUPPLIER</span>
-          <div class="field-inp"><select><option value="">—</option></select></div>
+        <div class="field">
+          <span class="field-label">SEASON</span>
+          <div class="field-input"><select><option value="">--</option></select></div>
         </div>
 
-        <div class="field-row">
-          <span class="field-lbl">FABRIC</span>
-          <div class="field-inp"><input type="text" /></div>
+        <div class="field">
+          <span class="field-label">SUB-CATEGORY</span>
+          <div class="field-input"><select><option value="">--</option></select></div>
         </div>
-        <div class="field-row">
-          <span class="field-lbl">SUPPLIER B</span>
-          <div class="field-inp"><select><option value="">—</option></select></div>
-        </div>
-
-        <div class="field-row">
-          <span class="field-lbl">PRINT TYPE</span>
-          <div class="field-inp"><select><option value="">—</option></select></div>
-        </div>
-        <div class="field-row">
-          <span class="field-lbl">DIFFICULTY</span>
-          <div class="field-inp"><select><option value="">—</option></select></div>
+        <div class="field">
+          <span class="field-label">SUPPLIER</span>
+          <div class="field-input"><select><option value="">--</option></select></div>
         </div>
 
-        <div class="field-row">
-          <span class="field-lbl">PRINT NAME</span>
-          <div class="field-inp"><input type="text" /></div>
+        <div class="field">
+          <span class="field-label">FABRIC</span>
+          <div class="field-input"><input type="text" /></div>
         </div>
-        <div class="field-row">
-          <span class="field-lbl">DESIGN NOTES</span>
-          <div class="field-inp"><input type="text" /></div>
-        </div>
-
-        <div class="field-row">
-          <span class="field-lbl">CAD URL</span>
-          <div class="field-inp"><input type="text" /></div>
-        </div>
-        <div class="field-row">
-          <span class="field-lbl">LINK A/W INTERNAL</span>
-          <div class="field-inp"><input type="text" /></div>
+        <div class="field">
+          <span class="field-label">SUPPLIER B</span>
+          <div class="field-input"><select><option value="">--</option></select></div>
         </div>
 
-        <div class="field-row">
-          <span class="field-lbl">UNITS QUANTITY</span>
-          <div class="field-inp"><input type="text" /></div>
+        <div class="field">
+          <span class="field-label">PRINT TYPE</span>
+          <div class="field-input"><select><option value="">--</option></select></div>
         </div>
-        <div class="field-row">
-          <span class="field-lbl">LINK STYLE FOLDER</span>
-          <div class="field-inp"><input type="text" /></div>
+        <div class="field">
+          <span class="field-label">DIFFICULTY</span>
+          <div class="field-input"><select><option value="">--</option></select></div>
         </div>
 
-        <div class="field-row" style="border-bottom:none;">
-          <span class="field-lbl">TECH PACK MODEL</span>
-          <div class="field-inp"><select><option value="">—</option></select></div>
+        <div class="field">
+          <span class="field-label">PRINT NAME</span>
+          <div class="field-input"><input type="text" /></div>
         </div>
-        <div class="field-row" style="border-bottom:none;">
-          <span class="field-lbl">LINK A/W SUPPLIER</span>
-          <div class="field-inp"><input type="text" /></div>
+        <div class="field">
+          <span class="field-label">DESIGN NOTES</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">CAD URL</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+        <div class="field">
+          <span class="field-label">LINK A/W INTERNAL</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">UNITS QUANTITY</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+        <div class="field">
+          <span class="field-label">LINK STYLE FOLDER</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+
+        <div class="field" style="border-bottom:none;">
+          <span class="field-label">TECH PACK MODEL</span>
+          <div class="field-input"><select><option value="">--</option></select></div>
+        </div>
+        <div class="field" style="border-bottom:none;">
+          <span class="field-label">LINK A/W SUPPLIER</span>
+          <div class="field-input"><input type="text" /></div>
         </div>
 
       </div>
     </div>
 
-    <!-- FOOTER ACTIONS -->
+    <!-- FOOTER -->
     <div class="form-footer">
-      <div class="footer-action">
-        <button class="footer-btn db" title="Database">
-          <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+      <div class="foot-action">
+        <button class="foot-btn db">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
         </button>
-        <span class="footer-label">Database</span>
+        <span class="foot-label">Database</span>
       </div>
-      <div class="footer-action">
-        <button class="footer-btn tpgen" title="Generate TP">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#a37f00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+      <div class="foot-action">
+        <button class="foot-btn tp">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a37f00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         </button>
-        <span class="footer-label">TP Generator</span>
+        <span class="foot-label">TP Generator</span>
       </div>
-      <div class="footer-action">
-        <button class="footer-btn save" title="Save">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      <div class="foot-action">
+        <button class="foot-btn save">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
         </button>
-        <span class="footer-label">Save</span>
+        <span class="foot-label">Save</span>
       </div>
     </div>
 
-  </div><!-- end content -->
-</div><!-- end layout -->
+  </div>
+</div>
 
 <script>
 function toggleNav() { document.getElementById('nav-links').classList.toggle('open'); }
