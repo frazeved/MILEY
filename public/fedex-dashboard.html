@@ -86,6 +86,8 @@
     .badge-pend .s-dot { background: #9ca3af; }
     .badge-api  { background: var(--accent-lt); color: #6b21a8; }
     .badge-api  .s-dot { background: var(--accent); }
+    .badge-nf   { background: var(--red-lt);    color: #991b1b; }
+    .badge-nf   .s-dot { background: var(--red); }
     .badge-sh   { background: #dcfce7; color: #166534; }
     .badge-sh   .s-dot { background: #16a34a; }
 
@@ -241,6 +243,7 @@ function classifyDelivery(v) {
   if (s.includes('out for delivery') || s.includes('on fedex vehicle'))                    return 'out';
   if (s.includes('transit')||s.includes('picked up')||s.includes('departed')||s.includes('at fedex')) return 'tr';
   if (s.includes('exception')||s.includes('delay')||s.includes('failed')||s.includes('returned')) return 'exc';
+  if (s.includes('not found')) return 'nf';
   return 'pend';
 }
 
@@ -248,7 +251,7 @@ function badge(raw, cls) {
   if (!raw || !raw.trim()) {
     return `<span class="status-badge badge-api"><span class="s-dot"></span>Pending API</span>`;
   }
-  const map = {del:'badge-del',tr:'badge-tr',out:'badge-out',exc:'badge-exc',pend:'badge-pend'};
+  const map = {del:'badge-del',tr:'badge-tr',out:'badge-out',exc:'badge-exc',pend:'badge-pend',nf:'badge-nf'};
   return `<span class="status-badge ${map[cls]||'badge-pend'}"><span class="s-dot"></span>${esc(raw)}</span>`;
 }
 
