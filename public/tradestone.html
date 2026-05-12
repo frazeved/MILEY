@@ -824,7 +824,7 @@ async function runPowerBISync() {
     const res  = await fetch('/api/samantha/powerbi-sync', { method: 'POST' });
     const data = await res.json().catch(() => ({}));
     if (res.ok && data.ok) {
-      setPowerBI('success', `Updated: ${data.updated} · New: ${data.newRows}`);
+      setPowerBI('success', `New POs: ${data.newRows} · Invoice refresh: ${data.invoiceRefreshed}`);
       showToast('PowerBI Database synced');
     } else {
       setPowerBI('fail', data.error || 'Sync failed');

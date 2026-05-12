@@ -741,35 +741,7 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
 
     const colH = row => { const ak = row[COL_AK]; return (ak != null && ak !== '') ? ak : (row[6] || ''); };
 
-    const newRows = []; let updated = 0;
-
-    for (let si = 1; si < poNewData.length; si++) {
-      const pnRow = poNewData[si];
-      const po = String(pnRow[pnPO] || '').trim();
-      if (!po) continue;
-      const inv = invByPO.get(po);
-      const existIdx = existByPO.get(po.toUpperCase());
-
-      if (existIdx !== undefined) {
-        const r = tsData[existIdx];
-        for (const {tsIdx, poIdx} of colMap) r[tsIdx] = pnRow[poIdx];
-        if (tsShip >= 0 && pnShip >= 0) r[tsShip] = pnRow[pnShip];
-        if (inv) { r[COL_AJ] = inv.AJ; r[COL_AK] = inv.AK; }
-        r[COL_H] = colH(r);
-        updated++;
-      } else {
-        const nr = Array(tsH.length).fill('');
-        for (const {tsIdx, poIdx} of colMap) nr[tsIdx] = pnRow[poIdx];
-        if (tsShip >= 0 && pnShip >= 0) nr[tsShip] = pnRow[pnShip];
-        if (pnCancel >= 0) nr[COL_H] = pnRow[pnCancel];
-        if (inv) { nr[COL_AJ] = inv.AJ; nr[COL_AK] = inv.AK; }
-        nr[COL_H] = colH(nr);
-        if (tsIPcol >= 0) nr[COL_V] = IP_CAT[parseInt(nr[tsIPcol])] || 'OTHER';
-        newRows.push(nr);
-      }
-    }
-
-    // Also refresh AJ/AK for invoice rows not in PO NEW loop
+    // Step 1 — refresh AJ/AK invoice data on ALL existing rows
     for (const [po, inv] of invByPO) {
       const ei = existByPO.get(po.toUpperCase());
       if (ei === undefined) continue;
@@ -779,12 +751,50 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       r[COL_H] = colH(r);
     }
 
+    // Step 2 — add only NEW POs (not already in TRADESTONE DATABASE)
+    const newRows = [];
+    for (let si = 1; si < poNewData.length; si++) {
+      const pnRow = poNewData[si];
+      const po  = String(pnRow[pnPO]    || '').trim();
+      const st  = String(pnRow[pnHM['vendor style #'] ?? -1] || '').trim();
+      if (!po || !st) continue;
+      if (existByPO.has(po.toUpperCase())) continue; // already in TRADESTONE — skip
+
+      const nr = Array(tsH.length).fill('');
+      for (const {tsIdx, poIdx} of colMap) nr[tsIdx] = pnRow[poIdx];
+      if (tsShip >= 0 && pnShip >= 0) nr[tsShip] = pnRow[pnShip];
+      if (pnCancel >= 0) nr[COL_H] = pnRow[pnCancel];
+      const inv = invByPO.get(po);
+      if (inv) { nr[COL_AJ] = inv.AJ; nr[COL_AK] = inv.AK; }
+      nr[COL_H] = colH(nr);
+      if (tsIPcol >= 0) nr[COL_V] = IP_CAT[parseInt(nr[tsIPcol])] || 'OTHER';
+      newRows.push(nr);
+    }
+
+    // Write AJ/AK updates to existing rows (only those columns, not full rows)
+    const ajColLetter = 'AJ', akColLetter = 'AK', hColLetter = 'H';
+    const ajVals = [], akVals = [], hVals = [];
+    for (let i = 1; i < tsData.length; i++) {
+      ajVals.push([tsData[i][COL_AJ] ?? '']);
+      akVals.push([tsData[i][COL_AK] ?? '']);
+      hVals.push([tsData[i][COL_H]  ?? '']);
+    }
+
     const writes = [];
     if (tsData.length > 1) {
-      writes.push(sheets.spreadsheets.values.update({
-        spreadsheetId: SHEET_ID, range: `'TRADESTONE DATABASE'!A2`,
-        valueInputOption: 'USER_ENTERED', requestBody: { values: tsData.slice(1) },
-      }));
+      writes.push(
+        sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId: SHEET_ID,
+          requestBody: {
+            valueInputOption: 'USER_ENTERED',
+            data: [
+              { range: `'TRADESTONE DATABASE'!${ajColLetter}2`, values: ajVals },
+              { range: `'TRADESTONE DATABASE'!${akColLetter}2`, values: akVals },
+              { range: `'TRADESTONE DATABASE'!${hColLetter}2`,  values: hVals  },
+            ],
+          },
+        })
+      );
     }
     if (newRows.length) {
       writes.push(sheets.spreadsheets.values.append({
@@ -794,7 +804,7 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       }));
     }
     await Promise.all(writes);
-    res.json({ ok: true, updated, newRows: newRows.length });
+    res.json({ ok: true, newRows: newRows.length, invoiceRefreshed: ajVals.length });
   } catch (e) {
     console.error('[powerbi-sync]', e.message);
     res.status(500).json({ error: e.message });
