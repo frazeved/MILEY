@@ -896,6 +896,13 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
       if (v != null && v !== '') row[tgtIdx] = v;
     };
 
+    const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const monthName = v => {
+      if (!v && v !== 0) return '';
+      const d = new Date(v);
+      return isNaN(d) ? '' : MONTH_NAMES[d.getMonth()];
+    };
+
     let pass2 = 0;
     for (let i = 0; i < mapRows.length; i++) {
       const row = mapRows[i];
@@ -904,7 +911,6 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
       const ts = tsMap.get(po);
       const pd = pdMap.get(po);
       if (ts) {
-        setSrc(row, tgt.period,       ts, ts_.period);
         setSrc(row, tgt.invoiceDate,  ts, ts_.invoiceDate);
         setSrc(row, tgt.invoiceTotal, ts, ts_.invoiceTotal);
         setSrc(row, tgt.totalQty,     ts, ts_.totalQty);
@@ -912,6 +918,14 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
         setSrc(row, tgt.shipDate,     ts, ts_.shipDate);
         setSrc(row, tgt.cancelDate,   ts, ts_.cancelDate);
         pass2++;
+      }
+      // PERIOD rule: month name of URBN INVOICE DATE if populated, else Cancel Date
+      if (tgt.period >= 0) {
+        const invDateVal    = tgt.invoiceDate >= 0 ? row[tgt.invoiceDate] : '';
+        const cancelDateVal = tgt.cancelDate  >= 0 ? row[tgt.cancelDate]  : '';
+        const src = (invDateVal !== '' && invDateVal != null) ? invDateVal : cancelDateVal;
+        const mn = monthName(src);
+        if (mn) row[tgt.period] = mn;
       }
       if (pd) {
         setSrc(row, tgt.originCountry, pd, pd_.originCountry);
