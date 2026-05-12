@@ -207,26 +207,35 @@ router.get('/dashboard', async (req, res) => {
     const printCol = col('PRINT SENT TO SUPPLIER');
     const ndcCol   = col('NDC MONTH/YEAR');
 
-    const styleRows = rows.slice(1).filter(r => String(r[styleCol] || '').trim());
+    // Only 2026 styles with a style number
+    const styleRows = rows.slice(1).filter(r => {
+      if (!String(r[styleCol] || '').trim()) return false;
+      const ndc = String(r[ndcCol] || '').trim();
+      return ndc.endsWith('/2026');
+    });
 
     const total        = styleRows.length;
     const missingTp    = styleRows.filter(r => !String(r[tpCol]    || '').trim()).length;
     const missingPrint = styleRows.filter(r => !String(r[printCol] || '').trim()).length;
 
-    // Group by NDC MONTH/YEAR (MM/YYYY) → last 4 months with data
-    const monthCounts = {};
+    // Group by month — last 4 months with data, each with its own TP/Print counts
+    const monthMap = {};
     styleRows.forEach(r => {
       const ndc = String(r[ndcCol] || '').trim();
-      if (ndc) monthCounts[ndc] = (monthCounts[ndc] || 0) + 1;
+      if (!ndc) return;
+      if (!monthMap[ndc]) monthMap[ndc] = { count: 0, missingTp: 0, missingPrint: 0 };
+      monthMap[ndc].count++;
+      if (!String(r[tpCol]    || '').trim()) monthMap[ndc].missingTp++;
+      if (!String(r[printCol] || '').trim()) monthMap[ndc].missingPrint++;
     });
 
     const MONTH_NAMES = ['', 'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
                               'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-    const months = Object.entries(monthCounts)
-      .map(([key, count]) => {
-        const [mm, yyyy] = key.split('/');
-        const m = parseInt(mm), y = parseInt(yyyy);
-        return { label: `${MONTH_NAMES[m] || mm} ${yyyy}`, count, sortKey: y * 100 + m };
+    const months = Object.entries(monthMap)
+      .map(([key, stats]) => {
+        const [mm] = key.split('/');
+        const m = parseInt(mm);
+        return { label: MONTH_NAMES[m] || mm, sortKey: m, ...stats };
       })
       .filter(m => !isNaN(m.sortKey))
       .sort((a, b) => b.sortKey - a.sortKey)

@@ -138,10 +138,13 @@
     .kpi-card.purple-kpi .kpi-value { color: #7c3aed; }
     .kpi-card.purple-kpi .kpi-label { color: #a78bfa; }
     .dash-months { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-    .month-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px 18px; text-align: center; }
-    .month-card-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; margin-bottom: 8px; }
-    .month-card-count { font-size: 36px; font-weight: 800; color: #7c3aed; line-height: 1; }
-    .month-card-sub { font-size: 10px; color: #9ca3af; margin-top: 4px; }
+    .month-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px 18px; }
+    .month-card-title { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #7c3aed; margin-bottom: 14px; text-align: center; border-bottom: 1px solid #f0ecfb; padding-bottom: 10px; }
+    .month-stat { display: flex; align-items: baseline; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #f5f6fa; }
+    .month-stat:last-child { border-bottom: none; }
+    .month-stat-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; }
+    .month-stat-value { font-size: 22px; font-weight: 800; color: #1a1d23; line-height: 1; }
+    .month-stat-value.warn { color: #dc2626; }
     .dash-loading { font-size: 11px; color: #9ca3af; padding: 20px 0; text-align: center; }
 
     /* ── TABLET (≤900px) ──────────────────────────────────────── */
@@ -541,7 +544,7 @@
 
       <div class="dash-kpis" id="dash-kpis" style="display:none;">
         <div class="kpi-card purple-kpi">
-          <div class="kpi-label">Total Styles</div>
+          <div class="kpi-label">Total Styles 2026</div>
           <div class="kpi-value" id="kpi-total">—</div>
         </div>
         <div class="kpi-card warn">
@@ -785,9 +788,19 @@ async function loadDashboard() {
     const grid = document.getElementById('dash-months');
     grid.innerHTML = data.months.map(m => `
       <div class="month-card">
-        <div class="month-card-label">${m.label}</div>
-        <div class="month-card-count">${m.count}</div>
-        <div class="month-card-sub">styles</div>
+        <div class="month-card-title">${m.label}</div>
+        <div class="month-stat">
+          <span class="month-stat-label">Total Styles</span>
+          <span class="month-stat-value">${m.count}</span>
+        </div>
+        <div class="month-stat">
+          <span class="month-stat-label">TP Missing</span>
+          <span class="month-stat-value warn">${m.missingTp}</span>
+        </div>
+        <div class="month-stat">
+          <span class="month-stat-label">Print Missing</span>
+          <span class="month-stat-value warn">${m.missingPrint}</span>
+        </div>
       </div>`).join('');
     grid.style.display = '';
   } catch (e) {
