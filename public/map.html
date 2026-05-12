@@ -425,31 +425,21 @@
         </div>
       </div>
 
-      <!-- CARD 4 — LIVE -->
-      <div class="task-card live">
+      <!-- CARD 4 — LIVE DASHBOARD LINK -->
+      <a class="task-card live" href="map-dashboard.html" style="text-decoration:none;cursor:pointer;">
         <div class="task-card-top">
           <div>
-            <div class="task-card-name">MAP DATA SYNC</div>
+            <div class="task-card-name">MAP DASHBOARD</div>
             <div class="task-card-dest">&#x2192; ANTHRO MAP 2026</div>
           </div>
           <span class="live-badge">Live</span>
         </div>
         <div class="task-card-desc">
-          3-step sync: finds new 2026 POs from Tradestone and appends them, then fills invoice data,
-          ship/cancel dates, origin country, FOB price, brand and channel, then overlays cost,
-          ex-factory dates, supplier, HTS code, duty and freight from the Production &amp; PO Database.
+          5 live charts — styles by status, PO invoiced by month, invoiced by category,
+          by brand, and total invoice by supplier. Includes a Data Sync button to pull
+          the latest from Tradestone, PO Detail, and the Production &amp; PO Database.
         </div>
-        <div class="sync-footer">
-          <button class="btn-sync" id="sync-btn" onclick="runMapSync()">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-              <polyline points="23 4 23 10 17 10"/>
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-            </svg>
-            Run Sync
-          </button>
-          <span class="sync-status" id="sync-status"></span>
-        </div>
-      </div>
+      </a>
 
     </div>
   </div>
