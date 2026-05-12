@@ -637,6 +637,28 @@
       </div>
     </div>
     <div class="grid" id="grid"></div>
+
+    <!-- POWERBI DATABASE card — runs after extractions complete -->
+    <div id="powerbi-section" style="margin-top:12px;">
+      <div class="card" id="powerbi-card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">POWERBI DATABASE</div>
+            <div class="card-sheet">&#x2192; TRADESTONE DATABASE</div>
+          </div>
+          <span class="status-badge badge-idle" id="powerbi-badge"><span class="dot"></span><span id="powerbi-badge-label">Ready</span></span>
+        </div>
+        <div class="card-body">
+          <div class="meta-row"><span class="meta-label">Runs after</span><span class="meta-value">All extractions</span></div>
+          <div class="meta-row"><span class="meta-label">Last sync</span><span class="meta-value" id="powerbi-last">—</span></div>
+          <div class="meta-row"><span class="meta-label">Result</span><span class="meta-value" id="powerbi-result">—</span></div>
+        </div>
+        <a class="card-link" href="https://docs.google.com/spreadsheets/d/1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q/edit?gid=187073594#gid=187073594" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Open Sheet
+        </a>
+      </div>
+    </div>
   </div>
 
 </div>
@@ -780,11 +802,51 @@ function showToast(msg, isError = false) {
   setTimeout(() => { t.className = 'toast'; }, 5000);
 }
 
+let pbTriggered = false;
+
+function setPowerBI(state, result) {
+  const badge = document.getElementById('powerbi-badge');
+  const lbl   = document.getElementById('powerbi-badge-label');
+  const res   = document.getElementById('powerbi-result');
+  const last  = document.getElementById('powerbi-last');
+  badge.className = 'status-badge ' + {
+    idle:'badge-idle', waiting:'badge-running', running:'badge-running',
+    success:'badge-success', fail:'badge-fail',
+  }[state];
+  lbl.textContent = { idle:'Ready', waiting:'Waiting...', running:'Syncing...', success:'Done', fail:'Failed' }[state];
+  if (result) res.textContent = result;
+  if (state === 'success' || state === 'fail') last.textContent = new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+}
+
+async function runPowerBISync() {
+  setPowerBI('running');
+  try {
+    const res  = await fetch('/api/samantha/powerbi-sync', { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok) {
+      setPowerBI('success', `Updated: ${data.updated} · New: ${data.newRows}`);
+      showToast('PowerBI Database synced');
+    } else {
+      setPowerBI('fail', data.error || 'Sync failed');
+      showToast('PowerBI sync failed', true);
+    }
+  } catch (e) {
+    setPowerBI('fail', e.message);
+    showToast('PowerBI sync error', true);
+  }
+}
+
 async function fetchStatus() {
   try {
-    const res = await fetch('/api/status');
+    const res  = await fetch('/api/status');
     const data = await res.json();
     renderCards(data);
+    // Auto-trigger PowerBI sync once all workflows succeed
+    if (!pbTriggered && data.every(wf => wf.conclusion === 'success')) {
+      pbTriggered = true;
+      await runPowerBISync();
+    }
+    return data;
   } catch {
     showToast('Could not load status', true);
   }
@@ -793,6 +855,8 @@ async function fetchStatus() {
 function setAllQueued() {
   const now = new Date().toISOString();
   renderCards(WORKFLOWS.map(wf => ({ ...wf, status: 'queued', conclusion: null, updated_at: now, duration: null })));
+  setPowerBI('waiting');
+  pbTriggered = false;
 }
 
 function startPolling() {
@@ -820,7 +884,7 @@ async function runAll() {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
     setAllQueued();
-    showToast('Samantha is running â€” updating every 5s');
+    showToast('Samantha is running — updating every 5s');
     startPolling();
   } catch (e) {
     showToast(`Failed: ${e.message}`, true);

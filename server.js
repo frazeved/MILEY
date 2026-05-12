@@ -665,6 +665,142 @@ app.get('/api/gabriel/map-data', async (req, res) => {
   }
 });
 
+// ─── Samantha: PowerBI Database Sync ─────────────────────────────────────────
+app.post('/api/samantha/powerbi-sync', async (req, res) => {
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+    return res.status(500).json({ error: 'Google credentials not configured' });
+  }
+  try {
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    const readTab = async tab => {
+      const r = await sheets.spreadsheets.values.get({
+        spreadsheetId: SHEET_ID, range: `'${tab}'`,
+        valueRenderOption: 'UNFORMATTED_VALUE', dateTimeRenderOption: 'FORMATTED_STRING',
+      });
+      return r.data.values || [];
+    };
+
+    const [tsData, poNewData, poInvData] = await Promise.all([
+      readTab('TRADESTONE DATABASE'), readTab('PO NEW'), readTab('PO INVOICE'),
+    ]);
+
+    const tsH = tsData[0] || [], poNewH = poNewData[0] || [], poInvH = poInvData[0] || [];
+    const hMap = H => { const m = {}; H.forEach((h,i) => { const k = String(h).trim().toLowerCase(); if (k) m[k]=i; }); return m; };
+    const tsHM = hMap(tsH), pnHM = hMap(poNewH), piHM = hMap(poInvH);
+
+    const tsPO  = tsHM['po#'] ?? -1;
+    const pnPO  = pnHM['po#'] ?? -1;
+    const piPO  = piHM['po#'] ?? -1;
+    const piDate  = piHM['invoice date']  ?? -1;
+    const piValue = piHM['invoice value'] ?? piHM['invoice amount'] ?? -1;
+    const tsShip  = tsHM['ship date'] ?? -1;
+    const pnShip  = pnHM['ship date'] ?? -1;
+    const pnCancel = pnHM['cancel date'] ?? -1;
+    const tsIPcol  = tsHM['ip class'] ?? tsHM['ipclass'] ?? -1;
+
+    // Columns that must not be overwritten from PO NEW (V=21, AL=37, AM=38)
+    const SKIP = new Set([21, 37, 38]);
+    const COL_AJ = 35, COL_AK = 36, COL_H = 7, COL_V = 21;
+
+    const IP_CAT = {
+      1501:'Blouses',1502:'SWTRS & SWTSHRTS',1504:'Pants',1505:'Skirts',1506:'SHORTS',
+      1508:'Dresses',1509:'Dresses',1515:'Dresses',4110:'Blouses',4114:'Sweaters',
+      4120:'Skirts',4123:'Pants',4124:'Jumpsuit',4125:'Shorts',4130:'Dresses',
+      4134:'Dresses',4141:'LOUNGE',4142:'Swimwear',4148:'Blouses',4152:'Hats',
+      4153:'Accessories',4157:'Wraps',4428:'Dresses',4915:'Waters Edge',
+      4920:'Blouses',4925:'Skirts',4927:'Pants',4928:'Dresses',4942:'Swimwear',
+    };
+
+    // Column mapping: TRADESTONE col → PO NEW col (matched by header name, skip protected)
+    const colMap = [];
+    for (let ti = 0; ti < tsH.length; ti++) {
+      if (SKIP.has(ti)) continue;
+      const k = String(tsH[ti]).trim().toLowerCase();
+      if (k && pnHM[k] !== undefined) colMap.push({ tsIdx: ti, poIdx: pnHM[k] });
+    }
+
+    // Existing TRADESTONE rows by PO
+    const existByPO = new Map();
+    for (let i = 1; i < tsData.length; i++) {
+      const po = String(tsData[i][tsPO] || '').trim().toUpperCase();
+      if (po) existByPO.set(po, i);
+    }
+
+    // Invoice data by PO
+    const invByPO = new Map();
+    for (let i = 1; i < poInvData.length; i++) {
+      const po = String(poInvData[i][piPO] || '').trim();
+      if (po) invByPO.set(po, {
+        AJ: piValue >= 0 ? poInvData[i][piValue] : '',
+        AK: piDate  >= 0 ? poInvData[i][piDate]  : '',
+      });
+    }
+
+    const colH = row => { const ak = row[COL_AK]; return (ak != null && ak !== '') ? ak : (row[6] || ''); };
+
+    const newRows = []; let updated = 0;
+
+    for (let si = 1; si < poNewData.length; si++) {
+      const pnRow = poNewData[si];
+      const po = String(pnRow[pnPO] || '').trim();
+      if (!po) continue;
+      const inv = invByPO.get(po);
+      const existIdx = existByPO.get(po.toUpperCase());
+
+      if (existIdx !== undefined) {
+        const r = tsData[existIdx];
+        for (const {tsIdx, poIdx} of colMap) r[tsIdx] = pnRow[poIdx];
+        if (tsShip >= 0 && pnShip >= 0) r[tsShip] = pnRow[pnShip];
+        if (inv) { r[COL_AJ] = inv.AJ; r[COL_AK] = inv.AK; }
+        r[COL_H] = colH(r);
+        updated++;
+      } else {
+        const nr = Array(tsH.length).fill('');
+        for (const {tsIdx, poIdx} of colMap) nr[tsIdx] = pnRow[poIdx];
+        if (tsShip >= 0 && pnShip >= 0) nr[tsShip] = pnRow[pnShip];
+        if (pnCancel >= 0) nr[COL_H] = pnRow[pnCancel];
+        if (inv) { nr[COL_AJ] = inv.AJ; nr[COL_AK] = inv.AK; }
+        nr[COL_H] = colH(nr);
+        if (tsIPcol >= 0) nr[COL_V] = IP_CAT[parseInt(nr[tsIPcol])] || 'OTHER';
+        newRows.push(nr);
+      }
+    }
+
+    // Also refresh AJ/AK for invoice rows not in PO NEW loop
+    for (const [po, inv] of invByPO) {
+      const ei = existByPO.get(po.toUpperCase());
+      if (ei === undefined) continue;
+      const r = tsData[ei];
+      if (inv.AJ != null && inv.AJ !== '') r[COL_AJ] = inv.AJ;
+      if (inv.AK != null && inv.AK !== '') r[COL_AK] = inv.AK;
+      r[COL_H] = colH(r);
+    }
+
+    const writes = [];
+    if (tsData.length > 1) {
+      writes.push(sheets.spreadsheets.values.update({
+        spreadsheetId: SHEET_ID, range: `'TRADESTONE DATABASE'!A2`,
+        valueInputOption: 'USER_ENTERED', requestBody: { values: tsData.slice(1) },
+      }));
+    }
+    if (newRows.length) {
+      writes.push(sheets.spreadsheets.values.append({
+        spreadsheetId: SHEET_ID, range: `'TRADESTONE DATABASE'!A1`,
+        valueInputOption: 'USER_ENTERED', insertDataOption: 'INSERT_ROWS',
+        requestBody: { values: newRows },
+      }));
+    }
+    await Promise.all(writes);
+    res.json({ ok: true, updated, newRows: newRows.length });
+  } catch (e) {
+    console.error('[powerbi-sync]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── Gabriel: MAP DATA SYNC ───────────────────────────────────────────────────
 app.post('/api/gabriel/map-sync', async (req, res) => {
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
