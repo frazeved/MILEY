@@ -132,6 +132,8 @@ router.post('/save-style', async (req, res) => {
 });
 
 // ─── Delete Style from all sheets ─────────────────────────────────────────────
+// Uses values.update + values.clear (same API as save) — avoids batchUpdate/deleteDimension failures.
+// Strategy: shift all rows above the deleted row down by one, then clear the now-empty last row.
 router.delete('/delete-style', async (req, res) => {
   const styleNum = String(req.query.style || '').trim().toUpperCase();
   if (!styleNum) return res.status(400).json({ error: 'STYLE # required' });
@@ -140,27 +142,10 @@ router.delete('/delete-style', async (req, res) => {
   const sheets = sheetsClient(false);
   const tabs   = ['Design DataBase', 'Production & PO DataBase', 'Print DataBase', 'PowerBI database Process'];
 
-  // Fetch sheet metadata to get numeric sheetIds for deleteDimension
-  let sheetIdMap = {};
-  try {
-    const meta = await sheets.spreadsheets.get({
-      spreadsheetId: SHEET_ID,
-      fields: 'sheets.properties',
-    });
-    for (const s of (meta.data.sheets || [])) {
-      sheetIdMap[s.properties.title] = s.properties.sheetId;
-    }
-  } catch (e) {
-    const detail = e.response?.data?.error?.message || e.message;
-    console.error('[rebeca/delete-style] metadata fetch failed:', detail);
-    return res.status(500).json({ error: `Could not read sheet metadata: ${detail}` });
-  }
-
   const deletedFrom = [];
   const skipped     = [];
 
   for (const tab of tabs) {
-    // Read this tab's data
     let rows;
     try {
       const r = await sheets.spreadsheets.values.get({
@@ -181,36 +166,28 @@ router.delete('/delete-style', async (req, res) => {
     const rowIdx = rows.slice(1).findIndex(r => String(r[styleCol] || '').trim().toUpperCase() === styleNum);
     if (rowIdx < 0) continue;
 
-    const sheetId = sheetIdMap[tab];
-    if (sheetId === undefined) {
-      skipped.push(`${tab} (sheetId not found)`);
-      continue;
-    }
+    const totalRows = rows.length;
+    // New data: header + all data rows except the one being deleted
+    const newData = [rows[0], ...rows.slice(1).filter((_, i) => i !== rowIdx)];
 
-    // Attempt delete with one retry on transient failure
-    let lastErr = null;
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        if (attempt > 0) await new Promise(r => setTimeout(r, 2000));
-        await sheets.spreadsheets.batchUpdate({
-          spreadsheetId: SHEET_ID,
-          requestBody: { requests: [{ deleteDimension: {
-            range: { sheetId, dimension: 'ROWS', startIndex: rowIdx + 1, endIndex: rowIdx + 2 },
-          }}]},
-        });
-        lastErr = null;
-        break;
-      } catch (e) {
-        lastErr = e;
-      }
-    }
-
-    if (lastErr) {
-      const detail = lastErr.response?.data?.error?.message || lastErr.message;
-      console.error(`[rebeca/delete-style] ${tab} row ${rowIdx + 1} sheetId ${sheetId}:`, detail);
-      skipped.push(`${tab} (${detail})`);
-    } else {
+    try {
+      // Overwrite from A1 — shifts remaining rows up
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SHEET_ID,
+        range: `'${tab}'!A1`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: newData },
+      });
+      // Clear the now-duplicate last row
+      await sheets.spreadsheets.values.clear({
+        spreadsheetId: SHEET_ID,
+        range: `'${tab}'!A${totalRows}:ZZ${totalRows}`,
+      });
       deletedFrom.push(tab);
+    } catch (e) {
+      const detail = e.response?.data?.error?.message || e.message;
+      console.error(`[rebeca/delete-style] ${tab}:`, detail);
+      skipped.push(`${tab} (${detail})`);
     }
   }
 
@@ -274,7 +251,7 @@ router.get('/dashboard', async (req, res) => {
       })
       .filter(m => !isNaN(m.sortKey))
       .sort((a, b) => a.sortKey - b.sortKey)
-      .slice(0, 4);
+      .slice(-4);
 
     res.json({ total, missingTp, missingPrint, months });
   } catch (e) {
