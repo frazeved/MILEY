@@ -21,67 +21,108 @@
     .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: #6b7280; }
 
     /* LAYOUT */
-    .layout { display: flex; gap: 24px; max-width: 1200px; margin: 0 auto; padding: 32px 24px 60px; align-items: flex-start; }
-    .sidebar { width: 240px; flex-shrink: 0; position: sticky; top: 72px; display: flex; flex-direction: column; gap: 12px; }
-    .content { flex: 1; min-width: 0; }
+    .layout { display: flex; gap: 20px; max-width: 1320px; margin: 0 auto; padding: 24px 20px 60px; align-items: flex-start; }
+    .sidebar { width: 210px; flex-shrink: 0; position: sticky; top: 72px; display: flex; flex-direction: column; gap: 12px; }
+    .content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
 
     /* SIDEBAR AGENT CARD */
-    .agent-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 14px; padding: 24px 20px; text-align: center; }
-    .avatar { width: 100px; height: 100px; border-radius: 50%; overflow: hidden; margin: 0 auto 14px; box-shadow: 0 0 0 4px #f5f3ff, 0 0 0 7px #ddd6fe; }
+    .agent-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 14px; padding: 20px 16px; text-align: center; }
+    .avatar { width: 90px; height: 90px; border-radius: 50%; overflow: hidden; margin: 0 auto 12px; box-shadow: 0 0 0 4px #f5f3ff, 0 0 0 6px #ddd6fe; }
     .avatar img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
-    .agent-label { font-size: 10px; font-weight: 600; color: #7c3aed; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
-    .agent-name { font-size: 20px; font-weight: 700; color: #1a1d23; margin-bottom: 4px; }
-    .agent-title { font-size: 11px; color: #6b7280; line-height: 1.5; margin-bottom: 12px; }
-    .agent-desc { font-size: 11px; color: #9ca3af; line-height: 1.6; text-align: left; margin-bottom: 14px; }
-    .agent-tags { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
+    .agent-label { font-size: 9px; font-weight: 600; color: #7c3aed; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+    .agent-name { font-size: 18px; font-weight: 700; color: #1a1d23; margin-bottom: 3px; }
+    .agent-title { font-size: 11px; color: #6b7280; line-height: 1.5; margin-bottom: 10px; }
+    .agent-tags { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-bottom: 14px; }
     .agent-tag { font-size: 10px; font-weight: 500; background: #f5f6fa; border: 1px solid #e4e7ed; color: #6b7280; padding: 2px 8px; border-radius: 20px; }
 
-    /* CHAT TOGGLE */
-    .chat-toggle { width: 100%; display: flex; align-items: center; gap: 10px; padding: 11px 16px; background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; color: #7c3aed; }
+    /* CHAT */
+    .chat-toggle { width: 100%; display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #fff; border: 1px solid #e4e7ed; border-radius: 10px; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 600; color: #7c3aed; }
     .chat-toggle:hover { background: #f5f3ff; border-color: #ddd6fe; }
-    .chat-panel { background: #fff; border: 1px solid #e4e7ed; border-radius: 14px; overflow: hidden; display: none; }
+    .chat-panel { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; overflow: hidden; display: none; }
     .chat-panel.open { display: block; }
-    .chat-head { background: #7c3aed; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+    .chat-head { background: #7c3aed; padding: 11px 14px; display: flex; align-items: center; justify-content: space-between; }
     .chat-head-left { display: flex; align-items: center; gap: 8px; }
-    .chat-mini { width: 28px; height: 28px; border-radius: 50%; overflow: hidden; border: 2px solid rgba(255,255,255,0.4); }
+    .chat-mini { width: 26px; height: 26px; border-radius: 50%; overflow: hidden; border: 2px solid rgba(255,255,255,0.4); }
     .chat-mini img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
-    .chat-head-name { font-size: 13px; font-weight: 600; color: #fff; }
+    .chat-head-name { font-size: 12px; font-weight: 600; color: #fff; }
     .chat-head-sub { font-size: 10px; color: rgba(255,255,255,0.75); }
-    .chat-close { background: none; border: none; color: rgba(255,255,255,0.8); font-size: 18px; cursor: pointer; }
-    .chat-body-wrap { padding: 14px; display: flex; flex-direction: column; gap: 9px; }
-    .chat-bubble { background: #f5f3ff; border-radius: 10px 10px 10px 3px; padding: 9px 12px; font-size: 12px; color: #6b7280; line-height: 1.5; }
+    .chat-close { background: none; border: none; color: rgba(255,255,255,0.8); font-size: 16px; cursor: pointer; }
+    .chat-body-wrap { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .chat-bubble { background: #f5f3ff; border-radius: 8px 8px 8px 2px; padding: 8px 10px; font-size: 11px; color: #6b7280; line-height: 1.5; }
     .chat-field { display: flex; flex-direction: column; gap: 3px; }
-    .chat-field label { font-size: 10px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; }
-    .chat-field input, .chat-field textarea { font-family: inherit; font-size: 12px; padding: 7px 10px; border: 1px solid #e4e7ed; border-radius: 7px; outline: none; color: #1a1d23; background: #f5f6fa; resize: none; }
+    .chat-field label { font-size: 9px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; }
+    .chat-field input, .chat-field textarea { font-family: inherit; font-size: 11px; padding: 6px 8px; border: 1px solid #e4e7ed; border-radius: 6px; outline: none; color: #1a1d23; background: #f5f6fa; resize: none; }
     .chat-field input:focus, .chat-field textarea:focus { border-color: #7c3aed; }
-    .chat-send { background: #7c3aed; color: #fff; border: none; border-radius: 7px; padding: 9px; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .chat-send { background: #7c3aed; color: #fff; border: none; border-radius: 6px; padding: 8px; font-family: inherit; font-size: 11px; font-weight: 600; cursor: pointer; }
     .chat-send:hover { background: #6d28d9; }
 
-    /* CONTENT */
-    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-    .section-title { font-size: 13px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.6px; }
-    .section-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .btn-soon { background: #e5e7eb; color: #9ca3af; border: none; border-radius: 8px; padding: 8px 18px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: not-allowed; display: flex; align-items: center; gap: 7px; }
-    .btn-db { background: #ede9fe; color: #6d28d9; border: 1px solid #c4b5fd; border-radius: 8px; padding: 8px 18px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: not-allowed; display: flex; align-items: center; gap: 7px; }
-    .soon-badge { font-size: 10px; background: #fef9c3; color: #854d0e; border: 1px solid #fde68a; border-radius: 20px; padding: 2px 8px; font-weight: 600; }
+    /* IMAGE + ACTIONS */
+    .image-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+    .image-box { border: 2px dashed #c4b5fd; border-radius: 8px; aspect-ratio: 3/4; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f5f3ff; gap: 6px; cursor: pointer; }
+    .image-box span { font-size: 10px; font-weight: 600; color: #a78bfa; }
+    .action-btn { width: 100%; display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 8px; border: 1px solid #e4e7ed; background: #fff; cursor: pointer; font-family: inherit; font-size: 11px; font-weight: 600; text-align: left; transition: background 0.15s; }
+    .action-btn.blue { color: #1d4ed8; }
+    .action-btn.blue:hover { background: #eff6ff; border-color: #bfdbfe; }
+    .action-btn.sky { color: #0284c7; }
+    .action-btn.sky:hover { background: #f0f9ff; border-color: #bae6fd; }
+    .action-btn.red { color: #dc2626; }
+    .action-btn.red:hover { background: #fef2f2; border-color: #fecaca; }
+    .btn-icon { width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .action-btn.blue .btn-icon { background: #1d4ed8; }
+    .action-btn.sky .btn-icon { background: #0284c7; }
+    .action-btn.red .btn-icon { background: #fee2e2; }
 
-    /* CARDS GRID */
-    .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
-    .task-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; text-decoration: none; color: #1a1d23; transition: box-shadow 0.15s, transform 0.15s, border-color 0.15s; }
-    .task-card:hover { box-shadow: 0 4px 18px rgba(0,0,0,0.1); transform: translateY(-2px); border-color: #c4b5fd; }
-    .card-title { font-size: 13px; font-weight: 600; color: #1a1d23; margin-bottom: 4px; }
-    .card-dest { font-size: 11px; color: #9ca3af; margin-bottom: 10px; }
-    .card-desc { font-size: 12px; color: #6b7280; line-height: 1.55; }
+    /* STYLE BAR */
+    .style-bar { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 12px 18px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .logo-fr { height: 28px; width: auto; object-fit: contain; }
+    .logo-urbn { font-size: 16px; font-weight: 900; letter-spacing: -1px; color: #1a1d23; border-left: 1.5px solid #e4e7ed; padding-left: 12px; font-style: italic; }
+    .bar-spacer { flex: 1; }
+    .ndc-wrap { display: flex; flex-direction: column; gap: 2px; }
+    .ndc-label { font-size: 9px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; }
+    .ndc-input { width: 110px; padding: 5px 8px; border: 1.5px solid #e4e7ed; border-radius: 6px; font-family: inherit; font-size: 12px; background: #f5f6fa; outline: none; color: #1a1d23; }
+    .ndc-input:focus { border-color: #7c3aed; background: #fff; }
+    .style-input { width: 160px; padding: 7px 12px; border: 1.5px solid #e4e7ed; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 700; text-align: center; background: #f5f6fa; letter-spacing: 1px; outline: none; text-transform: uppercase; color: #1a1d23; }
+    .style-input:focus { border-color: #7c3aed; background: #fff; }
+    .style-input::placeholder { color: #9ca3af; font-weight: 500; letter-spacing: 0; text-transform: none; }
+    .icon-btn { width: 36px; height: 36px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: filter 0.15s; }
+    .icon-btn:hover { filter: brightness(0.88); }
+    .icon-btn.red { background: #dc2626; }
+    .icon-btn.purple { background: #7c3aed; }
 
-    @media (max-width: 768px) {
+    /* FORM CARD */
+    .form-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; overflow: hidden; }
+    .form-card-header { background: #7c3aed; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; text-align: center; padding: 9px 16px; }
+    .fields { display: grid; grid-template-columns: 1fr 1fr; }
+    .field { display: flex; align-items: center; border-bottom: 1px solid #f0ecfb; min-height: 34px; }
+    .field.no-border { border-bottom: none; }
+    .field-label { font-size: 10px; font-weight: 700; color: #4c3a8a; letter-spacing: 0.3px; white-space: nowrap; padding: 6px 10px; background: #f3f0fc; border-right: 1px solid #e2daf5; min-width: 150px; flex-shrink: 0; }
+    .field-input { flex: 1; padding: 3px 8px; }
+    .field-input input, .field-input select { width: 100%; font-family: inherit; font-size: 12px; color: #1a1d23; background: transparent; border: 1px solid transparent; border-radius: 4px; padding: 4px 7px; outline: none; }
+    .field-input input:focus, .field-input select:focus { border-color: #7c3aed; background: #fdf8ff; }
+    .field-input input.yellow { background: #fffde7; border-color: #e5c84a; }
+    .field-input input.yellow:focus { background: #fffde7; border-color: #c4a010; }
+
+    /* FOOTER */
+    .form-footer { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px 24px; display: flex; align-items: center; justify-content: flex-end; gap: 28px; }
+    .foot-action { display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; }
+    .foot-label { font-size: 10px; font-weight: 700; color: #6b7280; letter-spacing: 0.8px; text-transform: uppercase; }
+    .foot-btn { width: 46px; height: 46px; border-radius: 10px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: filter 0.15s; }
+    .foot-btn:hover { filter: brightness(0.9); }
+    .foot-btn.db { background: #f5f3ff; border: 1px solid #ddd6fe; }
+    .foot-btn.tp { background: #fef9c3; border: 1px solid #fde68a; }
+    .foot-btn.save { background: #7c3aed; }
+
+    @media (max-width: 900px) {
       nav { padding: 0 16px; height: auto; min-height: 52px; position: relative; }
       .nav-hamburger { display: flex; align-items: center; }
       .nav-links { display: none; position: absolute; top: 52px; left: 0; right: 0; background: #fff; border-bottom: 1px solid #e4e7ed; flex-direction: column; padding: 6px 0 10px; gap: 0; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
       .nav-links.open { display: flex; }
       .nav-link { padding: 10px 20px; border-radius: 0; font-size: 13px; }
-      .layout { flex-direction: column; padding: 20px 16px 40px; gap: 16px; }
+      .layout { flex-direction: column; padding: 16px 14px 40px; }
       .sidebar { width: 100%; position: static; }
-      .cards-grid { grid-template-columns: 1fr; }
+      .fields { grid-template-columns: 1fr; }
+      .field.no-border { border-bottom: 1px solid #f0ecfb; }
+      .field:last-child { border-bottom: none; }
     }
   </style>
 </head>
@@ -109,26 +150,25 @@
 </nav>
 
 <div class="layout">
+
+  <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="agent-card">
       <div class="avatar"><img src="REBECA.png" alt="Rebeca" /></div>
       <div class="agent-label">AI Agent</div>
       <div class="agent-name">Rebeca</div>
       <div class="agent-title">Design &amp; Development Specialist<br>Style Tracking &amp; Approvals</div>
-      <div class="agent-desc">Tracks style development from concept to approval, manages tech pack status, organizes design files in Google Drive, and monitors approval workflows across the team.</div>
       <div class="agent-tags">
         <span class="agent-tag">Design</span>
         <span class="agent-tag">Tech Packs</span>
         <span class="agent-tag">Approvals</span>
-        <span class="agent-tag">4 Reports</span>
       </div>
     </div>
 
     <button class="chat-toggle" onclick="document.getElementById('chat-panel').classList.toggle('open')">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       Message the team
     </button>
-
     <div class="chat-panel" id="chat-panel">
       <div class="chat-head">
         <div class="chat-head-left">
@@ -145,46 +185,269 @@
         <button class="chat-send" onclick="sendChat()">Send Message</button>
       </div>
     </div>
+
+    <div class="image-card">
+      <div class="image-box" title="CAD Image">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.5" opacity="0.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>CAD IMAGE</span>
+      </div>
+      <button class="action-btn blue">
+        <span class="btn-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
+        TP E-MAIL
+      </button>
+      <button class="action-btn sky">
+        <span class="btn-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
+        MEETING E-MAIL
+      </button>
+      <button class="action-btn red">
+        <span class="btn-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></span>
+        DELETE STYLE
+      </button>
+    </div>
   </aside>
 
+  <!-- CONTENT -->
   <div class="content">
-    <div class="section-header">
-      <div class="section-title">Active Tasks</div>
-      <div class="section-actions">
-        <button class="btn-soon" disabled>
-          <span>Run Rebeca</span>
-          <span class="soon-badge">Coming Soon</span>
-        </button>
-        <button class="btn-db" disabled>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>
-          <span>Database</span>
-          <span class="soon-badge">Coming Soon</span>
-        </button>
+
+    <!-- STYLE BAR -->
+    <div class="style-bar">
+      <img src="FARM RIO LOGO.png" alt="Farm Rio" class="logo-fr" />
+      <span class="logo-urbn">URBN</span>
+      <div class="bar-spacer"></div>
+      <div class="ndc-wrap">
+        <span class="ndc-label">NDC Month / Year</span>
+        <input type="text" class="ndc-input" placeholder="MM/YYYY" />
+      </div>
+      <button class="icon-btn red" title="All Styles">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="#fff"/><circle cx="3" cy="12" r="1" fill="#fff"/><circle cx="3" cy="18" r="1" fill="#fff"/></svg>
+      </button>
+      <button class="icon-btn purple" title="Edit">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+      <input type="text" class="style-input" placeholder="STYLE #" />
+      <button class="icon-btn purple" title="Search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+    </div>
+
+    <!-- DEVELOPMENT PROCESS -->
+    <div class="form-card">
+      <div class="form-card-header">Development Process</div>
+      <div class="fields">
+
+        <div class="field">
+          <span class="field-label">PHASE</span>
+          <div class="field-input"><select><option value="">--</option><option>Design</option><option>Development</option><option>Production</option></select></div>
+        </div>
+        <div class="field">
+          <span class="field-label">TP SENT TO SUPPLIER</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">INTERNAL PRESENTATION</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+        <div class="field">
+          <span class="field-label">TP LINK</span>
+          <div class="field-input"><input type="text" class="yellow" /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">INTERNAL APPROVAL</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+        <div class="field">
+          <span class="field-label">PRINT SENT TO SUPPLIER</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">BUYER PRESENTATION</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+        <div class="field">
+          <span class="field-label">COLOR APPROVED (SMS or S/O)</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">BUYER APPROVAL</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+        <div class="field">
+          <span class="field-label">PRINT INFO SENT TO MARKER MAKER</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">STYLE NEEDS PROTO?</span>
+          <div class="field-input"><select><option value="">--</option><option>Yes</option><option>No</option></select></div>
+        </div>
+        <div class="field">
+          <span class="field-label">PRINT INFO FROM MARKER MAKER</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">PROTO NOTES</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+        <div class="field">
+          <span class="field-label">PATTERN REQUEST (Existing Styles)</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">TP DEVELOPMENT</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+        <div class="field">
+          <span class="field-label">PATTERN RECEIVE (Existing Styles)</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">BRAND</span>
+          <div class="field-input"><select><option value="">--</option><option>Farm Rio</option><option>URBN</option></select></div>
+        </div>
+        <div class="field">
+          <span class="field-label">PATTERN REQUEST (New Styles)</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+
+        <div class="field no-border">
+          <span class="field-label">APPROVAL NOTES</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+        <div class="field no-border">
+          <span class="field-label">PATTERN RECEIVE (New Styles)</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+
       </div>
     </div>
 
-    <div class="cards-grid">
-      <a class="task-card" href="design-form.html?mode=new">
-        <div class="card-title">NEW STYLE INPUT</div>
-        <div class="card-dest">&#8594; Style System</div>
-        <div class="card-desc">Creates a new style entry in the system — capturing style number, season, category, colorway, vendor, and all relevant product details.</div>
-      </a>
-      <a class="task-card" href="design-form.html?mode=edit">
-        <div class="card-title">EDIT / UPDATE STYLE</div>
-        <div class="card-dest">&#8594; Style System</div>
-        <div class="card-desc">Updates an existing style record — modifying descriptions, costs, colorways, or status fields to keep the style data accurate and current.</div>
-      </a>
-      <a class="task-card" href="design-form.html?mode=delete">
-        <div class="card-title">DELETE STYLE</div>
-        <div class="card-dest">&#8594; Style System</div>
-        <div class="card-desc">Removes a style from the active list — with confirmation step to prevent accidental deletions and an archive log for reference.</div>
-      </a>
-      <a class="task-card" href="design-print-form.html">
-        <div class="card-title">PRINT INPUTS</div>
-        <div class="card-dest">&#8594; PDF / Export</div>
-        <div class="card-desc">Exports and prints all style input data in a clean, formatted layout — ready for review meetings, line sheets, or factory submissions.</div>
-      </a>
+    <!-- STYLE DESCRIPTION / COMPOSITION -->
+    <div class="form-card">
+      <div class="form-card-header">Style Description / Composition</div>
+      <div class="fields">
+
+        <div class="field">
+          <span class="field-label">CATEGORY</span>
+          <div class="field-input"><select><option value="">--</option></select></div>
+        </div>
+        <div class="field">
+          <span class="field-label">SEASON</span>
+          <div class="field-input"><select><option value="">--</option></select></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">SUB-CATEGORY</span>
+          <div class="field-input"><select><option value="">--</option></select></div>
+        </div>
+        <div class="field">
+          <span class="field-label">SUPPLIER</span>
+          <div class="field-input"><select><option value="">--</option></select></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">FABRIC</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+        <div class="field">
+          <span class="field-label">SUPPLIER B</span>
+          <div class="field-input"><select><option value="">--</option></select></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">PRINT TYPE</span>
+          <div class="field-input"><select><option value="">--</option></select></div>
+        </div>
+        <div class="field">
+          <span class="field-label">DIFFICULTY</span>
+          <div class="field-input"><select><option value="">--</option></select></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">PRINT NAME</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+        <div class="field">
+          <span class="field-label">DESIGN NOTES</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">CAD URL</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+        <div class="field">
+          <span class="field-label">LINK A/W INTERNAL</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">UNITS QUANTITY</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+        <div class="field">
+          <span class="field-label">LINK STYLE FOLDER</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">TECH PACK MODEL</span>
+          <div class="field-input"><select><option value="">--</option></select></div>
+        </div>
+        <div class="field">
+          <span class="field-label">LINK A/W SUPPLIER</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">COLOR GROUP</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+        <div class="field">
+          <span class="field-label">PRODUCTION STATUS</span>
+          <div class="field-input"><select><option value="">--</option></select></div>
+        </div>
+
+        <div class="field no-border">
+          <span class="field-label">YEAR</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+        <div class="field no-border">
+          <span class="field-label">MONTH</span>
+          <div class="field-input"><input type="text" /></div>
+        </div>
+
+      </div>
     </div>
+
+    <!-- FOOTER -->
+    <div class="form-footer">
+      <div class="foot-action">
+        <button class="foot-btn db">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        </button>
+        <span class="foot-label">Database</span>
+      </div>
+      <div class="foot-action">
+        <button class="foot-btn tp">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a37f00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </button>
+        <span class="foot-label">TP Generator</span>
+      </div>
+      <div class="foot-action">
+        <button class="foot-btn save">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        </button>
+        <span class="foot-label">Save</span>
+      </div>
+    </div>
+
   </div>
 </div>
 
