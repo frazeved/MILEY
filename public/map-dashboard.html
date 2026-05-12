@@ -215,8 +215,7 @@
 </div>
 
 <script>
-const MAP_SHEET_ID = '1W88MKYr-q9g3F2fLFu2jjxvXzigK12PWohSVMsOQst4';
-const CSV_URL      = `https://docs.google.com/spreadsheets/d/${MAP_SHEET_ID}/export?format=csv&gid=0`;
+const DATA_URL = '/api/gabriel/map-data';
 const MONTHS   = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 const PALETTE = [
@@ -457,9 +456,11 @@ async function loadCharts() {
     .forEach(id => { document.getElementById(id).innerHTML = '<div class="chart-spin"></div>'; });
   ['kpi-styles','kpi-inv','kpi-sup','kpi-brands'].forEach(id => document.getElementById(id).textContent = '—');
   try {
-    const res  = await fetch(CSV_URL);
+    const res  = await fetch(DATA_URL);
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    const rows = parseCSV(await res.text());
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    const rows = json.values || [];
     if (rows.length < 2) throw new Error('No data');
     buildAll(rows);
   } catch(e) {

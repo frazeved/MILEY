@@ -641,6 +641,30 @@ app.post('/api/fedex/create-label', async (req, res) => {
   }
 });
 
+// ─── Gabriel: MAP DATA (chart feed) ──────────────────────────────────────────
+app.get('/api/gabriel/map-data', async (req, res) => {
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+    return res.status(500).json({ error: 'Google credentials not configured' });
+  }
+  try {
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+    const r = await sheets.spreadsheets.values.get({
+      spreadsheetId: MAP_SHEET_ID,
+      range: `'ANTHRO MAP 2026'`,
+      valueRenderOption: 'FORMATTED_VALUE',
+      dateTimeRenderOption: 'FORMATTED_STRING',
+    });
+    const values = r.data.values || [];
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ values });
+  } catch (e) {
+    console.error('[map-data]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── Gabriel: MAP DATA SYNC ───────────────────────────────────────────────────
 app.post('/api/gabriel/map-sync', async (req, res) => {
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
