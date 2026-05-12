@@ -25,6 +25,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const REPO         = 'frazeved/SAMANTHA';
 const SHEET_ID     = '1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q';
+const MAP_SHEET_ID = '1W88MKYr-q9g3F2fLFu2jjxvXzigK12PWohSVMsOQst4';
 const SHEET_BASE   = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`;
 const csvUrl       = (gid) => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
 const REDIRECT_URI = 'https://workspace305team.onrender.com/auth/callback';
@@ -650,10 +651,10 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
     const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
     const sheets = google.sheets({ version: 'v4', auth });
 
-    // Read all 5 sheets in parallel
-    const readTab = async (tab) => {
+    // Read all 5 sheets in parallel — MAP is a separate spreadsheet
+    const readSheet = async (sheetId, tab) => {
       const r = await sheets.spreadsheets.values.get({
-        spreadsheetId: SHEET_ID,
+        spreadsheetId: sheetId,
         range: `'${tab}'`,
         valueRenderOption: 'UNFORMATTED_VALUE',
         dateTimeRenderOption: 'FORMATTED_STRING',
@@ -661,11 +662,11 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
       return r.data.values || [];
     };
     const [targetData, tsData, pdData, ptData, sourceData] = await Promise.all([
-      readTab('ANTHRO MAP 2026'),
-      readTab('TRADESTONE DATABASE'),
-      readTab('PO DETAIL'),
-      readTab('PO TRADE'),
-      readTab('Production & PO DataBase'),
+      readSheet(MAP_SHEET_ID, 'ANTHRO MAP 2026'),
+      readSheet(SHEET_ID,     'TRADESTONE DATABASE'),
+      readSheet(SHEET_ID,     'PO DETAIL'),
+      readSheet(SHEET_ID,     'PO TRADE'),
+      readSheet(SHEET_ID,     'Production & PO DataBase'),
     ]);
 
     const srcH  = sourceData[0] || [];
@@ -864,7 +865,7 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
     // Write all in two targeted calls (update existing + append new)
     const writes = [
       sheets.spreadsheets.values.update({
-        spreadsheetId: SHEET_ID,
+        spreadsheetId: MAP_SHEET_ID,
         range: `'ANTHRO MAP 2026'!A2`,
         valueInputOption: 'USER_ENTERED',
         requestBody: { values: mapRows },
@@ -872,7 +873,7 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
     ];
     if (newRows.length) {
       writes.push(sheets.spreadsheets.values.append({
-        spreadsheetId: SHEET_ID,
+        spreadsheetId: MAP_SHEET_ID,
         range: `'ANTHRO MAP 2026'!A1`,
         valueInputOption: 'USER_ENTERED',
         insertDataOption: 'INSERT_ROWS',
