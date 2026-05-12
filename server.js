@@ -828,7 +828,32 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       }));
     }
     await Promise.all(writes);
-    res.json({ ok: true, newRows: dedupedRows.length, duplicatesSkipped: newRows.length - dedupedRows.length, invoiceRefreshed: ajVals.length });
+
+    // Full dedup pass — read fresh, remove any duplicate PO# rows, rewrite if needed
+    const freshData = await readTab('TRADESTONE DATABASE', true);
+    const freshH = freshData[0] || [];
+    const freshPOcol = hMap(freshH)['po#'] ?? tsPO;
+    const seenAll = new Set();
+    const dedupedAll = freshData.slice(1).filter(row => {
+      const po = String(row[freshPOcol] || '').trim().toUpperCase();
+      if (!po) return true; // keep blank-PO rows as-is
+      if (seenAll.has(po)) return false;
+      seenAll.add(po);
+      return true;
+    });
+    const removedCount = (freshData.length - 1) - dedupedAll.length;
+    if (removedCount > 0) {
+      // Clear existing data rows and rewrite deduplicated rows
+      await sheets.spreadsheets.values.clear({ spreadsheetId: SHEET_ID, range: `'TRADESTONE DATABASE'!A2:ZZ` });
+      if (dedupedAll.length) {
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: SHEET_ID, range: `'TRADESTONE DATABASE'!A2`,
+          valueInputOption: 'USER_ENTERED', requestBody: { values: dedupedAll },
+        });
+      }
+    }
+
+    res.json({ ok: true, newRows: dedupedRows.length, duplicatesRemoved: removedCount, invoiceRefreshed: ajVals.length });
   } catch (e) {
     console.error('[powerbi-sync]', e.message);
     res.status(500).json({ error: e.message });
