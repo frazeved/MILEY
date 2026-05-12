@@ -734,28 +734,57 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
     });
 
     // ── PASS 2: updateFromTradestone ────────────────────────────────────────
-    const colMap = {};
-    for (const [key, name] of Object.entries({
-      period: 'PERIOD', invoiceDate: 'URBN INVOICE DATE', invoiceTotal: 'URBN INVOICE TOTAL',
-      totalQty: 'Total Qty', wholesale: 'PO WHOLESALE', shipDate: 'Ship Date',
-      cancelDate: 'Cancel Date', originCountry: 'Origin Country', styleDesc: 'Style Description',
-      vendorColor: 'Vendor Color', ipClass: 'IP CLASS', customsDesc: 'Customs Description',
-      brand: 'BRAND', deliverTo: 'Deliver To', fobPrice: 'FOB Price', channel: 'CHANNEL',
-    })) colMap[key] = idx(tgtH, name);
+    // Pre-compute every index once — never scan headers inside the row loop
+    const poCol = smartIdx(tgtH, 'Purchase Order', 'PO#', 'PO');
+    const tsPO  = smartIdx(tsH,  'Purchase Order', 'PO#', 'PO');
+    const pdPO  = smartIdx(pdH,  'Purchase Order', 'PO#', 'PO');
 
-    const poCol  = smartIdx(tgtH, 'Purchase Order', 'PO#', 'PO');
-    const tsPO   = smartIdx(tsH,  'Purchase Order', 'PO#', 'PO');
-    const pdPO   = smartIdx(pdH,  'Purchase Order', 'PO#', 'PO');
+    const tgt = {
+      period:        idx(tgtH, 'PERIOD'),
+      invoiceDate:   idx(tgtH, 'URBN INVOICE DATE'),
+      invoiceTotal:  idx(tgtH, 'URBN INVOICE TOTAL'),
+      totalQty:      idx(tgtH, 'Total Qty'),
+      wholesale:     idx(tgtH, 'PO WHOLESALE'),
+      shipDate:      idx(tgtH, 'Ship Date'),
+      cancelDate:    idx(tgtH, 'Cancel Date'),
+      originCountry: idx(tgtH, 'Origin Country'),
+      styleDesc:     idx(tgtH, 'Style Description'),
+      vendorColor:   idx(tgtH, 'Vendor Color'),
+      ipClass:       idx(tgtH, 'IP CLASS'),
+      customsDesc:   idx(tgtH, 'Customs Description'),
+      brand:         idx(tgtH, 'BRAND'),
+      deliverTo:     idx(tgtH, 'Deliver To'),
+      fobPrice:      idx(tgtH, 'FOB Price'),
+      channel:       idx(tgtH, 'CHANNEL'),
+    };
+
+    const ts_ = {
+      period:       smartIdx(tsH, 'PERIOD'),
+      invoiceDate:  smartIdx(tsH, 'INVOICE DATE', 'Invoice Dt'),
+      invoiceTotal: smartIdx(tsH, 'INVOICE TOTAL', 'Invoice Amount'),
+      totalQty:     smartIdx(tsH, 'TOTAL QTY', 'Total Units'),
+      wholesale:    smartIdx(tsH, 'WHOLESALE', 'Unit Cost'),
+      shipDate:     smartIdx(tsH, 'SHIP DATE', 'Shipment Date'),
+      cancelDate:   smartIdx(tsH, 'CANCEL DATE'),
+    };
+
+    const pd_ = {
+      originCountry: smartIdx(pdH, 'Origin Country'),
+      styleDesc:     smartIdx(pdH, 'Style Description'),
+      vendorColor:   smartIdx(pdH, 'Vendor Color'),
+      ipClass:       smartIdx(pdH, 'IP CLASS'),
+      customsDesc:   smartIdx(pdH, 'Customs Description'),
+      brand:         smartIdx(pdH, 'Brand'),
+      deliverTo:     smartIdx(pdH, 'Deliver To'),
+      fobPrice:      smartIdx(pdH, 'FOB Price'),
+    };
 
     const tsMap = new Map();
-    for (let i = 1; i < tsData.length;  i++) { const po = norm(tsData[i][tsPO]);  if (po) tsMap.set(po, tsData[i]); }
+    for (let i = 1; i < tsData.length; i++) { const po = norm(tsData[i][tsPO]); if (po) tsMap.set(po, tsData[i]); }
     const pdMap = new Map();
-    for (let i = 1; i < pdData.length;  i++) { const po = norm(pdData[i][pdPO]);  if (po) pdMap.set(po, pdData[i]); }
+    for (let i = 1; i < pdData.length; i++) { const po = norm(pdData[i][pdPO]); if (po) pdMap.set(po, pdData[i]); }
     const ptMap = new Map();
-    for (let i = 1; i < ptData.length;  i++) { ptMap.set(norm(ptData[i][0]), ptData[i][1]); }
-
-    const gTS = (row, ...names) => { const c = smartIdx(tsH, ...names); return c >= 0 ? row[c] : ''; };
-    const gPD = (row, ...names) => { const c = smartIdx(pdH, ...names); return c >= 0 ? row[c] : ''; };
+    for (let i = 1; i < ptData.length; i++) { ptMap.set(norm(ptData[i][0]), ptData[i][1]); }
 
     let pass2 = 0;
     for (let i = 0; i < mapRows.length; i++) {
@@ -765,26 +794,26 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
       const ts = tsMap.get(po);
       const pd = pdMap.get(po);
       if (ts) {
-        row[colMap.period]       = gTS(ts, 'PERIOD');
-        row[colMap.invoiceDate]  = gTS(ts, 'INVOICE DATE', 'Invoice Dt');
-        row[colMap.invoiceTotal] = gTS(ts, 'INVOICE TOTAL', 'Invoice Amount');
-        row[colMap.totalQty]     = gTS(ts, 'TOTAL QTY', 'Total Units');
-        row[colMap.wholesale]    = gTS(ts, 'WHOLESALE', 'Unit Cost');
-        row[colMap.shipDate]     = gTS(ts, 'SHIP DATE', 'Shipment Date');
-        row[colMap.cancelDate]   = gTS(ts, 'CANCEL DATE');
+        if (tgt.period        >= 0) row[tgt.period]        = ts[ts_.period]       ?? '';
+        if (tgt.invoiceDate   >= 0) row[tgt.invoiceDate]   = ts[ts_.invoiceDate]  ?? '';
+        if (tgt.invoiceTotal  >= 0) row[tgt.invoiceTotal]  = ts[ts_.invoiceTotal] ?? '';
+        if (tgt.totalQty      >= 0) row[tgt.totalQty]      = ts[ts_.totalQty]     ?? '';
+        if (tgt.wholesale     >= 0) row[tgt.wholesale]     = ts[ts_.wholesale]    ?? '';
+        if (tgt.shipDate      >= 0) row[tgt.shipDate]      = ts[ts_.shipDate]     ?? '';
+        if (tgt.cancelDate    >= 0) row[tgt.cancelDate]    = ts[ts_.cancelDate]   ?? '';
         pass2++;
       }
       if (pd) {
-        row[colMap.originCountry] = gPD(pd, 'Origin Country');
-        row[colMap.styleDesc]     = gPD(pd, 'Style Description');
-        row[colMap.vendorColor]   = gPD(pd, 'Vendor Color');
-        row[colMap.ipClass]       = gPD(pd, 'IP CLASS');
-        row[colMap.customsDesc]   = gPD(pd, 'Customs Description');
-        row[colMap.brand]         = gPD(pd, 'Brand');
-        row[colMap.deliverTo]     = gPD(pd, 'Deliver To');
-        row[colMap.fobPrice]      = gPD(pd, 'FOB Price');
+        if (tgt.originCountry >= 0) row[tgt.originCountry] = pd[pd_.originCountry] ?? '';
+        if (tgt.styleDesc     >= 0) row[tgt.styleDesc]     = pd[pd_.styleDesc]     ?? '';
+        if (tgt.vendorColor   >= 0) row[tgt.vendorColor]   = pd[pd_.vendorColor]   ?? '';
+        if (tgt.ipClass       >= 0) row[tgt.ipClass]       = pd[pd_.ipClass]       ?? '';
+        if (tgt.customsDesc   >= 0) row[tgt.customsDesc]   = pd[pd_.customsDesc]   ?? '';
+        if (tgt.brand         >= 0) row[tgt.brand]         = pd[pd_.brand]         ?? '';
+        if (tgt.deliverTo     >= 0) row[tgt.deliverTo]     = pd[pd_.deliverTo]     ?? '';
+        if (tgt.fobPrice      >= 0) row[tgt.fobPrice]      = pd[pd_.fobPrice]      ?? '';
       }
-      if (ptMap.has(po)) row[colMap.channel] = ptMap.get(po);
+      if (ptMap.has(po) && tgt.channel >= 0) row[tgt.channel] = ptMap.get(po);
     }
 
     // Write both passes back in one call
