@@ -35,6 +35,49 @@ const SIZE_MAP = {
   "7000":"L","3704":"L PETITE","8000":"XL","3705":"XL PETITE","9000":"XXL",
 };
 
+const FEDEX_API_URL      = 'https://apis.fedex.com';
+const FEDEX_DRIVE_FOLDER = '1ufkdrO23m2C-MrmhR1iKN3QFSJFwuQPY';
+const FEDEX_SERVICE_NAMES = {
+  FIRST_OVERNIGHT:         'FedEx First Overnight',
+  FEDEX_2_DAY_AM:          'FedEx 2Day AM',
+  FEDEX_3_DAY_FREIGHT:     'FedEx 3Day Freight',
+  FEDEX_EXPRESS_SAVER:     'FedEx Express Saver',
+  PRIORITY_OVERNIGHT:      'FedEx Priority Overnight',
+  FEDEX_2_DAY:             'FedEx 2Day',
+  FEDEX_1_DAY_FREIGHT:     'FedEx 1Day Freight',
+  FEDEX_2_DAY_FREIGHT:     'FedEx 2Day Freight',
+  STANDARD_OVERNIGHT:      'FedEx Standard Overnight',
+  FEDEX_GROUND:            'FedEx Ground',
+  FIRST_OVERNIGHT_FREIGHT: 'FedEx First Overnight Freight',
+};
+const FEDEX_ADDRESS_BOOK = {
+  SHIP_FROM: {
+    company: '305 Consulting and Production Inc',
+    contact: '305 Consulting and Production Inc',
+    phone:   '9174992103',
+    street:  ['1800 NW 15TH AVENUE, STE 110', 'UNIT 2 GROUND'],
+    city:    'POMPANO BEACH', state: 'FL', zip: '33069', country: 'US',
+  },
+  BRO: { company: 'URBAN OUTFITTERS INC',   contact: 'BRISTOL RENTAL DC',           phone: '', street: ['2401 GREEN LN'],                             city: 'LEVITTOWN',    state: 'PA', zip: '19057', country: 'US' },
+  GAP: { company: 'ANTHROPOLOGIE GAP',      contact: 'URBN GAP DC',                 phone: '', street: ['755 BRACKBILL ROAD'],                        city: 'GAP',          state: 'PA', zip: '17527', country: 'US' },
+  GFC: { company: 'ANTHROPOLOGIE',          contact: 'URBN GAP FULFILLMENT CENTER', phone: '', street: ['766 BRACKBILL ROAD'],                        city: 'GAP',          state: 'PA', zip: '17527', country: 'US' },
+  KC1: { company: 'URBAN OUTFITTERS INC',   contact: 'KANSAS CITY KANSAS FC',       phone: '', street: ['11681 STATE AVE'],                           city: 'KANSAS CITY',  state: 'KS', zip: '66111', country: 'US' },
+  KC3: { company: 'URBAN OUTFITTERS INC',   contact: 'NUULY RAYMORE RENTAL DC',     phone: '', street: ['1300 S. DEAN AVE', 'BUILDING 3, SUITE 100'], city: 'RAYMORE',      state: 'MO', zip: '64083', country: 'US' },
+  REN: { company: 'URBN RENO DC',           contact: 'URBN RENO DC',                phone: '', street: ['6640 ECHO AVE'],                             city: 'RENO',         state: 'NV', zip: '89506', country: 'US' },
+  RNO: { company: 'ANTHROPOLOGIE',          contact: 'URBN WEST COAST FULFILLMENT', phone: '', street: ['12055 MOYA BLVD'],                           city: 'RENO',         state: 'NV', zip: '89506', country: 'US' },
+  YRD: { company: 'NUULY NAVY YARD',        contact: 'NUULY NAVY YARD',             phone: '', street: ['5000 SOUTH BROAD ST'],                       city: 'PHILADELPHIA', state: 'PA', zip: '19112', country: 'US' },
+};
+const FEDEX_PACKAGING = {
+  'ECICO':      { l: 20, w: 12, h: 12 },
+  'GAIA':       { l: 20, w: 12, h: 12 },
+  'H&F':        { l: 23, w: 12, h: 12 },
+  'HS FASHION': { l: 20, w: 15, h: 11 },
+  'KONCEPTION': { l: 20, w: 12, h: 12 },
+  'MINI BOX':   { l: 12, w: 12, h: 12 },
+  'PQSWIM':     { l: 20, w: 12, h: 12 },
+  'S&S':        { l: 23, w: 16, h: 11 },
+};
+
 const WORKFLOWS = [
   { id: 'po-detail.yml',   name: 'PO DETAIL',  tab: 'PO DETAIL',  sheetUrl: `${SHEET_BASE}?gid=2017761959#gid=2017761959` },
   { id: 'all-pos.yml',     name: 'ALL POs',     tab: 'PO TRADE',   sheetUrl: `${SHEET_BASE}?gid=890202899#gid=890202899`   },
@@ -379,6 +422,222 @@ app.post('/api/contact', async (req, res) => {
     });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── FedEx Validation Email Draft ────────────────────────────────────────────
+app.post('/api/fedex/validation-draft', async (req, res) => {
+  try {
+    const token = userTokens['flavio'];
+    if (!token?.refreshToken) return res.status(401).json({ error: 'flavio Gmail not connected. Visit /setup first.' });
+
+    const htmlBody = `
+<p>Hi FedEx Label Analysis Team,</p>
+<p>Please find attached our test label for Ship API production validation.</p>
+<table style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px;">
+  <tr><td style="padding:4px 12px 4px 0;font-weight:bold;color:#4D148C;">Company</td><td>305 Consulting and Production Inc</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;font-weight:bold;color:#4D148C;">FedEx Account Number</td><td>740561073</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;font-weight:bold;color:#4D148C;">Production API Key</td><td>l766161b6e947e4d08b5284266e7afcee8</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;font-weight:bold;color:#4D148C;">Contact</td><td>support@creativetwotwelve.com | 917-499-2103</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;font-weight:bold;color:#4D148C;">Services Requested</td><td>FedEx Ground (domestic US)</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;font-weight:bold;color:#4D148C;">Application</td><td>Internal warehouse shipping system — 305 Workspace</td></tr>
+</table>
+<br>
+<p>Attached: scanned test label printed at 600 DPI.</p>
+<p>Please advise on approval.</p>
+<p>Thank you,<br>Flavio Azevedo<br>305 Consulting and Production Inc</p>`;
+
+    const rawMime = await buildRawMime({
+      from:    '"Flavio Azevedo" <support@creativetwotwelve.com>',
+      to:      'label@fedex.com',
+      subject: 'FedEx Ship API Label Validation — 305 Consulting and Production Inc',
+      html:    htmlBody,
+    });
+    const encoded = rawMime.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+    const authClient = makeOAuth2Client();
+    authClient.setCredentials({ refresh_token: token.refreshToken });
+    const gmail = google.gmail({ version: 'v1', auth: authClient });
+    await gmail.users.drafts.create({ userId: 'me', requestBody: { message: { raw: encoded } } });
+
+    res.json({ ok: true, message: 'Draft saved to support@creativetwotwelve.com — check Gmail Drafts' });
+  } catch (e) {
+    console.error('validation-draft error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ─── FedEx Label Creation ─────────────────────────────────────────────────────
+function colToLetter(col) {
+  let letter = '', n = col + 1;
+  while (n > 0) { const r = (n - 1) % 26; letter = String.fromCharCode(65 + r) + letter; n = Math.floor((n - 1) / 26); }
+  return letter;
+}
+
+app.post('/api/fedex/create-label', async (req, res) => {
+  try {
+    const { po, boxQty, weight, serviceCode, deliverToCode, supplier } = req.body;
+    if (!po || !boxQty || !serviceCode || !deliverToCode)
+      return res.status(400).json({ error: 'Missing required fields: po, boxQty, serviceCode, deliverToCode' });
+
+    const to = FEDEX_ADDRESS_BOOK[deliverToCode];
+    if (!to) return res.status(400).json({ error: `Unknown deliver-to code: ${deliverToCode}` });
+    const from = FEDEX_ADDRESS_BOOK.SHIP_FROM;
+
+    const nk = s => (s || '').toLowerCase().trim();
+    const dimsEntry = Object.entries(FEDEX_PACKAGING).find(([k]) =>
+      nk(k) === nk(supplier) || nk(supplier).includes(nk(k)) || nk(k).includes(nk(supplier))
+    );
+    const dims = dimsEntry ? dimsEntry[1] : { l: 20, w: 12, h: 12 };
+    const qty  = Math.max(1, parseInt(boxQty) || 1);
+    const wt   = parseFloat(weight) || 20;
+
+    // 1. FedEx OAuth token
+    const tokenRes = await fetch(`${FEDEX_API_URL}/oauth/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `grant_type=client_credentials&client_id=${encodeURIComponent(process.env.FEDEX_SHIP_API_KEY)}&client_secret=${encodeURIComponent(process.env.FEDEX_SHIP_API_SECRET)}`,
+    });
+    if (!tokenRes.ok) {
+      const t = await tokenRes.text();
+      return res.status(500).json({ error: `FedEx auth failed (${tokenRes.status}): ${t}` });
+    }
+    const { access_token } = await tokenRes.json();
+
+    // 2. Build payload
+    const packages = Array.from({ length: qty }, (_, i) => ({
+      sequenceNumber: i + 1,
+      weight:     { units: 'LB', value: wt },
+      dimensions: { length: dims.l, width: dims.w, height: dims.h, units: 'IN' },
+    }));
+
+    const payload = {
+      labelResponseOptions: 'URL_ONLY',
+      requestedShipment: {
+        shipper: {
+          contact: { personName: from.contact, companyName: from.company, phoneNumber: from.phone },
+          address: { streetLines: from.street, city: from.city, stateOrProvinceCode: from.state, postalCode: from.zip, countryCode: from.country },
+        },
+        recipients: [{
+          contact: { personName: to.contact, companyName: to.company, phoneNumber: to.phone || '0000000000' },
+          address: { streetLines: to.street, city: to.city, stateOrProvinceCode: to.state, postalCode: to.zip, countryCode: to.country },
+        }],
+        serviceType: serviceCode,
+        packagingType: 'YOUR_PACKAGING',
+        pickupType: 'USE_SCHEDULED_PICKUP',
+        shippingChargesPayment: {
+          paymentType: 'SENDER',
+          payor: { responsibleParty: { accountNumber: { value: process.env.FEDEX_ACCOUNT_NUMBER } } },
+        },
+        labelSpecification: { labelFormatType: 'COMMON2D', imageType: 'PDF', labelStockType: 'PAPER_4X6' },
+        customerReferences: [{ customerReferenceType: 'CUSTOMER_REFERENCE', value: po }],
+        requestedPackageLineItems: packages,
+      },
+      accountNumber: { value: process.env.FEDEX_ACCOUNT_NUMBER },
+    };
+
+    // 3. Create shipment
+    const shipRes = await fetch(`${FEDEX_API_URL}/ship/v1/shipments`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${access_token}`, 'Content-Type': 'application/json', 'x-locale': 'en_US' },
+      body: JSON.stringify(payload),
+    });
+    const shipData = await shipRes.json();
+    if (!shipRes.ok) {
+      const errMsg = shipData?.errors?.[0]?.message || JSON.stringify(shipData).slice(0, 300);
+      return res.status(500).json({ error: `FedEx Ship error: ${errMsg}`, raw: shipData });
+    }
+
+    const shipment    = shipData.output?.transactionShipments?.[0];
+    if (!shipment) return res.status(500).json({ error: 'No shipment in FedEx response', raw: shipData });
+
+    const tracking    = shipment.masterTrackingNumber || shipment.pieceResponses?.[0]?.trackingNumber || '';
+    const allLabels   = (shipment.pieceResponses || []).flatMap(p => (p.packageDocuments || []).map(d => d.url).filter(Boolean));
+    const rateDetail  = shipment.completedShipmentDetail?.shipmentRating?.shipmentRateDetails;
+    const totalCharge = rateDetail?.[0]?.totalNetCharge?.amount ?? rateDetail?.[0]?.totalNetCharge ?? '';
+    const serviceName = FEDEX_SERVICE_NAMES[serviceCode] || serviceCode;
+
+    // 4. Upload labels to Google Drive (best-effort)
+    let driveWebUrl = '';
+    if (allLabels.length && process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+      try {
+        const sa   = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+        const auth = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/drive'] });
+        const drive = google.drive({ version: 'v3', auth });
+        const MONTHS = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+        let folderId = FEDEX_DRIVE_FOLDER;
+        try {
+          const listRes = await drive.files.list({
+            q: `'${FEDEX_DRIVE_FOLDER}' in parents and mimeType='application/vnd.google-apps.folder' and name='${MONTHS[new Date().getMonth()]}' and trashed=false`,
+            fields: 'files(id)', pageSize: 1,
+          });
+          if (listRes.data.files?.length) folderId = listRes.data.files[0].id;
+        } catch (_) {}
+
+        for (let i = 0; i < allLabels.length; i++) {
+          const pdfRes = await fetch(allLabels[i]);
+          if (!pdfRes.ok) continue;
+          const buf = Buffer.from(await pdfRes.arrayBuffer());
+          const { Readable } = require('stream');
+          const fileName = allLabels.length === 1 ? `FEDEX ${po}` : `FEDEX ${po} - ${i + 1}`;
+          const up = await drive.files.create({
+            requestBody: { name: fileName, mimeType: 'application/pdf', parents: [folderId] },
+            media: { mimeType: 'application/pdf', body: Readable.from(buf) },
+            fields: 'id,webViewLink',
+          });
+          if (i === 0) driveWebUrl = up.data.webViewLink || '';
+        }
+      } catch (driveErr) { console.error('[Drive upload]', driveErr.message); }
+    }
+
+    // 5. Write back to Warehouse Now sheet (best-effort)
+    if (tracking && process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+      try {
+        const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+        const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+        const sheets = google.sheets({ version: 'v4', auth });
+        const TAB    = 'Warehouse Now Database';
+
+        const hdRes = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${TAB}'!1:1` });
+        const hdrs  = (hdRes.data.values?.[0] || []).map(h => h.trim().toLowerCase());
+        const fc = (...kws) => {
+          for (const kw of kws) { const i = hdrs.findIndex(h => h === kw.toLowerCase()); if (i >= 0) return i; }
+          for (const kw of kws) { const i = hdrs.findIndex(h => h.includes(kw.toLowerCase())); if (i >= 0) return i; }
+          return -1;
+        };
+        const trackCol   = fc('tracking number', 'tracking #', 'tracking');
+        const carrierCol = fc('carrier');
+        const serviceCol = fc('shipping type', 'service type', 'ship type');
+        const costCol    = fc('shipping cost', 'freight cost', 'ship cost');
+        const poColIdx   = fc('po#', 'po number', 'po');
+
+        if (poColIdx >= 0 && trackCol >= 0) {
+          const colL   = colToLetter(poColIdx);
+          const poVals = (await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${TAB}'!${colL}:${colL}` })).data.values || [];
+          let sheetRow = -1;
+          for (let i = 1; i < poVals.length; i++) {
+            if ((poVals[i]?.[0] || '').toString().trim() === po.toString().trim()) { sheetRow = i + 1; break; }
+          }
+          if (sheetRow > 0) {
+            const updates = [
+              ...(trackCol   >= 0 ? [{ range: `'${TAB}'!${colToLetter(trackCol)}${sheetRow}`,   values: [[tracking]]          }] : []),
+              ...(carrierCol >= 0 ? [{ range: `'${TAB}'!${colToLetter(carrierCol)}${sheetRow}`,  values: [['FEDEX']]            }] : []),
+              ...(serviceCol >= 0 ? [{ range: `'${TAB}'!${colToLetter(serviceCol)}${sheetRow}`,  values: [[serviceName]]        }] : []),
+              ...(costCol    >= 0 ? [{ range: `'${TAB}'!${colToLetter(costCol)}${sheetRow}`,     values: [[String(totalCharge)]}] : []),
+            ];
+            if (updates.length) await sheets.spreadsheets.values.batchUpdate({
+              spreadsheetId: SHEET_ID,
+              requestBody: { valueInputOption: 'RAW', data: updates },
+            });
+          }
+        }
+      } catch (sheetErr) { console.error('[Sheet write]', sheetErr.message); }
+    }
+
+    res.json({ ok: true, tracking, cost: totalCharge ? `$${totalCharge}` : '', driveUrl: driveWebUrl });
+  } catch (e) {
+    console.error('[create-label]', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
