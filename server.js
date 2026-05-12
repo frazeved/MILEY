@@ -650,20 +650,23 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
     const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
     const sheets = google.sheets({ version: 'v4', auth });
 
-    // ONE batchGet call for all 5 sheets
-    const batch = await sheets.spreadsheets.values.batchGet({
-      spreadsheetId: SHEET_ID,
-      ranges: [
-        "'ANTHRO MAP 2026'",
-        "'TRADESTONE DATABASE'",
-        "'PO DETAIL'",
-        "'PO TRADE'",
-        "'Production & PO DataBase'",
-      ],
-      valueRenderOption: 'UNFORMATTED_VALUE',
-      dateTimeRenderOption: 'FORMATTED_STRING',
-    });
-    const [targetData, tsData, pdData, ptData, sourceData] = batch.data.valueRanges.map(vr => vr.values || []);
+    // Read all 5 sheets in parallel
+    const readTab = async (tab) => {
+      const r = await sheets.spreadsheets.values.get({
+        spreadsheetId: SHEET_ID,
+        range: `'${tab}'`,
+        valueRenderOption: 'UNFORMATTED_VALUE',
+        dateTimeRenderOption: 'FORMATTED_STRING',
+      });
+      return r.data.values || [];
+    };
+    const [targetData, tsData, pdData, ptData, sourceData] = await Promise.all([
+      readTab('ANTHRO MAP 2026'),
+      readTab('TRADESTONE DATABASE'),
+      readTab('PO DETAIL'),
+      readTab('PO TRADE'),
+      readTab('Production & PO DataBase'),
+    ]);
 
     const srcH  = sourceData[0] || [];
     const tgtH  = targetData[0] || [];
