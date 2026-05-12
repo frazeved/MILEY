@@ -62,29 +62,29 @@
     /* ── Results table ── */
     .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
     .table-scroll { overflow-x: auto; }
-    table { border-collapse: collapse; table-layout: auto; white-space: nowrap; width: 100%; }
+    table { border-collapse: collapse; table-layout: auto; white-space: nowrap; }
     thead { background: #f8f9fb; border-bottom: 2px solid var(--border); }
-    th { padding: 9px 12px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: var(--muted); text-align: left; }
-    th.th-check { width: 36px; text-align: center; }
+    th { padding: 7px 8px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); text-align: left; }
+    th.th-check { width: 28px; text-align: center; padding: 7px 4px; }
     tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
     tbody tr:last-child { border-bottom: none; }
     tbody tr:hover { background: #fafbfc; }
     tbody tr.selected { background: #faf5ff; }
-    td { padding: 8px 12px; font-size: 12px; vertical-align: middle; }
-    td.td-check { text-align: center; }
+    td { padding: 6px 8px; font-size: 12px; vertical-align: middle; }
+    td.td-check { text-align: center; padding: 6px 4px; }
 
-    .style-val { font-weight: 700; }
-    .po-val { font-family: 'Courier New', monospace; font-size: 12px; }
-    .supplier-val { font-size: 12px; color: var(--text); font-weight: 500; }
-    .box-size-val { font-size: 11px; color: var(--muted); background: var(--bg); border-radius: 4px; padding: 2px 7px; white-space: nowrap; }
-    .box-size-unknown { font-size: 11px; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; border-radius: 4px; padding: 2px 7px; }
+    .style-val { font-weight: 700; font-size: 12px; }
+    .po-val { font-family: 'Courier New', monospace; font-size: 11px; }
+    .supplier-val { font-size: 11px; color: var(--text); font-weight: 500; }
+    .box-size-val { font-size: 10px; color: var(--muted); background: var(--bg); border-radius: 4px; padding: 2px 6px; white-space: nowrap; }
+    .box-size-unknown { font-size: 10px; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; border-radius: 4px; padding: 2px 6px; }
 
-    .td-input { font-family: inherit; font-size: 12px; font-weight: 500; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; outline: none; width: 70px; text-align: center; background: var(--bg); color: var(--text); transition: border-color 0.15s; }
+    .td-input { font-family: inherit; font-size: 11px; font-weight: 500; padding: 4px 6px; border: 1px solid var(--border); border-radius: 5px; outline: none; width: 52px; text-align: center; background: var(--bg); color: var(--text); transition: border-color 0.15s; }
     .td-input:focus { border-color: var(--accent); background: #fff; }
-    .td-select { font-family: inherit; font-size: 12px; font-weight: 500; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; outline: none; background: var(--bg); color: var(--text); cursor: pointer; transition: border-color 0.15s; min-width: 80px; }
+    .td-select { font-family: inherit; font-size: 11px; font-weight: 500; padding: 4px 6px; border: 1px solid var(--border); border-radius: 5px; outline: none; background: var(--bg); color: var(--text); cursor: pointer; transition: border-color 0.15s; }
     .td-select:focus { border-color: var(--accent); background: #fff; }
-    .contact-val { font-size: 11px; color: var(--muted); max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
-    .ship-code   { font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-lt); border-radius: 5px; padding: 2px 8px; }
+    .contact-val { font-size: 11px; color: var(--muted); }
+    .ship-code   { font-size: 11px; font-weight: 700; color: var(--accent); background: var(--accent-lt); border-radius: 4px; padding: 2px 6px; }
     .muted-val   { color: var(--muted); font-style: italic; }
 
     .status-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
@@ -469,7 +469,7 @@ function renderResults(rows, dtMap, label) {
       <td><span class="supplier-val">${esc(r.supplier)||'—'}</span></td>
       <td>${boxSizeHtml}</td>
       <td><input class="td-input" type="number" min="1" placeholder="Qty" id="qty-${i}" /></td>
-      <td><input class="td-input" type="number" min="0.1" step="0.1" placeholder="lbs" id="weight-${i}" style="width:72px" /></td>
+      <td><input class="td-input" type="number" min="0.1" step="0.1" value="20" id="weight-${i}" /></td>
       <td><select class="td-select" id="service-${i}">${serviceOptions('FEDEX_GROUND')}</select></td>
       <td>${shipToHtml}</td>
       <td class="contact-val">${contactHtml}</td>
