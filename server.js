@@ -640,6 +640,169 @@ app.post('/api/fedex/create-label', async (req, res) => {
   }
 });
 
+// ─── Gabriel: MAP DATA SYNC ───────────────────────────────────────────────────
+app.post('/api/gabriel/map-sync', async (req, res) => {
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+    return res.status(500).json({ error: 'Google credentials not configured' });
+  }
+  try {
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    const readTab = async (tab) => {
+      const r = await sheets.spreadsheets.values.get({
+        spreadsheetId: SHEET_ID,
+        range: `'${tab}'`,
+        valueRenderOption: 'UNFORMATTED_VALUE',
+        dateTimeRenderOption: 'FORMATTED_STRING',
+      });
+      return r.data.values || [];
+    };
+
+    // Read all source sheets in parallel
+    const [sourceData, targetData, tsData, pdData, ptData] = await Promise.all([
+      readTab('Production & PO DataBase'),
+      readTab('ANTHRO MAP 2026'),
+      readTab('TRADESTONE DATABASE'),
+      readTab('PO DETAIL'),
+      readTab('PO TRADE'),
+    ]);
+
+    const srcH  = sourceData[0] || [];
+    const tgtH  = targetData[0] || [];
+    const tsH   = tsData[0]    || [];
+    const pdH   = pdData[0]    || [];
+
+    const idx  = (H, name) => H.indexOf(name);
+    const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const smartIdx = (H, ...names) => {
+      const nH = H.map(h => norm(h));
+      for (const name of names) {
+        const t = norm(name);
+        let i = nH.indexOf(t); if (i !== -1) return i;
+        i = nH.findIndex(h => h.includes(t) || t.includes(h)); if (i !== -1) return i;
+      }
+      return -1;
+    };
+
+    // ── PASS 1: refreshManu ─────────────────────────────────────────────────
+    const statusAllowed  = ["PO'd", "Waiting PO", "PO'd + production ok"];
+    const alwaysWrite    = ["COST", "EX FACTORY / FLIGHT DATE"];
+    const onlyIfBlank    = ["SUPPLIER", "HTS CODE", "DUTY", "FREIGHT"];
+    const allCols        = [...alwaysWrite, ...onlyIfBlank];
+
+    const srcStyleCol  = idx(srcH, "ORIGINAL STYLE#");
+    const srcStatusCol = idx(srcH, "STATUS");
+    const tgtStyleCol  = idx(tgtH, "STYLE #");
+    const srcSubCat    = idx(srcH, "SUB-CATEGORY");
+    const tgtSubCat    = idx(tgtH, "SUB-CATEGORY");
+
+    const srcCI = {}, tgtCI = {};
+    for (const c of allCols) { srcCI[c] = idx(srcH, c); tgtCI[c] = idx(tgtH, c); }
+
+    const styleMap = {};
+    for (let i = 1; i < sourceData.length; i++) {
+      const row    = sourceData[i];
+      const status = row[srcStatusCol];
+      const style  = row[srcStyleCol];
+      if (!statusAllowed.includes(status) || !style) continue;
+      const entry  = {};
+      for (const c of allCols) entry[c] = row[srcCI[c]];
+      entry['SUB-CATEGORY'] = row[srcSubCat];
+      styleMap[String(style).trim()] = entry;
+    }
+
+    let pass1 = 0;
+    const mapRows = targetData.slice(1).map(rawRow => {
+      const row   = [...rawRow];
+      const style = row[tgtStyleCol];
+      if (!style) return row;
+      const match = styleMap[String(style).trim()];
+      if (!match) return row;
+      for (const c of allCols) {
+        const ti  = tgtCI[c];
+        const cur = row[ti];
+        const nv  = match[c];
+        const blank = cur === '' || cur === null || cur === undefined;
+        if ((alwaysWrite.includes(c) || (onlyIfBlank.includes(c) && blank)) && nv !== undefined) row[ti] = nv;
+      }
+      const subBlank = row[tgtSubCat] === '' || row[tgtSubCat] === null || row[tgtSubCat] === undefined;
+      if (subBlank && match['SUB-CATEGORY'] !== undefined) row[tgtSubCat] = match['SUB-CATEGORY'];
+      pass1++;
+      return row;
+    });
+
+    // ── PASS 2: updateFromTradestone ────────────────────────────────────────
+    const colMap = {};
+    for (const [key, name] of Object.entries({
+      period: 'PERIOD', invoiceDate: 'URBN INVOICE DATE', invoiceTotal: 'URBN INVOICE TOTAL',
+      totalQty: 'Total Qty', wholesale: 'PO WHOLESALE', shipDate: 'Ship Date',
+      cancelDate: 'Cancel Date', originCountry: 'Origin Country', styleDesc: 'Style Description',
+      vendorColor: 'Vendor Color', ipClass: 'IP CLASS', customsDesc: 'Customs Description',
+      brand: 'BRAND', deliverTo: 'Deliver To', fobPrice: 'FOB Price', channel: 'CHANNEL',
+    })) colMap[key] = idx(tgtH, name);
+
+    const poCol  = smartIdx(tgtH, 'Purchase Order', 'PO#', 'PO');
+    const tsPO   = smartIdx(tsH,  'Purchase Order', 'PO#', 'PO');
+    const pdPO   = smartIdx(pdH,  'Purchase Order', 'PO#', 'PO');
+
+    const tsMap = new Map();
+    for (let i = 1; i < tsData.length;  i++) { const po = norm(tsData[i][tsPO]);  if (po) tsMap.set(po, tsData[i]); }
+    const pdMap = new Map();
+    for (let i = 1; i < pdData.length;  i++) { const po = norm(pdData[i][pdPO]);  if (po) pdMap.set(po, pdData[i]); }
+    const ptMap = new Map();
+    for (let i = 1; i < ptData.length;  i++) { ptMap.set(norm(ptData[i][0]), ptData[i][1]); }
+
+    const gTS = (row, ...names) => { const c = smartIdx(tsH, ...names); return c >= 0 ? row[c] : ''; };
+    const gPD = (row, ...names) => { const c = smartIdx(pdH, ...names); return c >= 0 ? row[c] : ''; };
+
+    let pass2 = 0;
+    for (let i = 0; i < mapRows.length; i++) {
+      const row = mapRows[i];
+      const po  = norm(row[poCol]);
+      if (!po) continue;
+      const ts = tsMap.get(po);
+      const pd = pdMap.get(po);
+      if (ts) {
+        row[colMap.period]       = gTS(ts, 'PERIOD');
+        row[colMap.invoiceDate]  = gTS(ts, 'INVOICE DATE', 'Invoice Dt');
+        row[colMap.invoiceTotal] = gTS(ts, 'INVOICE TOTAL', 'Invoice Amount');
+        row[colMap.totalQty]     = gTS(ts, 'TOTAL QTY', 'Total Units');
+        row[colMap.wholesale]    = gTS(ts, 'WHOLESALE', 'Unit Cost');
+        row[colMap.shipDate]     = gTS(ts, 'SHIP DATE', 'Shipment Date');
+        row[colMap.cancelDate]   = gTS(ts, 'CANCEL DATE');
+        pass2++;
+      }
+      if (pd) {
+        row[colMap.originCountry] = gPD(pd, 'Origin Country');
+        row[colMap.styleDesc]     = gPD(pd, 'Style Description');
+        row[colMap.vendorColor]   = gPD(pd, 'Vendor Color');
+        row[colMap.ipClass]       = gPD(pd, 'IP CLASS');
+        row[colMap.customsDesc]   = gPD(pd, 'Customs Description');
+        row[colMap.brand]         = gPD(pd, 'Brand');
+        row[colMap.deliverTo]     = gPD(pd, 'Deliver To');
+        row[colMap.fobPrice]      = gPD(pd, 'FOB Price');
+      }
+      if (ptMap.has(po)) row[colMap.channel] = ptMap.get(po);
+    }
+
+    // Write both passes back in one call
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SHEET_ID,
+      range: `'ANTHRO MAP 2026'!A2`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: mapRows },
+    });
+
+    res.json({ ok: true, pass1, pass2, rows: mapRows.length });
+
+  } catch (e) {
+    console.error('[map-sync]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`\n  305 WORKSPACE TEAM`);

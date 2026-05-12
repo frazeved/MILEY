@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>305 Workspace — Gabriel Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f6fa; --surface: #fff; --border: #e4e7ed;
+      --text: #1a1d23; --muted: #6b7280; --muted2: #9ca3af;
+      --accent: #4f46e5; --accent-lt: #eef2ff; --accent-dark: #4338ca;
+      --green: #16a34a; --cyan: #0891b2; --amber: #d97706; --red: #dc2626;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+    nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 50; }
+    .nav-brand { font-size: 16px; font-weight: 700; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .nav-link { font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: 6px; text-decoration: none; color: var(--muted); transition: background 0.15s, color 0.15s; white-space: nowrap; }
+    .nav-link:hover { background: var(--bg); color: var(--text); }
+    .nav-link.active { background: var(--accent-lt); color: var(--accent); }
+    .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--muted); }
+
+    .mode-bar { background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 10px 28px; font-size: 14px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; }
+    .mode-bar a { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+    .mode-bar a:hover { color: #fff; }
+
+    .page-wrap { flex: 1; padding: 24px 28px 60px; max-width: 1400px; margin: 0 auto; width: 100%; }
+
+    .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .status-text { font-size: 12px; color: var(--muted); }
+    .tb-btn { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 7px 14px; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--accent); transition: background 0.15s; }
+    .tb-btn:hover { background: var(--accent-lt); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .tb-btn.loading svg { animation: spin 0.8s linear infinite; }
+
+    /* KPI STRIP */
+    .kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+    .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; position: relative; overflow: hidden; }
+    .kpi::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 14px 14px 0 0; }
+    .kpi.k1::after { background: var(--accent); }
+    .kpi.k2::after { background: var(--green); }
+    .kpi.k3::after { background: var(--cyan); }
+    .kpi.k4::after { background: var(--amber); }
+    .kpi-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+    .kpi.k1 .kpi-icon { background: var(--accent-lt); color: var(--accent); }
+    .kpi.k2 .kpi-icon { background: #dcfce7; color: var(--green); }
+    .kpi.k3 .kpi-icon { background: #cffafe; color: var(--cyan); }
+    .kpi.k4 .kpi-icon { background: #fef3c7; color: var(--amber); }
+    .kpi-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: var(--muted2); margin-bottom: 6px; }
+    .kpi-val { font-size: 28px; font-weight: 800; color: var(--text); letter-spacing: -1px; line-height: 1; margin-bottom: 4px; }
+    .kpi-sub { font-size: 11px; color: var(--muted); }
+
+    /* CHARTS */
+    .charts-grid { display: grid; grid-template-columns: 340px 1fr; gap: 16px; margin-bottom: 16px; }
+    .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
+    .chart-head { margin-bottom: 20px; }
+    .chart-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+    .chart-sub { font-size: 11px; color: var(--muted); }
+    .chart-wrap { position: relative; }
+
+    /* DONUT CENTER LABEL */
+    .donut-wrap { position: relative; max-width: 220px; margin: 0 auto 16px; }
+    .donut-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; pointer-events: none; }
+    .donut-center-val { font-size: 24px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; }
+    .donut-center-lbl { font-size: 10px; font-weight: 600; color: var(--muted2); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* LEGEND */
+    .legend { display: flex; flex-direction: column; gap: 8px; }
+    .legend-item { display: flex; align-items: center; justify-content: space-between; }
+    .legend-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .legend-name { font-size: 11px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+    .legend-bar-wrap { flex: 1; margin: 0 10px; height: 4px; background: var(--bg); border-radius: 2px; overflow: hidden; }
+    .legend-bar { height: 100%; border-radius: 2px; }
+    .legend-cnt { font-size: 11px; font-weight: 700; color: var(--muted); min-width: 24px; text-align: right; }
+
+    /* SPINNER / MSG */
+    @keyframes spin2 { to { transform: rotate(360deg); } }
+    .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin2 0.7s linear infinite; margin: 40px auto; display: block; }
+    .chart-msg { text-align: center; color: var(--muted); font-size: 12px; padding: 40px 0; }
+
+    @media (max-width: 1000px) {
+      .charts-grid { grid-template-columns: 1fr; }
+      .donut-wrap { max-width: 200px; }
+    }
+    @media (max-width: 700px) {
+      nav { padding: 0 16px; height: auto; min-height: 52px; position: relative; }
+      .nav-hamburger { display: flex; align-items: center; }
+      .nav-links { display: none; position: absolute; top: 52px; left: 0; right: 0; background: var(--surface); border-bottom: 1px solid var(--border); flex-direction: column; padding: 6px 0 10px; gap: 0; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+      .nav-links.open { display: flex; }
+      .nav-link { padding: 10px 20px; border-radius: 0; font-size: 13px; }
+      .mode-bar { padding: 10px 16px; font-size: 12px; }
+      .page-wrap { padding: 16px 14px 40px; }
+      .kpi-strip { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .kpi-val { font-size: 22px; }
+      .kpi-icon { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">305 <span>Workspace</span></div>
+  <button class="nav-hamburger" onclick="document.getElementById('nav-links').classList.toggle('open')" aria-label="Menu">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div class="nav-links" id="nav-links">
+    <a class="nav-link" href="/">&#8592; Home</a>
+    <a class="nav-link" href="warehouse.html">Warehouse Now</a>
+    <a class="nav-link" href="production.html">Production</a>
+    <a class="nav-link" href="samples.html">Samples Tracking</a>
+    <a class="nav-link" href="design.html">Design</a>
+    <a class="nav-link" href="shipment.html">New Shipment</a>
+    <a class="nav-link active" href="map.html">Map Updates</a>
+    <a class="nav-link" href="forecast.html">Forecast</a>
+    <a class="nav-link" href="gantt.html">Gantt Chart</a>
+    <a class="nav-link" href="tradestone.html">Tradestone Updates</a>
+    <a class="nav-link" href="rlm.html">RLM Updates</a>
+    <a class="nav-link" href="dhl.html">DHL Duties Cost</a>
+  </div>
+</nav>
+
+<div class="mode-bar">
+  <span>Gabriel — Analytics</span>
+  <a href="map.html">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to Gabriel
+  </a>
+</div>
+
+<div class="page-wrap">
+
+  <div class="toolbar">
+    <span class="status-text" id="status-text">Loading ANTHRO MAP 2026…</span>
+    <button class="tb-btn" id="reload-btn" onclick="loadData()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Refresh
+    </button>
+  </div>
+
+  <!-- KPI STRIP -->
+  <div class="kpi-strip">
+    <div class="kpi k1">
+      <div class="kpi-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      </div>
+      <div class="kpi-label">Total POs</div>
+      <div class="kpi-val" id="kpi-total">—</div>
+      <div class="kpi-sub">active in MAP 2026</div>
+    </div>
+    <div class="kpi k2">
+      <div class="kpi-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      </div>
+      <div class="kpi-label">Invoice Total 2026</div>
+      <div class="kpi-val" id="kpi-inv">—</div>
+      <div class="kpi-sub">URBN invoiced YTD</div>
+    </div>
+    <div class="kpi k3">
+      <div class="kpi-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      </div>
+      <div class="kpi-label">Avg per PO</div>
+      <div class="kpi-val" id="kpi-avg">—</div>
+      <div class="kpi-sub">with invoice data</div>
+    </div>
+    <div class="kpi k4">
+      <div class="kpi-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+      <div class="kpi-label">Peak Month</div>
+      <div class="kpi-val" id="kpi-peak">—</div>
+      <div class="kpi-sub">highest invoice volume</div>
+    </div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="charts-grid">
+
+    <!-- DONUT: POs by Status -->
+    <div class="chart-card">
+      <div class="chart-head">
+        <div class="chart-title">POs by Status</div>
+        <div class="chart-sub" id="status-sub">Distribution across MAP entries</div>
+      </div>
+      <div id="status-area">
+        <div class="spinner"></div>
+      </div>
+    </div>
+
+    <!-- BAR: Invoice by Month -->
+    <div class="chart-card">
+      <div class="chart-head">
+        <div class="chart-title">URBN Invoice Total — 2026</div>
+        <div class="chart-sub">Monthly invoice volume from ANTHRO MAP 2026</div>
+      </div>
+      <div id="invoice-area">
+        <div class="spinner"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const SHEET_ID = '1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q';
+const CSV_URL  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=ANTHRO%20MAP%202026`;
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+const PALETTE = [
+  '#4f46e5','#0891b2','#16a34a','#d97706','#dc2626',
+  '#7c3aed','#db2777','#059669','#ea580c','#0284c7',
+];
+
+let statusChart = null, invoiceChart = null;
+
+function parseCSV(text) {
+  const rows = []; let row = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"' && text[i+1] === '"') { field += '"'; i++; }
+      else if (c === '"') inQ = false;
+      else field += c;
+    } else {
+      if (c === '"') inQ = true;
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\n' || (c === '\r' && text[i+1] === '\n')) {
+        if (c === '\r') i++;
+        row.push(field); field = '';
+        if (row.some(f => f.trim())) rows.push(row);
+        row = [];
+      } else field += c;
+    }
+  }
+  if (row.length) { row.push(field); if (row.some(f => f.trim())) rows.push(row); }
+  return rows;
+}
+
+function findCol(H, ...kws) {
+  return H.findIndex(h => kws.some(k => h.toLowerCase().includes(k.toLowerCase())));
+}
+
+function get(r, ci) { return ci >= 0 ? (r[ci] || '').trim() : ''; }
+
+function fmt$(n) {
+  if (!n) return '$0';
+  if (n >= 1000000) return '$' + (n / 1000000).toFixed(2) + 'M';
+  if (n >= 1000)    return '$' + (n / 1000).toFixed(0) + 'K';
+  return '$' + n.toFixed(0);
+}
+
+function build(rows) {
+  const H    = rows[0];
+  const data = rows.slice(1).filter(r => r.some(c => (c||'').trim()));
+
+  // Column detection
+  let statusCol = findCol(H, 'status', 'po status', 'order status');
+  let statusLabel = 'Status';
+
+  // Smart fallback: if STATUS missing or mostly empty, use best categorical column
+  const hasGoodData = ci => ci >= 0 && data.filter(r => get(r, ci)).length > data.length * 0.1;
+  if (!hasGoodData(statusCol)) {
+    const fallbacks = [
+      ['ip class', 'IP Class'], ['channel', 'Channel'],
+      ['brand', 'Brand'], ['sub-category', 'Sub-Category'], ['supplier', 'Supplier'],
+    ];
+    for (const [kw, lbl] of fallbacks) {
+      const ci = findCol(H, kw);
+      if (hasGoodData(ci)) { statusCol = ci; statusLabel = lbl; break; }
+    }
+  }
+  document.getElementById('status-sub').textContent = `By ${statusLabel} · ${data.length} entries`;
+
+  const invDateCol = findCol(H, 'urbn invoice date', 'invoice date');
+  const invTotCol  = findCol(H, 'urbn invoice total', 'invoice total', 'invoice amount');
+
+  // ── POs by Status ──────────────────────────────────────────────────────────
+  const counts = {};
+  data.forEach(r => {
+    const s = (get(r, statusCol) || 'Unknown');
+    counts[s] = (counts[s] || 0) + 1;
+  });
+
+  const entries  = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const topN     = entries.slice(0, 8);
+  const total    = data.length;
+  const maxCount = topN[0]?.[1] || 1;
+
+  // Build donut chart + legend
+  const labels = topN.map(([k]) => k);
+  const values = topN.map(([, v]) => v);
+  const colors = labels.map((_, i) => PALETTE[i % PALETTE.length]);
+
+  if (statusChart) statusChart.destroy();
+
+  document.getElementById('status-area').innerHTML = `
+    <div class="donut-wrap">
+      <canvas id="chart-status"></canvas>
+      <div class="donut-center">
+        <div class="donut-center-val">${total}</div>
+        <div class="donut-center-lbl">Total POs</div>
+      </div>
+    </div>
+    <div class="legend" id="legend-status"></div>
+  `;
+
+  statusChart = new Chart(document.getElementById('chart-status').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data: values, backgroundColor: colors, borderWidth: 3, borderColor: '#fff', hoverOffset: 8 }]
+    },
+    options: {
+      cutout: '68%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} POs (${Math.round(ctx.raw/total*100)}%)` } }
+      },
+      animation: { animateRotate: true, duration: 800 }
+    }
+  });
+
+  document.getElementById('legend-status').innerHTML = topN.map(([name, cnt], i) => `
+    <div class="legend-item">
+      <div class="legend-left">
+        <div class="legend-dot" style="background:${colors[i]}"></div>
+        <span class="legend-name">${name}</span>
+      </div>
+      <div class="legend-bar-wrap">
+        <div class="legend-bar" style="width:${Math.round(cnt/maxCount*100)}%;background:${colors[i]};opacity:0.35"></div>
+      </div>
+      <span class="legend-cnt">${cnt}</span>
+    </div>`).join('');
+
+  // ── Invoice by Month ───────────────────────────────────────────────────────
+  const monthly = new Array(12).fill(0);
+  let invTotal = 0, invCount = 0;
+
+  data.forEach(r => {
+    const rawDate = get(r, invDateCol);
+    const rawAmt  = get(r, invTotCol).replace(/[$,\s]/g, '');
+    const amt     = parseFloat(rawAmt);
+    if (!rawDate || isNaN(amt) || amt <= 0) return;
+
+    const d = new Date(rawDate);
+    if (isNaN(d.getTime())) return;
+    if (d.getFullYear() !== 2026) return;
+
+    monthly[d.getMonth()] += amt;
+    invTotal += amt;
+    invCount++;
+  });
+
+  // KPIs
+  document.getElementById('kpi-total').textContent = total;
+  document.getElementById('kpi-inv').textContent   = fmt$(invTotal);
+  document.getElementById('kpi-avg').textContent   = invCount ? fmt$(invTotal / invCount) : '—';
+
+  const peakIdx = monthly.indexOf(Math.max(...monthly));
+  document.getElementById('kpi-peak').textContent  = monthly[peakIdx] > 0 ? MONTHS[peakIdx] : '—';
+
+  if (invoiceChart) invoiceChart.destroy();
+
+  document.getElementById('invoice-area').innerHTML = `<canvas id="chart-invoice"></canvas>`;
+
+  const ctxI = document.getElementById('chart-invoice').getContext('2d');
+  const grad = ctxI.createLinearGradient(0, 0, 0, 320);
+  grad.addColorStop(0, 'rgba(79,70,229,0.9)');
+  grad.addColorStop(1, 'rgba(99,102,241,0.5)');
+
+  invoiceChart = new Chart(ctxI, {
+    type: 'bar',
+    data: {
+      labels: MONTHS,
+      datasets: [{
+        label: 'Invoice Total',
+        data: monthly,
+        backgroundColor: monthly.map((v, i) => i === peakIdx && v > 0 ? '#4338ca' : grad),
+        borderRadius: 7,
+        borderSkipped: false,
+        maxBarThickness: 48,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: ctx => MONTHS[ctx[0].dataIndex] + ' 2026',
+            label: ctx => ' ' + fmt$(ctx.raw)
+          },
+          padding: 10,
+          cornerRadius: 8,
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { family: 'Inter', size: 11, weight: '500' }, color: '#6b7280' }
+        },
+        y: {
+          grid: { color: '#f0f1f5', drawBorder: false },
+          border: { display: false },
+          ticks: {
+            font: { family: 'Inter', size: 11 },
+            color: '#9ca3af',
+            callback: v => fmt$(v)
+          }
+        }
+      },
+      animation: { duration: 800, easing: 'easeOutQuart' }
+    }
+  });
+
+  const t = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  document.getElementById('status-text').textContent = `${total} POs · last updated ${t}`;
+}
+
+async function loadData() {
+  document.getElementById('status-text').textContent = 'Loading…';
+  document.getElementById('reload-btn').classList.add('loading');
+  ['kpi-total','kpi-inv','kpi-avg','kpi-peak'].forEach(id => document.getElementById(id).textContent = '—');
+  document.getElementById('status-area').innerHTML  = '<div class="spinner"></div>';
+  document.getElementById('invoice-area').innerHTML = '<div class="spinner"></div>';
+
+  try {
+    const res = await fetch(CSV_URL);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const rows = parseCSV(await res.text());
+    if (rows.length < 2) throw new Error('No data returned');
+    build(rows);
+  } catch (e) {
+    document.getElementById('status-text').textContent = 'Could not load data: ' + e.message;
+    document.getElementById('status-area').innerHTML  = `<div class="chart-msg">⚠ ${e.message}</div>`;
+    document.getElementById('invoice-area').innerHTML = `<div class="chart-msg">⚠ ${e.message}</div>`;
+  }
+  document.getElementById('reload-btn').classList.remove('loading');
+}
+
+loadData();
+</script>
+</body>
+</html>
