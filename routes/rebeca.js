@@ -1,5 +1,6 @@
-const { Router } = require('express');
-const { google }  = require('googleapis');
+const { Router }   = require('express');
+const { google }   = require('googleapis');
+const { Readable } = require('stream');
 
 const router   = Router();
 const SHEET_ID = '1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q';
@@ -161,6 +162,30 @@ router.delete('/delete-style', async (req, res) => {
   } catch (e) {
     console.error('[rebeca/delete-style]', e.message);
     res.status(500).json({ error: e.message });
+  }
+});
+
+// ─── CAD Image proxy (bypasses Google Drive embed restrictions) ───────────────
+router.get('/cad-image', async (req, res) => {
+  const fileId = String(req.query.id || '').trim();
+  if (!fileId) return res.status(400).end();
+  try {
+    // Google Drive direct download URL
+    const driveUrl = `https://drive.google.com/uc?export=download&id=${encodeURIComponent(fileId)}`;
+    const r = await fetch(driveUrl, {
+      redirect: 'follow',
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+    });
+    if (!r.ok) return res.status(502).end();
+    const ct = r.headers.get('content-type') || 'image/jpeg';
+    // If Google returns HTML (virus/size warning page) treat as not found
+    if (ct.includes('text/html')) return res.status(404).end();
+    res.setHeader('Content-Type', ct);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    Readable.fromWeb(r.body).pipe(res);
+  } catch (e) {
+    console.error('[rebeca/cad-image]', e.message);
+    res.status(500).end();
   }
 });
 

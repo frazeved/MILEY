@@ -493,18 +493,9 @@
           <div class="field-input"><input type="text" id="f-link-aw-sup" data-col="LINK A/W SUPPLIER" /></div>
         </div>
 
-        <div class="field">
+        <div class="field no-border">
           <span class="field-label dup">COLOR GROUP</span>
           <div class="field-input"><input type="text" id="f-color-group" data-col="COLOR GROUP" /></div>
-        </div>
-        <div class="field">
-          <span class="field-label">YEAR</span>
-          <div class="field-input"><input type="text" id="f-year" data-col="YEAR" /></div>
-        </div>
-
-        <div class="field no-border">
-          <span class="field-label">MONTH</span>
-          <div class="field-input"><input type="text" id="f-month" data-col="MONTH" /></div>
         </div>
         <div class="field no-border"></div>
 
@@ -541,12 +532,10 @@ const CAD_PLACEHOLDER = `<svg width="36" height="36" viewBox="0 0 24 24" fill="n
 
 function driveImgUrl(url) {
   if (!url) return url;
-  // Extract file ID from /file/d/FILEID/view format
   const m = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-  if (m) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
-  // Already a uc?id= URL
+  if (m) return `/api/rebeca/cad-image?id=${m[1]}`;
   const m2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-  if (m2) return `https://drive.google.com/uc?export=view&id=${m2[1]}`;
+  if (m2) return `/api/rebeca/cad-image?id=${m2[1]}`;
   return url;
 }
 
