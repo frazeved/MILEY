@@ -733,6 +733,59 @@ app.post('/api/rebeca/save-style', async (req, res) => {
   }
 });
 
+// ─── Rebeca: Delete Style from all sheets ────────────────────────────────────
+app.delete('/api/rebeca/delete-style', async (req, res) => {
+  const styleNum = String(req.query.style || '').trim().toUpperCase();
+  if (!styleNum) return res.status(400).json({ error: 'STYLE # required' });
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+    return res.status(500).json({ error: 'Google credentials not configured' });
+  }
+  try {
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    // Get numeric sheetId for each tab by name
+    const meta = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
+    const sheetIdMap = {};
+    for (const s of meta.data.sheets) sheetIdMap[s.properties.title] = s.properties.sheetId;
+
+    const tabs = ['Design DataBase', 'Production & PO DataBase', 'Print DataBase', 'PowerBI database Process'];
+    const deletedFrom = [];
+
+    for (const tab of tabs) {
+      const sheetId = sheetIdMap[tab];
+      if (sheetId === undefined) continue;
+
+      const r = await sheets.spreadsheets.values.get({
+        spreadsheetId: SHEET_ID, range: `'${tab}'`,
+        valueRenderOption: 'FORMATTED_VALUE',
+      });
+      const rows = r.data.values || [];
+      const headers  = (rows[0] || []).map(h => String(h).trim());
+      const styleCol = headers.findIndex(h => h.toUpperCase() === 'STYLE #');
+      if (styleCol < 0) continue;
+
+      const rowIdx = rows.slice(1).findIndex(r => String(r[styleCol] || '').trim().toUpperCase() === styleNum);
+      if (rowIdx < 0) continue; // not in this tab
+
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: SHEET_ID,
+        requestBody: { requests: [{ deleteDimension: {
+          range: { sheetId, dimension: 'ROWS', startIndex: rowIdx + 1, endIndex: rowIdx + 2 }
+        }}]},
+      });
+      deletedFrom.push(tab);
+    }
+
+    if (deletedFrom.length === 0) return res.status(404).json({ error: `Style "${styleNum}" not found in any sheet` });
+    res.json({ ok: true, deletedFrom });
+  } catch (e) {
+    console.error('[rebeca/delete-style]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── Gabriel: MAP DATA (chart feed) ──────────────────────────────────────────
 app.get('/api/gabriel/map-data', async (req, res) => {
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {

@@ -211,7 +211,7 @@
         <span class="btn-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
         MEETING E-MAIL
       </button>
-      <button class="action-btn red">
+      <button class="action-btn red" onclick="deleteStyle()">
         <span class="btn-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></span>
         DELETE STYLE
       </button>
@@ -568,6 +568,29 @@ async function saveStyle() {
   } finally {
     btn.disabled = false;
     btn.innerHTML = origText;
+  }
+}
+
+async function deleteStyle() {
+  const styleNum = document.getElementById('style-number').value.trim().toUpperCase();
+  if (!styleNum) { alert('Search a style first before deleting.'); return; }
+  if (!confirm(`Delete style "${styleNum}" from ALL databases? This cannot be undone.`)) return;
+  const btn = document.querySelector('.action-btn.red');
+  const msg = document.getElementById('search-msg');
+  btn.disabled = true;
+  msg.textContent = '';
+  try {
+    const res = await fetch(`/api/rebeca/delete-style?style=${encodeURIComponent(styleNum)}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Delete failed');
+    msg.textContent = `Deleted from: ${data.deletedFrom.join(', ')}`;
+    msg.className = 'search-msg ok';
+    clearForm();
+  } catch (e) {
+    msg.textContent = 'Delete error: ' + e.message;
+    msg.className = 'search-msg err';
+  } finally {
+    btn.disabled = false;
   }
 }
 
