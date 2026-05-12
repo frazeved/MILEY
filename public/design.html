@@ -114,6 +114,11 @@
     .field { display: flex; align-items: center; border-bottom: 1px solid #f0ecfb; min-height: 34px; }
     .field.no-border { border-bottom: none; }
     .field-label { font-size: 10px; font-weight: 700; color: #4c3a8a; letter-spacing: 0.3px; white-space: nowrap; padding: 6px 10px; background: #f3f0fc; border-right: 1px solid #e2daf5; min-width: 150px; flex-shrink: 0; }
+    .field-label.dup { background: #fefce8; color: #854d0e; border-right-color: #fde68a; }
+    .print-ref-select { pointer-events: none; }
+    .other-input { display: none; margin-top: 3px; width: 100%; font-family: inherit; font-size: 12px; color: #1a1d23; background: #fffde7; border: 1px solid #fde68a; border-radius: 4px; padding: 4px 7px; outline: none; }
+    .other-input:focus { border-color: #f59e0b; }
+    .other-input.visible { display: block; }
     .field-input { flex: 1; padding: 3px 8px; }
     .field-input input, .field-input select { width: 100%; font-family: inherit; font-size: 12px; color: #1a1d23; background: transparent; border: 1px solid transparent; border-radius: 4px; padding: 4px 7px; outline: none; }
     .field-input input:focus, .field-input select:focus { border-color: #7c3aed; background: #fdf8ff; }
@@ -259,7 +264,7 @@
 
         <div class="field">
           <span class="field-label">PHASE</span>
-          <div class="field-input"><select id="f-phase" data-col="PHASE"><option value="">--</option><option>CANCELED</option><option>NEW DEVELOPMENT</option><option>PRODUCTION</option><option>ARCHIEVED</option><option>PRE PRODUCT</option><option>LOGISTIC</option><option>ON HOLD</option><option>CANCELED DOUBLE SOURCE</option></select></div>
+          <div class="field-input"><select id="f-phase" data-col="PHASE" onchange="toggleOther(this)"><option value="">--</option><option>CANCELED</option><option>NEW DEVELOPMENT</option><option>PRODUCTION</option><option>ARCHIEVED</option><option>PRE PRODUCT</option><option>LOGISTIC</option><option>ON HOLD</option><option>CANCELED DOUBLE SOURCE</option><option value="__other__">Other...</option></select><input type="text" class="other-input" data-other-for="f-phase" placeholder="Type value..." /></div>
         </div>
         <div class="field">
           <span class="field-label">TP SENT TO SUPPLIER</span>
@@ -304,7 +309,7 @@
 
         <div class="field">
           <span class="field-label">STYLE NEEDS PROTO?</span>
-          <div class="field-input"><select id="f-proto" data-col="STYLE NEEDS PROTO?"><option value="">--</option><option>PROTO YES</option><option>PROTO NO</option></select></div>
+          <div class="field-input"><select id="f-proto" data-col="STYLE NEEDS PROTO?" onchange="toggleOther(this)"><option value="">--</option><option>PROTO YES</option><option>PROTO NO</option><option value="__other__">Other...</option></select><input type="text" class="other-input" data-other-for="f-proto" placeholder="Type value..." /></div>
         </div>
         <div class="field">
           <span class="field-label">PRINT INFO FROM MARKER MAKER</span>
@@ -331,7 +336,7 @@
 
         <div class="field">
           <span class="field-label">BRAND</span>
-          <div class="field-input"><select id="f-brand" data-col="BRAND"><option value="">--</option><option>Anthropologie</option><option>Nuuly</option><option>UK</option></select></div>
+          <div class="field-input"><select id="f-brand" data-col="BRAND" onchange="toggleOther(this)"><option value="">--</option><option>Anthropologie</option><option>Nuuly</option><option>UK</option><option value="__other__">Other...</option></select><input type="text" class="other-input" data-other-for="f-brand" placeholder="Type value..." /></div>
         </div>
         <div class="field">
           <span class="field-label">PATTERN REQUEST (New Styles)</span>
@@ -357,20 +362,20 @@
 
         <div class="field">
           <span class="field-label">CATEGORY</span>
-          <div class="field-input"><select id="f-category" data-col="CATEGORY"><option value="">--</option><option>ACCESSORIES</option><option>BLOUSE</option><option>BOTTOM</option><option>DRESS</option><option>SKIRT</option><option>SWEATER</option><option>SWIM</option><option>LOUNGE</option><option>COVER UP</option></select></div>
+          <div class="field-input"><select id="f-category" data-col="CATEGORY" onchange="toggleOther(this)"><option value="">--</option><option>ACCESSORIES</option><option>BLOUSE</option><option>BOTTOM</option><option>DRESS</option><option>SKIRT</option><option>SWEATER</option><option>SWIM</option><option>LOUNGE</option><option>COVER UP</option><option value="__other__">Other...</option></select><input type="text" class="other-input" data-other-for="f-category" placeholder="Type value..." /></div>
         </div>
         <div class="field">
           <span class="field-label">SEASON</span>
-          <div class="field-input"><select id="f-season" data-col="SEASON"><option value="">--</option><option>SPRING SUMMER</option><option>HIGH SUMMER</option><option>FALL</option><option>RESORT/WINTER</option><option>PRE FALL</option></select></div>
+          <div class="field-input"><select id="f-season" data-col="SEASON" onchange="toggleOther(this)"><option value="">--</option><option>SPRING SUMMER</option><option>HIGH SUMMER</option><option>FALL</option><option>RESORT/WINTER</option><option>PRE FALL</option><option value="__other__">Other...</option></select><input type="text" class="other-input" data-other-for="f-season" placeholder="Type value..." /></div>
         </div>
 
         <div class="field">
           <span class="field-label">SUB-CATEGORY</span>
-          <div class="field-input"><select id="f-subcat" data-col="SUB-CATEGORY"><option value="">--</option><option>ACCESSORIES</option><option>BIKINI</option><option>BLOUSE</option><option>COVER UP</option><option>JUMPSUIT</option><option>MAXI</option><option>MIDI</option><option>MINI</option><option>ONE PIECE</option><option>PANTS</option><option>ROMPER</option><option>SHIRT</option><option>SHORT</option><option>SKIRT</option><option>SWEATER</option><option>BODYSUIT</option><option>SWIMSUIT</option><option>DRESS</option><option>VEST</option><option>HAT</option></select></div>
+          <div class="field-input"><select id="f-subcat" data-col="SUB-CATEGORY" onchange="toggleOther(this)"><option value="">--</option><option>ACCESSORIES</option><option>BIKINI</option><option>BLOUSE</option><option>COVER UP</option><option>JUMPSUIT</option><option>MAXI</option><option>MIDI</option><option>MINI</option><option>ONE PIECE</option><option>PANTS</option><option>ROMPER</option><option>SHIRT</option><option>SHORT</option><option>SKIRT</option><option>SWEATER</option><option>BODYSUIT</option><option>SWIMSUIT</option><option>DRESS</option><option>VEST</option><option>HAT</option><option value="__other__">Other...</option></select><input type="text" class="other-input" data-other-for="f-subcat" placeholder="Type value..." /></div>
         </div>
         <div class="field">
           <span class="field-label">SUPPLIER</span>
-          <div class="field-input"><select id="f-supplier" data-col="SUPPLIER"><option value="">--</option><option>CASCADE</option><option>ECICO</option><option>GAIA</option><option>H&amp;F</option><option>KONCEPTION</option><option>PQSWIM</option><option>S&amp;S</option><option>HS FASHION</option><option>JJ</option><option>Topshow Headwear</option></select></div>
+          <div class="field-input"><select id="f-supplier" data-col="SUPPLIER" onchange="toggleOther(this)"><option value="">--</option><option>CASCADE</option><option>ECICO</option><option>GAIA</option><option>H&amp;F</option><option>KONCEPTION</option><option>PQSWIM</option><option>S&amp;S</option><option>HS FASHION</option><option>JJ</option><option>Topshow Headwear</option><option value="__other__">Other...</option></select><input type="text" class="other-input" data-other-for="f-supplier" placeholder="Type value..." /></div>
         </div>
 
         <div class="field">
@@ -379,16 +384,16 @@
         </div>
         <div class="field">
           <span class="field-label">SUPPLIER B</span>
-          <div class="field-input"><select id="f-supplier-b" data-col="SUPPLIER B"><option value="">--</option><option>CASCADE</option><option>ECICO</option><option>GAIA</option><option>H&amp;F</option><option>KONCEPTION</option><option>PQSWIM</option><option>S&amp;S</option><option>HS FASHION</option><option>JJ</option><option>Topshow Headwear</option></select></div>
+          <div class="field-input"><select id="f-supplier-b" data-col="SUPPLIER B" onchange="toggleOther(this)"><option value="">--</option><option>CASCADE</option><option>ECICO</option><option>GAIA</option><option>H&amp;F</option><option>KONCEPTION</option><option>PQSWIM</option><option>S&amp;S</option><option>HS FASHION</option><option>JJ</option><option>Topshow Headwear</option><option value="__other__">Other...</option></select><input type="text" class="other-input" data-other-for="f-supplier-b" placeholder="Type value..." /></div>
         </div>
 
         <div class="field">
           <span class="field-label">PRINT TYPE</span>
-          <div class="field-input"><select id="f-print-type" data-col="PRINT TYPE"><option value="">--</option><option>Placed</option><option>Engineering</option><option>All Over</option><option>Solid color</option></select></div>
+          <div class="field-input"><select id="f-print-type" data-col="PRINT TYPE" onchange="toggleOther(this)"><option value="">--</option><option>Placed</option><option>Engineering</option><option>All Over</option><option>Solid color</option><option value="__other__">Other...</option></select><input type="text" class="other-input" data-other-for="f-print-type" placeholder="Type value..." /></div>
         </div>
         <div class="field">
           <span class="field-label">DIFFICULTY</span>
-          <div class="field-input"><select id="f-difficulty" data-col="DIFFICULTY"><option value="">--</option><option>Low</option><option>Medium</option><option>High</option></select></div>
+          <div class="field-input"><select id="f-difficulty" data-col="DIFFICULTY" onchange="toggleOther(this)"><option value="">--</option><option>Low</option><option>Medium</option><option>High</option><option value="__other__">Other...</option></select><input type="text" class="other-input" data-other-for="f-difficulty" placeholder="Type value..." /></div>
         </div>
 
         <div class="field">
@@ -420,7 +425,7 @@
 
         <div class="field">
           <span class="field-label">TECH PACK MODEL</span>
-          <div class="field-input"><select id="f-tp-model" data-col="TECH PACK MODEL"><option value="">--</option><option>TP_FARM ANTHRO REPEAT BODY</option><option>TP_FARM ANTHRO NEW BODY</option></select></div>
+          <div class="field-input"><select id="f-tp-model" data-col="TECH PACK MODEL" onchange="toggleOther(this)"><option value="">--</option><option>TP_FARM ANTHRO REPEAT BODY</option><option>TP_FARM ANTHRO NEW BODY</option><option value="__other__">Other...</option></select><input type="text" class="other-input" data-other-for="f-tp-model" placeholder="Type value..." /></div>
         </div>
         <div class="field">
           <span class="field-label">LINK A/W SUPPLIER</span>
@@ -445,10 +450,123 @@
       </div>
     </div>
 
+    <!-- PRINT DATABASE -->
+    <div class="form-card">
+      <div class="form-card-header" style="background:#0e7490;">PRINT DATABASE</div>
+      <div class="fields">
+
+        <div class="field">
+          <span class="field-label dup">STYLE #</span>
+          <div class="field-input"><input type="text" data-print-ref="STYLE #" readonly /></div>
+        </div>
+        <div class="field">
+          <span class="field-label dup">PRINT TYPE</span>
+          <div class="field-input">
+            <select data-print-ref="PRINT TYPE" class="print-ref-select" tabindex="-1">
+              <option value="">--</option><option>Placed</option><option>Engineering</option><option>All Over</option><option>Solid color</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="field-label dup">SUPPLIER</span>
+          <div class="field-input">
+            <select data-print-ref="SUPPLIER" class="print-ref-select" tabindex="-1">
+              <option value="">--</option><option>CASCADE</option><option>ECICO</option><option>GAIA</option><option>H&amp;F</option><option>KONCEPTION</option><option>PQSWIM</option><option>S&amp;S</option><option>HS FASHION</option><option>JJ</option><option>Topshow Headwear</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <span class="field-label dup">COLOR GROUP</span>
+          <div class="field-input"><input type="text" data-print-ref="COLOR GROUP" readonly /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label dup">PRINT SENT TO SUPPLIER</span>
+          <div class="field-input"><input type="date" data-print-ref="PRINT SENT TO SUPPLIER" readonly /></div>
+        </div>
+        <div class="field">
+          <span class="field-label">COLOR GROUP CAD</span>
+          <div class="field-input"><input type="text" id="f-color-group-cad" data-col="COLOR GROUP CAD" /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label dup">COLOR APPROVED (SMS or S/O)</span>
+          <div class="field-input"><input type="text" data-print-ref="COLOR APPROVED (SMS or S/O)" readonly /></div>
+        </div>
+        <div class="field">
+          <span class="field-label dup">TP LINK</span>
+          <div class="field-input"><input type="text" data-print-ref="TP LINK" readonly class="yellow" /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label dup">APPROVAL NOTES</span>
+          <div class="field-input"><input type="text" data-print-ref="APPROVAL NOTES" readonly /></div>
+        </div>
+        <div class="field">
+          <span class="field-label dup">LINK A/W INTERNAL</span>
+          <div class="field-input"><input type="text" data-print-ref="LINK A/W INTERNAL" readonly /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label dup">PRINT NAME</span>
+          <div class="field-input"><input type="text" data-print-ref="PRINT NAME" readonly /></div>
+        </div>
+        <div class="field">
+          <span class="field-label dup">LINK STYLE FOLDER</span>
+          <div class="field-input"><input type="text" data-print-ref="LINK STYLE FOLDER" readonly /></div>
+        </div>
+
+        <div class="field">
+          <span class="field-label dup">PRINT INFO SENT TO MARKER MAKER</span>
+          <div class="field-input"><input type="date" data-print-ref="PRINT INFO SENT TO MARKER MAKER" readonly /></div>
+        </div>
+        <div class="field">
+          <span class="field-label dup">LINK A/W SUPPLIER</span>
+          <div class="field-input"><input type="text" data-print-ref="LINK A/W SUPPLIER" readonly /></div>
+        </div>
+
+        <div class="field no-border">
+          <span class="field-label dup">PRINT INFO FROM MARKER MAKER</span>
+          <div class="field-input"><input type="date" data-print-ref="PRINT INFO RECEIVED FROM MARKER MAKER" readonly /></div>
+        </div>
+        <div class="field no-border">
+          <span class="field-label dup">CAD IMAGE</span>
+          <div class="field-input" style="padding:6px 8px;">
+            <div id="print-cad-thumb" style="width:64px;height:64px;border:1.5px dashed #c4b5fd;border-radius:6px;background:#f5f3ff;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.5" opacity="0.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
   </div>
 </div>
 
 <script>
+function toggleOther(sel) {
+  const inp = sel.parentElement.querySelector('.other-input');
+  if (!inp) return;
+  if (sel.value === '__other__') {
+    inp.classList.add('visible');
+    inp.focus();
+  } else {
+    inp.classList.remove('visible');
+    inp.value = '';
+  }
+}
+
+function getSelectValue(el) {
+  if (el.tagName !== 'SELECT') return el.value;
+  if (el.value === '__other__') {
+    const inp = el.parentElement.querySelector('.other-input');
+    return inp ? inp.value : '';
+  }
+  return el.value;
+}
+
 const CAD_PLACEHOLDER = `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.5" opacity="0.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>CAD IMAGE</span>`;
 
 function driveImgUrl(url) {
@@ -518,13 +636,20 @@ function populateForm(style) {
     if (el.tagName === 'SELECT') {
       let found = false;
       for (const opt of el.options) {
-        if (opt.value === val || opt.text === val) { el.value = opt.value; found = true; break; }
+        if (opt.value !== '__other__' && (opt.value === val || opt.text === val)) { el.value = opt.value; found = true; break; }
       }
       if (!found && val) {
-        const opt = document.createElement('option');
-        opt.value = val; opt.text = val;
-        el.appendChild(opt);
-        el.value = val;
+        // Use the Other input
+        const otherOpt = Array.from(el.options).find(o => o.value === '__other__');
+        if (otherOpt) {
+          el.value = '__other__';
+          const inp = el.parentElement.querySelector('.other-input');
+          if (inp) { inp.value = val; inp.classList.add('visible'); }
+        } else {
+          const opt = document.createElement('option');
+          opt.value = val; opt.text = val;
+          el.appendChild(opt); el.value = val;
+        }
       }
     } else if (el.type === 'date') {
       el.value = toDateInput(val);
@@ -533,9 +658,26 @@ function populateForm(style) {
     }
   });
   // Show CAD image from CAD URL field
-  showCadImage(style['CAD URL'] || '');
+  const cadUrl = style['CAD URL'] || '';
+  showCadImage(cadUrl);
   // Show style # below image for reference
   document.getElementById('style-ref').textContent = style['STYLE #'] || '';
+
+  // Populate Print Database reference fields
+  document.querySelectorAll('[data-print-ref]').forEach(el => {
+    const col = el.getAttribute('data-print-ref');
+    const val = style[col];
+    if (val === undefined || val === null) return;
+    if (el.tagName === 'SELECT') { el.value = val; }
+    else if (el.type === 'date') { el.value = toDateInput(val); }
+    else { el.value = val; }
+  });
+  // Update Print Database CAD thumbnail
+  const thumb = document.getElementById('print-cad-thumb');
+  if (thumb && cadUrl) {
+    const src = driveImgUrl(cadUrl);
+    thumb.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.innerHTML='<svg width=22 height=22 viewBox=\\'0 0 24 24\\' fill=none stroke=#a78bfa stroke-width=1.5><rect x=3 y=3 width=18 height=18 rx=2/><circle cx=8.5 cy=8.5 r=1.5/><polyline points=\\'21 15 16 10 5 21\\'/></svg>'" />`;
+  }
 }
 
 function clearForm() {
@@ -543,11 +685,17 @@ function clearForm() {
     if (el.tagName === 'SELECT') el.selectedIndex = 0;
     else el.value = '';
   });
+  document.querySelectorAll('.other-input').forEach(inp => { inp.value = ''; inp.classList.remove('visible'); });
   document.getElementById('style-number').value = '';
   document.getElementById('search-msg').textContent = '';
   document.getElementById('search-msg').className = 'search-msg';
   document.getElementById('style-ref').textContent = '';
   showCadImage('');
+  document.querySelectorAll('[data-print-ref]').forEach(el => {
+    if (el.tagName === 'SELECT') el.selectedIndex = 0;
+    else el.value = '';
+  });
+  document.getElementById('print-cad-thumb').innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.5" opacity="0.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
 }
 
 async function saveStyle() {
@@ -556,7 +704,7 @@ async function saveStyle() {
   const formData = { 'STYLE #': styleNum };
   document.querySelectorAll('[data-col]').forEach(el => {
     const col = el.getAttribute('data-col');
-    if (col !== 'STYLE #') formData[col] = el.value || '';
+    if (col !== 'STYLE #') formData[col] = getSelectValue(el) || '';
   });
   const btn = document.querySelector('.action-btn.save-btn');
   const origText = btn.innerHTML;
