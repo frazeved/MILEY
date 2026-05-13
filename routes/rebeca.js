@@ -224,7 +224,7 @@ router.post('/generate-tp', async (req, res) => {
   const templateId = MODEL_TEMPLATES[norm(model)];
   if (!templateId) return res.status(400).json({ error: `Unknown model: "${model}"` });
 
-  const folderId = '1NYSHD3JYmlhm1PvHxgYrDF89WbVGM6A3';
+  const folderId = '1CTH7KZzFJLd-a4bN51MEMmSF7LiOc1f6';
 
   // Extract Drive file ID from CAD URL (Drive sharing link or uc?id= URL)
   const extractFileId = url => {
