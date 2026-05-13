@@ -338,7 +338,7 @@
           <label class="form-label">Created By</label>
           <select class="form-input" id="sf-created-by">
             <option value="">Select...</option>
-            <option>IGO GARDEL</option>
+            <option selected>IGO GARDEL</option>
             <option>Kamilla Aguiar</option>
             <option>Paula Erthal</option>
             <option>Ozan Guruscu</option>
@@ -497,7 +497,8 @@ async function saveSample() {
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || 'Save failed');
     showToast(json.action === 'updated' ? 'Updated!' : 'Created!', '#16a34a');
-    dbAllRows = []; // force reload on next database open
+    dbAllRows = [];
+    clearForm();
   } catch (e) {
     showToast('Error: ' + e.message);
   } finally {

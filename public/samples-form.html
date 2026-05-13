@@ -78,7 +78,7 @@
     .td-input:focus, .td-select:focus { border-color: var(--blue); background: #fff; }
     .td-select { cursor: pointer; }
 
-    .col-style  { width: 110px; }
+    .col-style  { width: 150px; min-width: 150px; }
     .col-cat    { width: 120px; }
     .col-attn   { width: 160px; }
     .col-type   { width: 150px; }
@@ -195,8 +195,8 @@ const TYPES      = ['','TOP OF PRODUCTION','PROTO','SALESMAN SAMPLE','FIT SAMPLE
 const SUPPLIERS  = ['','ECICO','GAIA','H&F','HS FASHION','KONCEPTION','PQSWIM','S&S'];
 const CREATORS   = ['','IGO GARDEL','Kamilla Aguiar','Paula Erthal','Ozan Guruscu','Flavio Azevedo','Eduardo Moraes','Julian Fajardo','Manuela Carvalho'];
 
-function opt(arr) {
-  return arr.map(v => `<option value="${v}">${v || '--'}</option>`).join('');
+function opt(arr, def = '') {
+  return arr.map(v => `<option value="${v}"${v === def ? ' selected' : ''}>${v || '--'}</option>`).join('');
 }
 
 const tbody = document.getElementById('samples-body');
@@ -215,7 +215,7 @@ for (let i = 1; i <= ROWS; i++) {
     <td><input type="date" class="td-input r-eta"  /></td>
     <td><input type="text" class="td-input r-track" placeholder="Required to save" /></td>
     <td><input type="text" class="td-input r-disc"  placeholder="Notes..." /></td>
-    <td><select class="td-select r-by">${opt(CREATORS)}</select></td>
+    <td><select class="td-select r-by">${opt(CREATORS, 'IGO GARDEL')}</select></td>
     <td class="td-num"><span class="row-dot" id="dot-${i}"></span></td>`;
   tbody.appendChild(tr);
 }
@@ -295,6 +295,19 @@ async function saveAll() {
   status.textContent = `${saved} saved${errors ? `, ${errors} failed` : ''}`;
   showToast(errors ? `${saved} saved, ${errors} failed` : `${saved} row${saved > 1 ? 's' : ''} saved!`, errors ? '#dc2626' : '#16a34a');
   btn.disabled = false; btn.innerHTML = btn.innerHTML.replace('Saving...', 'Save All');
+
+  // Clear successfully saved rows
+  for (const { i } of rows) {
+    const dot = document.getElementById(`dot-${i}`);
+    if (dot.classList.contains('saved')) {
+      const tr = document.getElementById(`row-${i}`);
+      tr.querySelectorAll('.td-input').forEach(el => el.value = '');
+      tr.querySelectorAll('.td-select').forEach(el => {
+        el.value = el.classList.contains('r-by') ? 'IGO GARDEL' : '';
+      });
+      dot.className = 'row-dot';
+    }
+  }
 }
 </script>
 </body>
