@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -176,7 +176,7 @@
     .miss-btn.save:hover { background: #6d28d9; }
     .miss-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    /* ── TABLET (≤900px) ──────────────────────────────────────── */
+    /* â”€â”€ TABLET (â‰¤900px) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     @media (max-width: 900px) {
       nav { padding: 0 16px; height: auto; min-height: 52px; position: relative; }
       .nav-hamburger { display: flex; align-items: center; }
@@ -193,7 +193,7 @@
       .field:last-child { border-bottom: none; }
     }
 
-    /* ── PHONE (≤640px) ───────────────────────────────────────── */
+    /* â”€â”€ PHONE (â‰¤640px) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     @media (max-width: 640px) {
       .layout { padding: 10px 10px 50px; gap: 12px; }
 
@@ -255,7 +255,7 @@
       .action-btn { min-height: 44px; }
       .chat-toggle { min-height: 44px; }
 
-      /* Missing modal — stack date input below style/supplier on phone */
+      /* Missing modal â€” stack date input below style/supplier on phone */
       .miss-modal { max-height: 90vh; border-radius: 14px 14px 0 0; align-self: flex-end; }
       .miss-overlay { align-items: flex-end; padding: 0; }
       .miss-row { flex-wrap: wrap; gap: 4px; }
@@ -329,7 +329,7 @@
     </div>
 
     <div class="image-card">
-      <!-- CAD IMAGE — bigger box -->
+      <!-- CAD IMAGE â€” bigger box -->
       <div class="image-box" id="cad-box" title="CAD Image">
         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.5" opacity="0.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
         <span>CAD IMAGE</span>
@@ -599,15 +599,15 @@
       <div class="dash-kpis" id="dash-kpis" style="display:none;">
         <div class="kpi-card purple-kpi">
           <div class="kpi-label">Total Styles 2026</div>
-          <div class="kpi-value" id="kpi-total">—</div>
+          <div class="kpi-value" id="kpi-total">â€”</div>
         </div>
         <div class="kpi-card warn clickable" onclick="openMissingModal('tp')" title="Click to view & fill missing TP dates">
           <div class="kpi-label">Missing TP Sent</div>
-          <div class="kpi-value" id="kpi-tp">—</div>
+          <div class="kpi-value" id="kpi-tp">â€”</div>
         </div>
         <div class="kpi-card warn clickable" onclick="openMissingModal('print')" title="Click to view & fill missing Print dates">
           <div class="kpi-label">Missing Print Sent</div>
-          <div class="kpi-value" id="kpi-print">—</div>
+          <div class="kpi-value" id="kpi-print">â€”</div>
         </div>
       </div>
 
@@ -625,10 +625,10 @@
         <div class="miss-title" id="miss-title">Missing TP Sent</div>
         <div class="miss-subtitle" id="miss-subtitle">Enter dates and click Save to update all databases</div>
       </div>
-      <button class="miss-close" onclick="closeMissingModal()">×</button>
+      <button class="miss-close" onclick="closeMissingModal()">Ã—</button>
     </div>
     <div class="miss-body" id="miss-body">
-      <div style="text-align:center;padding:20px;color:#9ca3af;font-size:12px;">Loading…</div>
+      <div style="text-align:center;padding:20px;color:#9ca3af;font-size:12px;">Loadingâ€¦</div>
     </div>
     <div class="miss-footer">
       <span class="miss-count" id="miss-count"></span>
@@ -756,7 +756,7 @@ function populateForm(style) {
       el.value = val;
     }
   });
-  // Parse NDC month/year → set both selects.
+  // Parse NDC month/year â†’ set both selects.
   // Handles: "May", "MAY", "05", "May/2026", "May 2026", "05/2026", "January", etc.
   const MON_NAME_MAP = {
     JAN:'01',JANUARY:'01', FEB:'02',FEBRUARY:'02', MAR:'03',MARCH:'03',
@@ -775,7 +775,7 @@ function populateForm(style) {
       ndcYr  = withYear[2];
       ndcMon = /^\d+$/.test(part) ? part.padStart(2,'0') : (MON_NAME_MAP[part.toUpperCase()] || '');
     } else {
-      // Month name or number alone — "May", "MAY", "05", "5"
+      // Month name or number alone â€” "May", "MAY", "05", "5"
       ndcMon = /^\d{1,2}$/.test(ndcRaw)
         ? ndcRaw.padStart(2,'0')
         : (MON_NAME_MAP[ndcRaw.toUpperCase()] || '');
@@ -901,7 +901,7 @@ async function openMissingModal(field) {
   const label = field === 'tp' ? 'TP Sent to Supplier' : 'Print Sent to Supplier';
   document.getElementById('miss-title').textContent    = `Missing ${label}`;
   document.getElementById('miss-subtitle').textContent = 'Enter dates and click Save to update all databases';
-  document.getElementById('miss-body').innerHTML       = '<div style="text-align:center;padding:20px;color:#9ca3af;font-size:12px;">Loading…</div>';
+  document.getElementById('miss-body').innerHTML       = '<div style="text-align:center;padding:20px;color:#9ca3af;font-size:12px;">Loadingâ€¦</div>';
   document.getElementById('miss-count').textContent    = '';
   document.getElementById('miss-save-btn').disabled    = false;
   document.getElementById('miss-overlay').style.display = 'flex';
@@ -913,7 +913,7 @@ async function openMissingModal(field) {
     const styles = data.styles || [];
     document.getElementById('miss-count').textContent = `${styles.length} style${styles.length !== 1 ? 's' : ''} missing`;
     if (styles.length === 0) {
-      document.getElementById('miss-body').innerHTML = '<div style="text-align:center;padding:20px;color:#16a34a;font-size:12px;">All styles have this date filled ✓</div>';
+      document.getElementById('miss-body').innerHTML = '<div style="text-align:center;padding:20px;color:#16a34a;font-size:12px;">All styles have this date filled âœ“</div>';
       document.getElementById('miss-save-btn').disabled = true;
       return;
     }
@@ -948,7 +948,7 @@ async function saveMissingDates() {
 
   const btn = document.getElementById('miss-save-btn');
   btn.disabled    = true;
-  btn.textContent = 'Saving…';
+  btn.textContent = 'Savingâ€¦';
 
   try {
     const res  = await fetch('/api/rebeca/fill-missing', {
@@ -1045,7 +1045,7 @@ async function generateTP() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Generation failed');
     window.open(data.folderUrl, '_blank');
-    msg.innerHTML = `TP generated — <a href="${data.presentationUrl}" target="_blank" style="color:#15803d;font-weight:700;">Open TP</a> &nbsp;·&nbsp; <a href="${data.folderUrl}" target="_blank" style="color:#15803d;">Open Folder</a>`;
+    msg.innerHTML = `TP generated â€” <a href="${data.presentationUrl}" target="_blank" style="color:#15803d;font-weight:700;">Open TP</a> &nbsp;Â·&nbsp; <a href="${data.folderUrl}" target="_blank" style="color:#15803d;">Open Folder</a>`;
     msg.className = 'search-msg ok';
   } catch (e) {
     msg.textContent = 'TP error: ' + e.message;
@@ -1069,5 +1069,6 @@ async function sendChat() {
   } catch { alert('Could not send. Please try again.'); }
 }
 </script>
+<script src="/auth.js"></script>
 </body>
 </html>

@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>305 Workspace — FedEx Delivery Status</title>
+  <title>305 Workspace â€” FedEx Delivery Status</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
@@ -149,10 +149,10 @@
 
 <div class="page-wrap">
   <div class="toolbar">
-    <span class="status-text" id="status-text">Loading…</span>
+    <span class="status-text" id="status-text">Loadingâ€¦</span>
     <div class="search-wrap">
       <svg class="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input class="search-input" id="search-input" type="text" placeholder="Search PO#, Style or Tracking…" oninput="renderRows(this.value)" />
+      <input class="search-input" id="search-input" type="text" placeholder="Search PO#, Style or Trackingâ€¦" oninput="renderRows(this.value)" />
     </div>
     <button class="tb-btn" id="reload-btn" onclick="loadData()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
@@ -179,7 +179,7 @@
           </tr>
         </thead>
         <tbody id="tbody">
-          <tr class="msg-row"><td colspan="7"><div class="spinner"></div>Fetching data…</td></tr>
+          <tr class="msg-row"><td colspan="7"><div class="spinner"></div>Fetching dataâ€¦</td></tr>
         </tbody>
       </table>
     </div>
@@ -201,7 +201,7 @@ function esc(s) {
 }
 
 function norm(s) {
-  return String(s).replace(/﻿/g,'').replace(/[^\x20-\x7E]/g,'').trim().toLowerCase();
+  return String(s).replace(/ï»¿/g,'').replace(/[^\x20-\x7E]/g,'').trim().toLowerCase();
 }
 function colIdx(headers, ...kws) {
   for (const kw of kws) {
@@ -303,8 +303,8 @@ function renderRows(filter) {
   if (!visible.length) {
     document.getElementById('tbody').innerHTML = `<tr class="msg-row"><td colspan="7">${q ? 'No results for "'+esc(q)+'".' : 'No shipped items found.'}</td></tr>`;
     document.getElementById('status-text').textContent = q
-      ? `${visible.length} of ${rows.length} shipments · Status: Shipped`
-      : `${rows.length} shipment${rows.length!==1?'s':''} · Status: Shipped`;
+      ? `${visible.length} of ${rows.length} shipments Â· Status: Shipped`
+      : `${rows.length} shipment${rows.length!==1?'s':''} Â· Status: Shipped`;
     return;
   }
 
@@ -327,22 +327,22 @@ function renderRows(filter) {
              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
            </button>
          </div>`
-      : `<span class="tracking-empty">—</span>`;
+      : `<span class="tracking-empty">â€”</span>`;
 
     return `<tr>
-      <td class="style-cell">${esc(style)||'—'}</td>
-      <td class="date-cell">${esc(po)||'—'}</td>
+      <td class="style-cell">${esc(style)||'â€”'}</td>
+      <td class="date-cell">${esc(po)||'â€”'}</td>
       <td><span class="status-badge badge-sh"><span class="s-dot"></span>${esc(status)}</span></td>
-      <td class="date-cell">${fmtDate(shipDate)||'—'}</td>
-      <td class="date-cell">${fmtDate(cancel)||'—'}</td>
+      <td class="date-cell">${fmtDate(shipDate)||'â€”'}</td>
+      <td class="date-cell">${fmtDate(cancel)||'â€”'}</td>
       <td>${track}</td>
       <td>${badge(delivery,cls)}</td>
     </tr>`;
   }).join('');
 
   document.getElementById('status-text').textContent = q
-    ? `${visible.length} of ${rows.length} shipments · Status: Shipped`
-    : `${rows.length} shipment${rows.length!==1?'s':''} · Status: Shipped`;
+    ? `${visible.length} of ${rows.length} shipments Â· Status: Shipped`
+    : `${rows.length} shipment${rows.length!==1?'s':''} Â· Status: Shipped`;
 }
 
 function sortBy(col) {
@@ -358,8 +358,8 @@ function sortBy(col) {
 }
 
 async function loadData() {
-  document.getElementById('tbody').innerHTML = '<tr class="msg-row"><td colspan="7"><div class="spinner"></div>Fetching data…</td></tr>';
-  document.getElementById('status-text').textContent = 'Loading…';
+  document.getElementById('tbody').innerHTML = '<tr class="msg-row"><td colspan="7"><div class="spinner"></div>Fetching dataâ€¦</td></tr>';
+  document.getElementById('status-text').textContent = 'Loadingâ€¦';
   document.getElementById('reload-btn').classList.add('loading');
 
   try {
@@ -371,7 +371,7 @@ async function loadData() {
     const H = raw[0];
     const data = raw.slice(1);
 
-    // Columns A-E are fixed positions. Tracking/Delivery are far right — find by name.
+    // Columns A-E are fixed positions. Tracking/Delivery are far right â€” find by name.
     const C = {
       style:    0,
       po:       1,
@@ -426,7 +426,7 @@ async function loadData() {
 
   } catch(e) {
     document.getElementById('tbody').innerHTML =
-      `<tr class="msg-row"><td colspan="4">&#9888;&#65039; Could not load data — ${esc(e.message)}</td></tr>`;
+      `<tr class="msg-row"><td colspan="4">&#9888;&#65039; Could not load data â€” ${esc(e.message)}</td></tr>`;
     document.getElementById('status-text').textContent = 'Error';
   }
 
@@ -435,5 +435,6 @@ async function loadData() {
 
 loadData();
 </script>
+<script src="/auth.js"></script>
 </body>
 </html>

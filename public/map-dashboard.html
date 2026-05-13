@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -163,10 +163,10 @@
 
   <!-- KPIs -->
   <div class="kpi-strip">
-    <div class="kpi k1"><div class="kpi-lbl">Total Styles</div><div class="kpi-val" id="kpi-styles">—</div><div class="kpi-sub">in MAP 2026</div></div>
-    <div class="kpi k2"><div class="kpi-lbl">Invoice Total 2026</div><div class="kpi-val" id="kpi-inv">—</div><div class="kpi-sub">URBN invoiced</div></div>
-    <div class="kpi k3"><div class="kpi-lbl">Suppliers</div><div class="kpi-val" id="kpi-sup">—</div><div class="kpi-sub">active</div></div>
-    <div class="kpi k4"><div class="kpi-lbl">Brands</div><div class="kpi-val" id="kpi-brands">—</div><div class="kpi-sub">in MAP</div></div>
+    <div class="kpi k1"><div class="kpi-lbl">Total Styles</div><div class="kpi-val" id="kpi-styles">â€”</div><div class="kpi-sub">in MAP 2026</div></div>
+    <div class="kpi k2"><div class="kpi-lbl">Invoice Total 2026</div><div class="kpi-val" id="kpi-inv">â€”</div><div class="kpi-sub">URBN invoiced</div></div>
+    <div class="kpi k3"><div class="kpi-lbl">Suppliers</div><div class="kpi-val" id="kpi-sup">â€”</div><div class="kpi-sub">active</div></div>
+    <div class="kpi k4"><div class="kpi-lbl">Brands</div><div class="kpi-val" id="kpi-brands">â€”</div><div class="kpi-sub">in MAP</div></div>
   </div>
 
   <!-- ROW 1: Donut + Monthly Bar -->
@@ -181,7 +181,7 @@
     <div class="chart-card">
       <div class="chart-hd">
         <div class="chart-title">PO Invoiced by Month</div>
-        <div class="chart-sub">URBN Invoice Total — 2026</div>
+        <div class="chart-sub">URBN Invoice Total â€” 2026</div>
       </div>
       <div id="area-monthly"><div class="chart-spin"></div></div>
     </div>
@@ -226,7 +226,7 @@ const PALETTE = [
 
 const charts = {};
 
-/* ── CSV PARSER ─────────────────────────────────────────────────────────── */
+/* â”€â”€ CSV PARSER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function parseCSV(text) {
   const rows = []; let row = [], field = '', inQ = false;
   for (let i = 0; i < text.length; i++) {
@@ -263,7 +263,7 @@ function fmt$(n) {
   return '$' + Math.round(n);
 }
 
-/* ── CHART HELPERS ──────────────────────────────────────────────────────── */
+/* â”€â”€ CHART HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function destroyChart(key) { if (charts[key]) { charts[key].destroy(); delete charts[key]; } }
 
 function buildDonut(areaId, key, labels, values, colors, centerVal, centerLbl) {
@@ -347,7 +347,7 @@ function buildBar(areaId, key, labels, values, color, fmtFn, horizontal) {
   });
 }
 
-/* ── GROUP + SORT ───────────────────────────────────────────────────────── */
+/* â”€â”€ GROUP + SORT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function groupSum(data, groupFn, valFn, topN) {
   const map = {};
   data.forEach(r => {
@@ -368,7 +368,7 @@ function groupCount(data, groupFn, topN) {
   return { labels: top.map(([k]) => k), values: top.map(([,v]) => v) };
 }
 
-/* ── BUILD ALL CHARTS ───────────────────────────────────────────────────── */
+/* â”€â”€ BUILD ALL CHARTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function buildAll(rows) {
   const H    = rows[0];
   const data = rows.slice(1).filter(r => r.some(c => (c||'').trim()));
@@ -395,10 +395,10 @@ function buildAll(rows) {
   });
   document.getElementById('kpi-styles').textContent  = data.length;
   document.getElementById('kpi-inv').textContent      = fmt$(totalInv);
-  document.getElementById('kpi-sup').textContent      = suppliers.size || '—';
-  document.getElementById('kpi-brands').textContent   = brands.size    || '—';
+  document.getElementById('kpi-sup').textContent      = suppliers.size || 'â€”';
+  document.getElementById('kpi-brands').textContent   = brands.size    || 'â€”';
 
-  /* Chart 1 — Styles by Status */
+  /* Chart 1 â€” Styles by Status */
   const statusData = groupCount(data, r => get(r, C.status) || 'Unknown');
   if (statusData.labels.length) {
     const colors = statusData.labels.map((_, i) => PALETTE[i % PALETTE.length]);
@@ -407,7 +407,7 @@ function buildAll(rows) {
     document.getElementById('area-status').innerHTML = '<div class="chart-empty">No status data</div>';
   }
 
-  /* Chart 2 — PO Invoiced by Month */
+  /* Chart 2 â€” PO Invoiced by Month */
   const monthly = new Array(12).fill(0);
   data.forEach(r => {
     const raw = get(r, C.invDate);
@@ -420,7 +420,7 @@ function buildAll(rows) {
   const peakIdx = monthly.indexOf(Math.max(...monthly));
   buildBar('area-monthly', 'monthly', MONTHS, monthly, '#4f46e5', fmt$, false);
 
-  /* Chart 3 — Invoiced by Category */
+  /* Chart 3 â€” Invoiced by Category */
   const catData = groupSum(data, r => get(r, C.category) || 'Unknown', invAmt, 10);
   if (catData.labels.length) {
     buildBar('area-category', 'category', catData.labels, catData.values, '#0891b2', fmt$, true);
@@ -428,7 +428,7 @@ function buildAll(rows) {
     document.getElementById('area-category').innerHTML = '<div class="chart-empty">No category data</div>';
   }
 
-  /* Chart 4 — Invoiced by Brand */
+  /* Chart 4 â€” Invoiced by Brand */
   const brandData = groupSum(data, r => get(r, C.brand) || 'Unknown', invAmt, 10);
   if (brandData.labels.length) {
     buildBar('area-brand', 'brand', brandData.labels, brandData.values, '#7c3aed', fmt$, true);
@@ -436,7 +436,7 @@ function buildAll(rows) {
     document.getElementById('area-brand').innerHTML = '<div class="chart-empty">No brand data</div>';
   }
 
-  /* Chart 5 — Total Invoice by Supplier */
+  /* Chart 5 â€” Total Invoice by Supplier */
   const supData = groupSum(data, r => get(r, C.supplier) || 'Unknown', invAmt, 12);
   if (supData.labels.length) {
     buildBar('area-supplier', 'supplier', supData.labels, supData.values, '#d97706', fmt$, true);
@@ -445,16 +445,16 @@ function buildAll(rows) {
   }
 
   const t = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-  setMsg('info', `${data.length} rows · ${t}`);
+  setMsg('info', `${data.length} rows Â· ${t}`);
 }
 
-/* ── LOAD CHARTS ────────────────────────────────────────────────────────── */
+/* â”€â”€ LOAD CHARTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 async function loadCharts() {
   setMsg('info', 'Loading...');
   setBtns(false, true);
   ['area-status','area-monthly','area-category','area-brand','area-supplier']
     .forEach(id => { document.getElementById(id).innerHTML = '<div class="chart-spin"></div>'; });
-  ['kpi-styles','kpi-inv','kpi-sup','kpi-brands'].forEach(id => document.getElementById(id).textContent = '—');
+  ['kpi-styles','kpi-inv','kpi-sup','kpi-brands'].forEach(id => document.getElementById(id).textContent = 'â€”');
   try {
     const res  = await fetch(DATA_URL);
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -469,7 +469,7 @@ async function loadCharts() {
   setBtns(true, false);
 }
 
-/* ── DATA SYNC ──────────────────────────────────────────────────────────── */
+/* â”€â”€ DATA SYNC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 async function runSync() {
   setBtns(false, false);
   setMsg('info', 'Syncing data...');
@@ -477,7 +477,7 @@ async function runSync() {
     const res  = await fetch('/api/gabriel/map-sync', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
     const data = await res.json();
     if (!res.ok || !data.ok) throw new Error(data.error || 'Sync failed');
-    setMsg('ok', `Sync done — ${data.newPOs} new POs, ${data.updated} rows updated`);
+    setMsg('ok', `Sync done â€” ${data.newPOs} new POs, ${data.updated} rows updated`);
     await loadCharts();
   } catch(e) {
     setMsg('err', e.message);
@@ -500,5 +500,6 @@ function setBtns(syncEnabled, refreshSpinning) {
 
 loadCharts();
 </script>
+<script src="/auth.js"></script>
 </body>
 </html>

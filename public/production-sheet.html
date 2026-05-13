@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>305 Workspace — Production Sheet</title>
+  <title>305 Workspace â€” Production Sheet</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
@@ -126,7 +126,7 @@
 
 <div class="sheet-wrapper">
   <div class="toolbar">
-    <span class="status-text" id="status-text">Loading…</span>
+    <span class="status-text" id="status-text">Loadingâ€¦</span>
     <button class="tb-btn green" id="reload-btn" onclick="loadData()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
       Refresh
@@ -135,7 +135,7 @@
 
   <div class="table-card">
     <div class="table-scroll" id="table-area">
-      <div class="msg-box"><div class="spinner-ring"></div>Fetching sheet data…</div>
+      <div class="msg-box"><div class="spinner-ring"></div>Fetching sheet dataâ€¦</div>
     </div>
   </div>
 </div>
@@ -192,7 +192,7 @@ function buildPage(rows) {
     headers.forEach((_, ci) => {
       const raw = (r[ci] ?? '').trim();
       if (isURL(raw)) {
-        html += `<td title="${esc(raw)}"><a href="${esc(raw)}" target="_blank" rel="noopener">Open ↗</a></td>`;
+        html += `<td title="${esc(raw)}"><a href="${esc(raw)}" target="_blank" rel="noopener">Open â†—</a></td>`;
       } else {
         html += `<td title="${esc(raw)}">${esc(raw)}</td>`;
       }
@@ -206,8 +206,8 @@ function buildPage(rows) {
 }
 
 async function loadData() {
-  document.getElementById('table-area').innerHTML = '<div class="msg-box"><div class="spinner-ring"></div>Fetching sheet data…</div>';
-  document.getElementById('status-text').textContent = 'Loading…';
+  document.getElementById('table-area').innerHTML = '<div class="msg-box"><div class="spinner-ring"></div>Fetching sheet dataâ€¦</div>';
+  document.getElementById('status-text').textContent = 'Loadingâ€¦';
   document.getElementById('slicer-wrap').style.display = 'none';
   document.getElementById('reload-btn').classList.add('loading');
   activeFilter = '';
@@ -220,7 +220,7 @@ async function loadData() {
     buildPage(rows);
   } catch(e) {
     document.getElementById('table-area').innerHTML =
-      `<div class="msg-box">⚠️ Could not load data.<br><small style="color:#9ca3af">${esc(e.message)}</small></div>`;
+      `<div class="msg-box">âš ï¸ Could not load data.<br><small style="color:#9ca3af">${esc(e.message)}</small></div>`;
     document.getElementById('status-text').textContent = 'Error';
   }
   document.getElementById('reload-btn').classList.remove('loading');
@@ -228,5 +228,6 @@ async function loadData() {
 
 loadData();
 </script>
+<script src="/auth.js"></script>
 </body>
 </html>

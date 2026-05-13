@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>305 Workspace — Connect Gmail</title>
+  <title>305 Workspace â€” Connect Gmail</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -43,12 +43,12 @@
     <div id="alert" style="display:none"></div>
 
     <div class="user-list" id="user-list">
-      <div style="text-align:center;padding:20px;color:#9ca3af;font-size:13px">Loading team members…</div>
+      <div style="text-align:center;padding:20px;color:#9ca3af;font-size:13px">Loading team membersâ€¦</div>
     </div>
 
     <hr class="divider" />
     <p class="note">Your Gmail is only used to create drafts on your behalf. The app never reads or sends emails without your review.</p>
-    <a class="back" href="/">← Back to 305 Workspace</a>
+    <a class="back" href="/">â† Back to 305 Workspace</a>
   </div>
 
 <script>
@@ -58,10 +58,10 @@
   if (params.get('success')) {
     const name = params.get('success');
     alertEl.className = 'alert alert-success';
-    alertEl.textContent = `✓ Gmail connected successfully! You can now create breakdown drafts.`;
+    alertEl.textContent = `âœ“ Gmail connected successfully! You can now create breakdown drafts.`;
     alertEl.style.display = 'block';
   } else if (params.get('error')) {
-    const msgs = { denied:'Authorization was cancelled.', session:'Session expired, please try again.', norefresh:'Could not get access token — please try again.', failed:'Something went wrong, please try again.' };
+    const msgs = { denied:'Authorization was cancelled.', session:'Session expired, please try again.', norefresh:'Could not get access token â€” please try again.', failed:'Something went wrong, please try again.' };
     alertEl.className = 'alert alert-error';
     alertEl.textContent = msgs[params.get('error')] || 'An error occurred.';
     alertEl.style.display = 'block';
@@ -78,7 +78,7 @@
             <div class="user-name">${u.name}</div>
             <div class="user-email">${u.email}</div>
           </div>
-          <span class="user-status ${u.connected?'status-connected':'status-pending'}">${u.connected?'✓ Connected':'Connect'}</span>
+          <span class="user-status ${u.connected?'status-connected':'status-pending'}">${u.connected?'âœ“ Connected':'Connect'}</span>
         </button>
       `).join('');
     } catch(e) {
@@ -92,5 +92,6 @@
 
   loadUsers();
 </script>
+<script src="/auth.js"></script>
 </body>
 </html>

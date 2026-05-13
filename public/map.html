@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -28,7 +28,7 @@
       min-height: 100vh;
     }
 
-    /* ── NAV ── */
+    /* â”€â”€ NAV â”€â”€ */
     nav {
       background: var(--surface);
       border-bottom: 1px solid var(--border);
@@ -56,7 +56,7 @@
       cursor: pointer; padding: 6px 8px; color: var(--text-sec);
     }
 
-    /* ── LAYOUT ── */
+    /* â”€â”€ LAYOUT â”€â”€ */
     .layout {
       display: flex;
       align-items: flex-start;
@@ -66,7 +66,7 @@
       padding: 32px 24px 60px;
     }
 
-    /* ── SIDEBAR ── */
+    /* â”€â”€ SIDEBAR â”€â”€ */
     .sidebar { width: 240px; flex-shrink: 0; position: sticky; top: 72px; }
 
     .sidebar-agent {
@@ -94,7 +94,7 @@
       padding: 2px 8px; border-radius: 20px;
     }
 
-    /* ── CHAT TOGGLE ── */
+    /* â”€â”€ CHAT TOGGLE â”€â”€ */
     .chat-toggle {
       width: 100%; display: flex; align-items: center; gap: 10px;
       padding: 11px 16px; background: var(--surface); border: 1px solid var(--border);
@@ -145,7 +145,7 @@
     .chat-send:disabled { opacity: .5; cursor: not-allowed; }
     .chat-success { text-align: center; padding: 20px 14px; font-size: 12px; color: #16a34a; font-weight: 500; display: none; }
 
-    /* ── CONTENT ── */
+    /* â”€â”€ CONTENT â”€â”€ */
     .content { flex: 1; min-width: 0; }
 
     .section-header {
@@ -154,7 +154,7 @@
     .section-title { font-size: 13px; font-weight: 600; color: var(--text-sec); text-transform: uppercase; letter-spacing: .6px; }
     .section-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
-    /* ── HEADER BUTTONS ── */
+    /* â”€â”€ HEADER BUTTONS â”€â”€ */
     .btn-run {
       background: #e5e7eb; color: var(--text-muted); border: none;
       border-radius: 8px; padding: 8px 18px; font-family: inherit;
@@ -180,14 +180,14 @@
       border: 1px solid #fde68a; border-radius: 20px; padding: 2px 8px; font-weight: 600;
     }
 
-    /* ── TASK GRID ── */
+    /* â”€â”€ TASK GRID â”€â”€ */
     .task-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: 14px;
     }
 
-    /* ── TASK CARDS ── */
+    /* â”€â”€ TASK CARDS â”€â”€ */
     .task-card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -220,7 +220,7 @@
       border-radius: 20px; padding: 2px 8px;
     }
 
-    /* ── SYNC FOOTER ── */
+    /* â”€â”€ SYNC FOOTER â”€â”€ */
     .sync-footer {
       display: flex;
       align-items: center;
@@ -244,7 +244,7 @@
     .sync-status.ok  { color: #16a34a; font-weight: 600; }
     .sync-status.err { color: #dc2626; font-weight: 600; }
 
-    /* ── TOAST ── */
+    /* â”€â”€ TOAST â”€â”€ */
     .toast {
       position: fixed; bottom: 24px; right: 24px;
       background: var(--text); color: #fff;
@@ -254,7 +254,7 @@
     }
     .toast.show { opacity: 1; transform: translateY(0); }
 
-    /* ── RESPONSIVE ── */
+    /* â”€â”€ RESPONSIVE â”€â”€ */
     @media (max-width: 768px) {
       nav { padding: 0 16px; height: auto; min-height: 52px; position: relative; }
       .nav-hamburger { display: flex; align-items: center; }
@@ -310,7 +310,7 @@
       <div class="sidebar-title">Map &amp; Finance Specialist<br>Invoice &amp; Shipping Analysis</div>
       <div class="sidebar-desc">
         Gabriel tracks invoicing month to month, reconciles invoiced amounts against RLM approvals,
-        and builds shipping plans — giving the finance and ops team a clear picture of what's been billed and what's moving.
+        and builds shipping plans â€” giving the finance and ops team a clear picture of what's been billed and what's moving.
       </div>
       <div class="sidebar-tags">
         <span class="sidebar-tag">Invoicing</span>
@@ -390,7 +390,7 @@
           <span class="soon-label">Coming Soon</span>
         </div>
         <div class="task-card-desc">
-          Compiles all invoiced amounts month over month — by vendor, season, and category —
+          Compiles all invoiced amounts month over month â€” by vendor, season, and category â€”
           giving a clear running total of what's been billed vs. planned.
         </div>
       </div>
@@ -405,7 +405,7 @@
           <span class="soon-label">Coming Soon</span>
         </div>
         <div class="task-card-desc">
-          Cross-references invoiced POs against RLM-approved orders to surface any discrepancies —
+          Cross-references invoiced POs against RLM-approved orders to surface any discrepancies â€”
           styles invoiced without approval or approved but never billed.
         </div>
       </div>
@@ -420,12 +420,12 @@
           <span class="soon-label">Coming Soon</span>
         </div>
         <div class="task-card-desc">
-          Builds a forward-looking shipping plan by PO and destination — consolidating confirmed
+          Builds a forward-looking shipping plan by PO and destination â€” consolidating confirmed
           ship dates, carriers, and quantities into a single operational view.
         </div>
       </div>
 
-      <!-- CARD 4 — LIVE DASHBOARD LINK -->
+      <!-- CARD 4 â€” LIVE DASHBOARD LINK -->
       <a class="task-card live" href="map-dashboard.html" style="text-decoration:none;cursor:pointer;">
         <div class="task-card-top">
           <div>
@@ -435,7 +435,7 @@
           <span class="live-badge">Live</span>
         </div>
         <div class="task-card-desc">
-          5 live charts — styles by status, PO invoiced by month, invoiced by category,
+          5 live charts â€” styles by status, PO invoiced by month, invoiced by category,
           by brand, and total invoice by supplier. Includes a Data Sync button to pull
           the latest from Tradestone, PO Detail, and the Production &amp; PO Database.
         </div>
@@ -461,7 +461,7 @@ async function runMapSync() {
     const data = await res.json();
     if (!res.ok || !data.ok) throw new Error(data.error || 'Sync failed');
     status.className = 'sync-status ok';
-    status.textContent = 'Done — ' + data.rows + ' rows updated';
+    status.textContent = 'Done â€” ' + data.rows + ' rows updated';
   } catch (e) {
     status.className = 'sync-status err';
     status.textContent = e.message;
@@ -493,5 +493,6 @@ async function sendChat() {
   }
 }
 </script>
+<script src="/auth.js"></script>
 </body>
 </html>

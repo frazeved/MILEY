@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>305 Workspace — Sample Status Tracker</title>
+  <title>305 Workspace â€” Sample Status Tracker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
@@ -151,10 +151,10 @@
 
 <div class="page-wrap">
   <div class="toolbar">
-    <span class="status-text" id="status-text">Loading…</span>
+    <span class="status-text" id="status-text">Loadingâ€¦</span>
     <div class="search-wrap">
       <svg class="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input class="search-input" id="search-input" type="text" placeholder="Style, tracking, buyer…" oninput="renderRows()" />
+      <input class="search-input" id="search-input" type="text" placeholder="Style, tracking, buyerâ€¦" oninput="renderRows()" />
     </div>
     <select class="filter-select" id="status-filter" onchange="renderRows()">
       <option value="">All Statuses</option>
@@ -192,7 +192,7 @@
           </tr>
         </thead>
         <tbody id="tbody">
-          <tr class="msg-row"><td colspan="10"><div class="spinner"></div>Fetching samples…</td></tr>
+          <tr class="msg-row"><td colspan="10"><div class="spinner"></div>Fetching samplesâ€¦</td></tr>
         </tbody>
       </table>
     </div>
@@ -232,7 +232,7 @@ function getStatus(row) {
 
   if (eta) {
     const daysToETA = Math.ceil((eta - today) / 86400000);
-    if (daysToETA < 0) return 'delivered';    // ETA passed → assumed delivered
+    if (daysToETA < 0) return 'delivered';    // ETA passed â†’ assumed delivered
     if (daysToETA <= 2) return 'arriving';    // arriving within 2 days
     return 'transit';
   }
@@ -272,8 +272,8 @@ function showToast(msg) {
 async function loadData() {
   const btn = document.getElementById('reload-btn');
   btn.classList.add('loading'); btn.disabled = true;
-  document.getElementById('status-text').textContent = 'Loading…';
-  document.getElementById('tbody').innerHTML = '<tr class="msg-row"><td colspan="10"><div class="spinner"></div>Fetching samples…</td></tr>';
+  document.getElementById('status-text').textContent = 'Loadingâ€¦';
+  document.getElementById('tbody').innerHTML = '<tr class="msg-row"><td colspan="10"><div class="spinner"></div>Fetching samplesâ€¦</td></tr>';
   try {
     const res  = await fetch('/api/paul/database');
     const json = await res.json();
@@ -356,7 +356,7 @@ function renderRows() {
              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
            </button>
          </div>`
-      : '<span class="cell-muted">—</span>';
+      : '<span class="cell-muted">â€”</span>';
 
     return `<tr>
       <td class="cell-style">${esc(r['STYLE'])}</td>
@@ -375,5 +375,6 @@ function renderRows() {
 
 loadData();
 </script>
+<script src="/auth.js"></script>
 </body>
 </html>

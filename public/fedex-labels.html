@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>305 Workspace — FedEx Labels Print</title>
+  <title>305 Workspace â€” FedEx Labels Print</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
@@ -35,7 +35,7 @@
 
     .page-wrap { flex: 1; padding: 20px 28px 48px; max-width: 1100px; margin: 0 auto; width: 100%; }
 
-    /* ── Search card ── */
+    /* â”€â”€ Search card â”€â”€ */
     .search-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 20px; }
     .search-card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 16px; }
     .search-row { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
@@ -52,14 +52,14 @@
     .btn-clear { font-family: inherit; font-size: 12px; font-weight: 500; padding: 8px 12px; background: none; color: var(--muted); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: background 0.15s; }
     .btn-clear:hover { background: var(--bg); }
 
-    /* ── Status bar ── */
+    /* â”€â”€ Status bar â”€â”€ */
     .result-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; min-height: 24px; }
     .result-text { font-size: 12px; color: var(--muted); }
     .btn-generate { font-family: inherit; font-size: 12px; font-weight: 700; padding: 9px 20px; background: var(--orange); color: #fff; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: opacity 0.15s; }
     .btn-generate:hover:not(:disabled) { opacity: 0.88; }
     .btn-generate:disabled { opacity: 0.35; cursor: default; }
 
-    /* ── Results table ── */
+    /* â”€â”€ Results table â”€â”€ */
     .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
     .table-scroll { overflow-x: auto; }
     table { border-collapse: collapse; table-layout: auto; white-space: nowrap; }
@@ -253,18 +253,18 @@ const ADDRESS_BOOK = {
 };
 
 const PACKAGING = {
-  'ECICO':      '20 × 12 × 12 in',
-  'GAIA':       '20 × 12 × 12 in',
-  'H&F':        '23 × 12 × 12 in',
-  'HS FASHION': '20 × 15 × 11 in',
-  'KONCEPTION': '20 × 12 × 12 in',
-  'MINI BOX':   '12 × 12 × 12 in',
-  'PQSWIM':     '20 × 12 × 12 in',
-  'S&S':        '23 × 16 × 11 in',
+  'ECICO':      '20 Ã— 12 Ã— 12 in',
+  'GAIA':       '20 Ã— 12 Ã— 12 in',
+  'H&F':        '23 Ã— 12 Ã— 12 in',
+  'HS FASHION': '20 Ã— 15 Ã— 11 in',
+  'KONCEPTION': '20 Ã— 12 Ã— 12 in',
+  'MINI BOX':   '12 Ã— 12 Ã— 12 in',
+  'PQSWIM':     '20 Ã— 12 Ã— 12 in',
+  'S&S':        '23 Ã— 16 Ã— 11 in',
 };
 
 let sheetRows    = null; // cached Warehouse Now rows
-let deliverToMap = null; // cached po# → { code, desc } from PO DETAIL
+let deliverToMap = null; // cached po# â†’ { code, desc } from PO DETAIL
 
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
@@ -319,7 +319,7 @@ function getBoxSize(supplier) {
 }
 
 function serviceOptions(selected) {
-  return `<option value="">— Select Service —</option>` +
+  return `<option value="">â€” Select Service â€”</option>` +
     SERVICES.map(s => `<option value="${s.code}" ${s.code===selected?'selected':''}>${s.label}</option>`).join('');
 }
 
@@ -391,7 +391,7 @@ function setLoading(btnId, on) {
 async function doSearch(filterFn, label) {
   setLoading('btn-style', true);
   setLoading('btn-po', true);
-  document.getElementById('result-text').textContent = 'Searching…';
+  document.getElementById('result-text').textContent = 'Searchingâ€¦';
   document.getElementById('table-wrap').style.display = 'none';
   document.getElementById('btn-clear').style.display = 'none';
 
@@ -406,7 +406,7 @@ async function doSearch(filterFn, label) {
 
     renderResults(matches, dtMap, label);
   } catch(e) {
-    document.getElementById('result-text').textContent = '⚠ ' + e.message;
+    document.getElementById('result-text').textContent = 'âš  ' + e.message;
     showToast(e.message);
   } finally {
     setLoading('btn-style', false);
@@ -450,31 +450,31 @@ function renderResults(rows, dtMap, label) {
 
     const statusBadge = norm(r.status).includes('shipped')
       ? `<span class="status-badge badge-sh"><span class="s-dot"></span>${esc(r.status)}</span>`
-      : `<span class="status-badge badge-other"><span class="s-dot"></span>${esc(r.status)||'—'}</span>`;
+      : `<span class="status-badge badge-other"><span class="s-dot"></span>${esc(r.status)||'â€”'}</span>`;
     const boxSizeHtml = boxSize
       ? `<span class="box-size-val">${boxSize}</span>`
       : `<span class="box-size-unknown">Unknown</span>`;
 
     const shipToHtml = shipCode
       ? `<span class="ship-code">${esc(shipCode)}</span>`
-      : `<span class="muted-val">—</span>`;
+      : `<span class="muted-val">â€”</span>`;
     const contactHtml = shipDesc
       ? esc(shipDesc)
-      : `<span class="muted-val">—</span>`;
+      : `<span class="muted-val">â€”</span>`;
 
     return `<tr data-idx="${i}" id="row-${i}" data-po="${esc(r.po)}" data-supplier="${esc(r.supplier)}" data-deliver-to="${esc(shipCode)}">
       <td class="td-check"><input type="checkbox" class="row-check" onchange="onRowCheck(${i})" /></td>
       <td><span class="style-val">${esc(r.style)}</span></td>
       <td><span class="po-val">${esc(r.po)}</span></td>
       <td>${statusBadge}</td>
-      <td><span class="supplier-val">${esc(r.supplier)||'—'}</span></td>
+      <td><span class="supplier-val">${esc(r.supplier)||'â€”'}</span></td>
       <td>${boxSizeHtml}</td>
       <td><input class="td-input" type="number" min="1" placeholder="Qty" id="qty-${i}" /></td>
       <td><input class="td-input" type="number" min="0.1" step="0.1" value="20" id="weight-${i}" /></td>
       <td><select class="td-select" id="service-${i}">${serviceOptions('FEDEX_GROUND')}</select></td>
       <td>${shipToHtml}</td>
       <td class="contact-val">${contactHtml}</td>
-      <td id="res-${i}" style="font-size:11px;color:var(--muted);">—</td>
+      <td id="res-${i}" style="font-size:11px;color:var(--muted);">â€”</td>
     </tr>`;
   }).join('');
 
@@ -525,7 +525,7 @@ async function generateLabels() {
   }
 
   btn.disabled = true;
-  btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:spin 0.8s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.08-4.26"/></svg> Creating Labels…`;
+  btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:spin 0.8s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.08-4.26"/></svg> Creating Labelsâ€¦`;
 
   for (const cb of checked) {
     const row        = cb.closest('tr');
@@ -538,7 +538,7 @@ async function generateLabels() {
     const serviceCode = document.getElementById(`service-${idx}`).value;
     const resCell    = document.getElementById(`res-${idx}`);
 
-    resCell.textContent = '⏳ Creating…';
+    resCell.textContent = 'â³ Creatingâ€¦';
     try {
       const r    = await fetch('/api/fedex/create-label', {
         method: 'POST',
@@ -551,13 +551,13 @@ async function generateLabels() {
         row.classList.remove('selected');
         cb.checked = false;
         const driveLink = data.driveUrl ? ` <a href="${data.driveUrl}" target="_blank" style="color:var(--accent)">PDF</a>` : '';
-        resCell.innerHTML = `<span style="color:#16a34a;font-weight:600;">✓ ${data.tracking}</span>${driveLink}<br><span style="color:var(--muted)">${data.cost || ''}</span>`;
+        resCell.innerHTML = `<span style="color:#16a34a;font-weight:600;">âœ“ ${data.tracking}</span>${driveLink}<br><span style="color:var(--muted)">${data.cost || ''}</span>`;
       } else {
-        resCell.innerHTML = `<span style="color:var(--red);" title="${esc(data.error||'')}">✗ Error</span>`;
+        resCell.innerHTML = `<span style="color:var(--red);" title="${esc(data.error||'')}">âœ— Error</span>`;
         showToast(`PO ${po}: ${data.error}`);
       }
     } catch (e) {
-      resCell.innerHTML = `<span style="color:var(--red);">✗ Failed</span>`;
+      resCell.innerHTML = `<span style="color:var(--red);">âœ— Failed</span>`;
       showToast(`PO ${po}: ${e.message}`);
     }
   }
@@ -570,5 +570,6 @@ async function generateLabels() {
 document.getElementById('btn-generate').addEventListener('click', generateLabels);
 </script>
 
+<script src="/auth.js"></script>
 </body>
 </html>

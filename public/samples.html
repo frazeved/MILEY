@@ -308,9 +308,10 @@
           <label class="form-label">Sample Type</label>
           <select class="form-input" id="sf-sample-type">
             <option value="">Select...</option>
-            <option>TOP OF PRODUCTION</option><option>PROTO</option><option>SALESMAN SAMPLE</option>
-            <option>FIT SAMPLE</option><option>PHOTO SAMPLE</option><option>PRESS SAMPLE</option>
-            <option>COUNTER SAMPLE</option><option>BULK APPROVED SAMPLE</option><option>OTHER</option>
+            <option>PROTO SAMPLE</option><option>SMS SAMPLE</option>
+            <option>1ST FIT SAMPLE</option><option>2ND FIT SAMPLE</option><option>3RD FIT SAMPLE</option>
+            <option>PHOTO SAMPLE</option><option>TOP SAMPLE</option>
+            <option>PHOTO &amp; TOP SAMPLE</option><option>STRIKE OFF / MOCK UP</option>
           </select>
         </div>
         <div class="form-group">
@@ -510,6 +511,7 @@ async function saveSample() {
 document.getElementById('db-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeDatabaseModal(); });
 document.getElementById('form-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeFormModal(); });
 </script>
+<script src="/auth.js"></script>
 </body>
 </html>
 

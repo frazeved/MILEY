@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>305 Workspace — Sample Shipping</title>
+  <title>305 Workspace â€” Sample Shipping</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
@@ -53,7 +53,7 @@
     /* BODY: 3 panels */
     .form-body { display: flex; align-items: stretch; }
 
-    /* LEFT PANEL — FROM */
+    /* LEFT PANEL â€” FROM */
     .panel { padding: 0; border-right: 1px solid var(--blue-light); }
     .panel-from { width: 300px; flex-shrink: 0; }
     .panel-to { width: 280px; flex-shrink: 0; }
@@ -172,7 +172,7 @@
       <div class="panel panel-from">
         <div class="contact-list-row">
           <span class="contact-list-label">CONTACT LIST</span>
-          <select class="contact-select"><option value="">—</option></select>
+          <select class="contact-select"><option value="">â€”</option></select>
         </div>
         <div class="panel-hdr">FROM</div>
         <div class="contact-fields">
@@ -191,7 +191,7 @@
           <div class="cf-row" style="margin-bottom:8px;"><span class="cf-label">EMAIL</span><input type="email" class="cf-input" /></div>
           <div class="cf-row" style="align-items:flex-start;">
             <span class="cf-label">SHIPMENT CREATED BY</span>
-            <select class="contact-select" style="flex:1;"><option value="">—</option></select>
+            <select class="contact-select" style="flex:1;"><option value="">â€”</option></select>
           </div>
           <div style="height:8px;"></div>
           <div class="cf-row"><span class="cf-label">AWB - TRACKING</span><input type="text" class="cf-input" /></div>
@@ -205,7 +205,7 @@
       <div class="panel panel-to">
         <div class="contact-list-row">
           <span class="contact-list-label">CONTACT LIST</span>
-          <select class="contact-select"><option value="">—</option></select>
+          <select class="contact-select"><option value="">â€”</option></select>
         </div>
         <div class="panel-hdr">TO</div>
         <div class="contact-fields">
@@ -263,7 +263,7 @@ const tbody = document.getElementById('items-tbody');
 for (let i = 1; i <= 25; i++) {
   tbody.innerHTML += `<tr>
     <td class="row-num">${i}</td>
-    <td class="col-type"><select class="td-select"><option value="">—</option><option>Proto</option><option>SMS</option><option>TOP</option><option>PP</option><option>Photo</option></select></td>
+    <td class="col-type"><select class="td-select"><option value="">â€”</option><option>Proto</option><option>SMS</option><option>TOP</option><option>PP</option><option>Photo</option></select></td>
     <td class="col-style"><input class="td-input" type="text" /></td>
     <td class="col-qty"><input class="td-input" type="text" /></td>
     <td class="col-cat"><input class="td-input" type="text" /></td>
@@ -274,5 +274,6 @@ for (let i = 1; i <= 25; i++) {
   </tr>`;
 }
 </script>
+<script src="/auth.js"></script>
 </body>
 </html>

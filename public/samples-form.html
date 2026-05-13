@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>305 Workspace — Sample Batch Tracking</title>
+  <title>305 Workspace â€” Sample Batch Tracking</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
@@ -144,7 +144,7 @@
       <img src="FARM RIO LOGO.png" alt="Farm Rio" class="logo-fr" />
       <div class="top-bar-info">
         <strong>Sample Batch Tracking</strong>
-        Fill rows and click Save — only rows with a Tracking # are saved
+        Fill rows and click Save â€” only rows with a Tracking # are saved
       </div>
     </div>
     <div class="save-area">
@@ -158,7 +158,7 @@
 
   <div class="table-card">
     <div class="section-hdr">
-      <span>Anthropologie — Sample Database New</span>
+      <span>Anthropologie â€” Sample Database New</span>
       <span class="section-hdr-note">Rows with Tracking # are upserted on save</span>
     </div>
     <div class="table-scroll">
@@ -191,7 +191,7 @@ function toggleNav() { document.getElementById('nav-links').classList.toggle('op
 
 const CATEGORIES = ['','Blouses','Dresses','Jumpsuit','Knit','LOUNGE','Pants','Shorts','Skirts','Sweaters','Swimwear','Accessories','OTHER'];
 const BUYERS     = ['','JULIE/DRESSES','IVY/SWIM','ALY/BLOUSES','CAROLINE/BOTTOM','ABBY/SKIRTS','Jacqueline Mazzi/ KNITS','MC Miskuly/Maternity/Nuuly'];
-const TYPES      = ['','TOP OF PRODUCTION','PROTO','SALESMAN SAMPLE','FIT SAMPLE','PHOTO SAMPLE','PRESS SAMPLE','COUNTER SAMPLE','BULK APPROVED SAMPLE','OTHER'];
+const TYPES      = ['','PROTO SAMPLE','SMS SAMPLE','1ST FIT SAMPLE','2ND FIT SAMPLE','3RD FIT SAMPLE','PHOTO SAMPLE','TOP SAMPLE','PHOTO & TOP SAMPLE','STRIKE OFF / MOCK UP'];
 const SUPPLIERS  = ['','ECICO','GAIA','H&F','HS FASHION','KONCEPTION','PQSWIM','S&S'];
 const CREATORS   = ['','IGO GARDEL','Kamilla Aguiar','Paula Erthal','Ozan Guruscu','Flavio Azevedo','Eduardo Moraes','Julian Fajardo','Manuela Carvalho'];
 
@@ -310,5 +310,6 @@ async function saveAll() {
   }
 }
 </script>
+<script src="/auth.js"></script>
 </body>
 </html>
