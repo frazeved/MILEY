@@ -430,19 +430,26 @@ router.get('/dashboard', async (req, res) => {
       if (noPrint) monthMap[key].missingPrint++;
     });
 
-    // 4 months starting from next month
+    // Show the 4 months with data, or fall back to current month + next 3
     const nowMonth = new Date().getMonth() + 1;
-    const months = [1, 2, 3, 4].map(i => {
-      const m  = (nowMonth % 12) + i;
-      const mm = m > 12 ? m - 12 : m;
-      return {
-        label:        MONTH_NAMES[mm],
-        sortKey:      mm,
-        count:        monthMap[mm]?.count        || 0,
-        missingTp:    monthMap[mm]?.missingTp    || 0,
-        missingPrint: monthMap[mm]?.missingPrint || 0,
-      };
-    });
+    const monthsWithData = Object.keys(monthMap).map(Number).sort((a, b) => a - b);
+    let displayMonths;
+    if (monthsWithData.length > 0) {
+      // Use months that actually have data; cap at 4 nearest to current month
+      displayMonths = monthsWithData.slice(-4);
+    } else {
+      displayMonths = [0, 1, 2, 3].map(i => {
+        let mm = nowMonth + i;
+        return mm > 12 ? mm - 12 : mm;
+      });
+    }
+    const months = displayMonths.map(mm => ({
+      label:        MONTH_NAMES[mm],
+      sortKey:      mm,
+      count:        monthMap[mm]?.count        || 0,
+      missingTp:    monthMap[mm]?.missingTp    || 0,
+      missingPrint: monthMap[mm]?.missingPrint || 0,
+    }));
 
     res.json({ total, missingTp, missingPrint, months });
   } catch (e) {
