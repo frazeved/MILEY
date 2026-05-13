@@ -441,46 +441,58 @@ router.post('/generate-tp', async (req, res) => {
     // 5. Generate the modified PPTX as a Buffer
     const pptxBuf = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
 
-    // 6. Upload via raw fetch multipart — avoids googleapis stream-handling issues
+    // 6. Resumable upload — reliable for any file size, no multipart body issues
     const safe = s => (s || '').replace(/[\\/:*?"<>|#\[\]\r\n]/g, '').trim();
     const cleanStyle = (style || '').replace(/^[A-Za-z]+-?/, '');
     const fileName = `${safe(norm(model))} - ${safe(supplier || '')} - ${safe(cleanStyle)}`;
 
     const { token: accessToken } = await authClient.getAccessToken();
-    const boundary = 'tp_boundary_' + Date.now().toString(36);
-    const metadata  = JSON.stringify({
-      name: fileName,
-      mimeType: 'application/vnd.google-apps.presentation',
-      parents: [folderId],
-    });
-    const CRLF = '\r\n';
     const pptxMime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
-    const multipartBody = Buffer.concat([
-      Buffer.from(`--${boundary}${CRLF}Content-Type: application/json; charset=UTF-8${CRLF}${CRLF}${metadata}${CRLF}--${boundary}${CRLF}Content-Type: ${pptxMime}${CRLF}${CRLF}`),
-      pptxBuf,
-      Buffer.from(`${CRLF}--${boundary}--`),
-    ]);
 
-    const uploadFetch = await fetch(
-      `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id`,
+    // Step 6a: initiate the resumable session (metadata only)
+    const initResp = await fetch(
+      `https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true&fields=id`,
       {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': `multipart/related; boundary=${boundary}`,
-          'Content-Length': String(multipartBody.length),
+          'Content-Type': 'application/json; charset=UTF-8',
+          'X-Upload-Content-Type': pptxMime,
+          'X-Upload-Content-Length': String(pptxBuf.length),
         },
-        body: multipartBody,
+        body: JSON.stringify({
+          name: fileName,
+          mimeType: 'application/vnd.google-apps.presentation',
+          parents: [folderId],
+        }),
       }
     );
-    const uploadData = await uploadFetch.json();
-    if (!uploadFetch.ok) {
-      const detail = uploadData?.error?.message || uploadFetch.statusText;
-      console.error('[rebeca/generate-tp] upload failed:', detail, JSON.stringify(uploadData));
-      return res.status(500).json({ error: `Upload failed: ${detail}` });
+    if (!initResp.ok) {
+      const initJson = await initResp.json().catch(() => ({}));
+      const detail = initJson?.error?.message || initResp.statusText;
+      console.error('[rebeca/generate-tp] upload init failed:', detail, JSON.stringify(initJson));
+      return res.status(500).json({ error: `Upload init failed: ${detail}` });
+    }
+    const uploadUri = initResp.headers.get('location');
+    if (!uploadUri) return res.status(500).json({ error: 'Drive returned no upload URI' });
+
+    // Step 6b: PUT the PPTX content to the upload URI
+    const putResp = await fetch(uploadUri, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': pptxMime,
+        'Content-Length': String(pptxBuf.length),
+      },
+      body: pptxBuf,
+    });
+    const putData = await putResp.json().catch(() => ({}));
+    if (!putResp.ok) {
+      const detail = putData?.error?.message || putResp.statusText;
+      console.error('[rebeca/generate-tp] upload PUT failed:', detail, JSON.stringify(putData));
+      return res.status(500).json({ error: `Upload PUT failed: ${detail}` });
     }
 
-    const newId = uploadData.id;
+    const newId = putData.id;
     res.json({
       ok: true,
       presentationUrl: `https://docs.google.com/presentation/d/${newId}/edit`,
