@@ -24,7 +24,7 @@ function requireCreds(res) {
   return true;
 }
 
-// ─── Search Style ─────────────────────────────────────────────────────────────
+// Search Style
 router.get('/search-style', async (req, res) => {
   const styleNum = String(req.query.style || '').trim().toUpperCase();
   if (!styleNum) return res.status(400).json({ error: 'Style # required' });
@@ -66,7 +66,7 @@ router.get('/search-style', async (req, res) => {
   }
 });
 
-// ─── Save / Create Style ──────────────────────────────────────────────────────
+// Save / Create Style
 router.post('/save-style', async (req, res) => {
   const formData = req.body || {};
   const styleNum = String(formData['STYLE #'] || '').trim().toUpperCase();
@@ -131,9 +131,8 @@ router.post('/save-style', async (req, res) => {
   }
 });
 
-// ─── Delete Style from all sheets ─────────────────────────────────────────────
-// Uses values.update + values.clear (same API as save) — avoids batchUpdate/deleteDimension failures.
-// Strategy: shift all rows above the deleted row down by one, then clear the now-empty last row.
+// Delete Style from all sheets
+// Uses values.update + values.clear — avoids batchUpdate/deleteDimension failures.
 router.delete('/delete-style', async (req, res) => {
   const styleNum = String(req.query.style || '').trim().toUpperCase();
   if (!styleNum) return res.status(400).json({ error: 'STYLE # required' });
@@ -166,14 +165,11 @@ router.delete('/delete-style', async (req, res) => {
     const rowIdx = rows.slice(1).findIndex(r => String(r[styleCol] || '').trim().toUpperCase() === styleNum);
     if (rowIdx < 0) continue;
 
-    // Sheet row of the deleted style (1-based): header=1, first data=2
-    const deletedSheetRow = rowIdx + 2;
+    const deletedSheetRow = rowIdx + 2; // 1-based; header=1, first data=2
     const lastSheetRow    = rows.length;
-    // Rows that need to shift up: everything after the deleted row
-    const rowsToShift = rows.slice(rowIdx + 2);
+    const rowsToShift     = rows.slice(rowIdx + 2); // rows after the deleted one
 
     try {
-      // Write shifted rows starting at the deleted row's position (never touches header row 1)
       if (rowsToShift.length > 0) {
         await sheets.spreadsheets.values.update({
           spreadsheetId: SHEET_ID,
@@ -182,7 +178,6 @@ router.delete('/delete-style', async (req, res) => {
           requestBody: { values: rowsToShift },
         });
       }
-      // Clear the now-empty last row
       await sheets.spreadsheets.values.clear({
         spreadsheetId: SHEET_ID,
         range: `'${tab}'!A${lastSheetRow}:ZZ${lastSheetRow}`,
@@ -202,7 +197,9 @@ router.delete('/delete-style', async (req, res) => {
   res.json({ ok: true, deletedFrom, skipped });
 });
 
-// ─── TP Generator ─────────────────────────────────────────────────────────────
+// TP Generator
+// Exports the template as PPTX, edits the ZIP directly (tokens + CAD image),
+// then re-uploads as Google Slides. No Slides API required.
 router.post('/generate-tp', async (req, res) => {
   if (!requireCreds(res)) return;
 
@@ -226,7 +223,6 @@ router.post('/generate-tp', async (req, res) => {
 
   const folderId = '1CTH7KZzFJLd-a4bN51MEMmSF7LiOc1f6';
 
-  // Extract Drive file ID from CAD URL (Drive sharing link or uc?id= URL)
   const extractFileId = url => {
     const m1 = (url || '').match(/\/d\/([a-zA-Z0-9_-]+)/);
     if (m1) return m1[1];
@@ -235,10 +231,9 @@ router.post('/generate-tp', async (req, res) => {
   };
   const cadFileId = extractFileId(cadUrl);
 
-  // SAMPLE_DUE_DATE = tpSentToSupplier + 14 days
   const padZ = n => String(n).padStart(2, '0');
   const fmtDate = d => (!d || isNaN(d)) ? '' : `${padZ(d.getMonth()+1)}/${padZ(d.getDate())}/${d.getFullYear()}`;
-  const parseSheetDate = s => { // YYYY-MM-DD → display MM/DD/YYYY
+  const parseSheetDate = s => {
     if (!s) return '';
     const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     return m ? `${m[2]}/${m[3]}/${m[1]}` : s;
@@ -249,98 +244,215 @@ router.post('/generate-tp', async (req, res) => {
     if (!isNaN(d)) { d.setDate(d.getDate() + 14); sampleDueDate = fmtDate(d); }
   }
 
+  const escapeXml = s => String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+
+  const tokens = {
+    '{{STYLE}}': style, '{{STYLE #}}': style, '{{DESIGN_STYLE}}': style,
+    '{{CATEGORY}}': category || '', '{{SUB_CATEGORY}}': subCategory || '',
+    '{{FABRIC}}': fabric || '', '{{PRINT_TYPE}}': printType || '',
+    '{{PRINT_NAME}}': printName || '', '{{SUPPLIER}}': supplier || '',
+    '{{PRINT_SENT_TO_SUPPLIER}}': parseSheetDate(printSentToSupplier),
+    '{{PRINT_SENT_TO_SUP}}':      parseSheetDate(printSentToSupplier),
+    '{{TP_SENT_TO_SUPPLIER}}':    parseSheetDate(tpSentToSupplier),
+    '{{SAMPLE_DUE_DATE}}':        sampleDueDate,
+    '{{SAMPLE_SIZE}}':            'SMALL 4/6',
+    '{{TECHNICAL_DESIGNER}}':     'bertha@creativetwotwelve.com',
+    '{{CAD_URL}}':                cadUrl || '',
+    '{{CAD_IMAGE}}':              '', // cleared if no actual image is inserted
+  };
+
+  // Merge text runs within a paragraph so split tokens get joined before replacement.
+  const mergeRunsInPara = paraXml => {
+    const runMatches = [];
+    const runRe = /<a:r>([\s\S]*?)<\/a:r>/g;
+    let m;
+    while ((m = runRe.exec(paraXml)) !== null)
+      runMatches.push({ start: m.index, end: m.index + m[0].length, inner: m[1] });
+    if (runMatches.length < 2) return paraXml;
+
+    const texts = runMatches.map(r => {
+      const tm = r.inner.match(/<a:t[^>]*>([\s\S]*?)<\/a:t>/);
+      return tm ? tm[1] : '';
+    });
+    const combined = texts.join('');
+    if (!Object.keys(tokens).some(k => combined.includes(k))) return paraXml;
+
+    const rPrM = runMatches[0].inner.match(/<a:rPr[\s\S]*?(?:\/>|<\/a:rPr>)/);
+    const rPr  = rPrM ? rPrM[0] : '';
+    const merged = `<a:r>${rPr}<a:t>${combined}</a:t></a:r>`;
+    return (
+      paraXml.slice(0, runMatches[0].start) +
+      merged +
+      paraXml.slice(runMatches[runMatches.length - 1].end)
+    );
+  };
+
+  const replaceTokens = xml => {
+    let out = xml.replace(/<a:p(?:\s[^>]*)?>[\s\S]*?<\/a:p>/g, mergeRunsInPara);
+    for (const [ph, val] of Object.entries(tokens)) {
+      const esc = ph.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      out = out.replace(new RegExp(esc, 'g'), escapeXml(String(val ?? '')));
+    }
+    return out;
+  };
+
   try {
     const sa = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
     const auth = new google.auth.GoogleAuth({
       credentials: sa,
-      scopes: ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/presentations'],
+      scopes: ['https://www.googleapis.com/auth/drive'],
     });
     const authClient = await auth.getClient();
-    const drive  = google.drive({ version: 'v3', auth: authClient });
-    const slides = google.slides({ version: 'v1', auth: authClient });
+    const drive = google.drive({ version: 'v3', auth: authClient });
 
-    // Build presentation file name
-    const safe = s => (s || '').replace(/[\\/:*?"<>|#\[\]\r\n]/g, '').trim();
-    const cleanStyle = (style || '').replace(/^[A-Za-z]+-?/, '');
-    const copyName = `${safe(norm(model))} – ${safe(supplier || '')} – ${safe(cleanStyle)}`;
+    // 1. Export the template as a PPTX binary
+    const exportResp = await drive.files.export(
+      {
+        fileId: templateId,
+        mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      },
+      { responseType: 'arraybuffer' }
+    );
 
-    // Copy template into destination folder
-    const copyRes = await drive.files.copy({
-      fileId: templateId,
-      supportsAllDrives: true,
-      requestBody: { name: copyName, parents: [folderId] },
-    });
-    const copyId = copyRes.data.id;
+    // 2. Open the ZIP (PPTX is a ZIP archive)
+    const JSZip = require('jszip');
+    const zip = await JSZip.loadAsync(Buffer.from(exportResp.data));
 
-    // Get presentation structure to find {{CAD_IMAGE}} placeholder shapes
-    const presData = await slides.presentations.get({ presentationId: copyId });
+    // 3. Download the CAD image via Drive API
+    let cadImgBuf = null, cadImgMime = 'image/png', cadImgExt = 'png';
+    if (cadFileId) {
+      try {
+        const imgResp = await drive.files.get(
+          { fileId: cadFileId, alt: 'media' },
+          { responseType: 'arraybuffer' }
+        );
+        cadImgBuf = Buffer.from(imgResp.data);
+        const ct  = (imgResp.headers?.['content-type'] || 'image/png').split(';')[0].trim();
+        cadImgMime = ct;
+        cadImgExt  = (ct.includes('jpg') || ct.includes('jpeg')) ? 'jpg' : 'png';
+      } catch (e) {
+        console.warn('[rebeca/generate-tp] CAD image download failed:', e.message);
+      }
+    }
 
-    // Text token replacement requests
-    const tokens = {
-      '{{STYLE}}':                  style,
-      '{{STYLE #}}':                style,
-      '{{DESIGN_STYLE}}':           style,
-      '{{CATEGORY}}':               category || '',
-      '{{SUB_CATEGORY}}':           subCategory || '',
-      '{{FABRIC}}':                 fabric || '',
-      '{{PRINT_TYPE}}':             printType || '',
-      '{{PRINT_NAME}}':             printName || '',
-      '{{SUPPLIER}}':               supplier || '',
-      '{{PRINT_SENT_TO_SUPPLIER}}': parseSheetDate(printSentToSupplier),
-      '{{PRINT_SENT_TO_SUP}}':      parseSheetDate(printSentToSupplier),
-      '{{TP_SENT_TO_SUPPLIER}}':    parseSheetDate(tpSentToSupplier),
-      '{{SAMPLE_DUE_DATE}}':        sampleDueDate,
-      '{{SAMPLE_SIZE}}':            'SMALL 4/6',
-      '{{TECHNICAL_DESIGNER}}':     'bertha@creativetwotwelve.com',
-      '{{CAD_URL}}':                cadUrl || '',
-    };
-    const requests = Object.entries(tokens).map(([ph, val]) => ({
-      replaceAllText: { containsText: { text: ph, matchCase: true }, replaceText: String(val ?? '') },
-    }));
+    // 4. Process each slide XML
+    const INCH = 914400; // EMU per inch
+    let imgIdx = 500;
+    let ctNeedsUpdate = false;
 
-    // Find {{CAD_IMAGE}} placeholder shapes and replace with actual image
-    if (cadFileId || cadUrl) {
-      const cadImgUrl = cadFileId
-        ? `https://drive.google.com/uc?export=view&id=${cadFileId}`
-        : cadUrl;
-      const INCH = 914400; // EMU per inch
-      for (const slide of (presData.data.slides || [])) {
-        for (const el of (slide.pageElements || [])) {
-          if (!el.shape?.text) continue;
-          const text = (el.shape.text.textElements || [])
-            .map(te => te.textRun?.content || '').join('').trim();
-          if (text === '{{CAD_IMAGE}}') {
-            requests.push(
-              { deleteObject: { objectId: el.objectId } },
-              {
-                createImage: {
-                  url: cadImgUrl,
-                  elementProperties: {
-                    pageObjectId: slide.objectId,
-                    size: {
-                      width:  { magnitude: Math.round(2.59 * INCH), unit: 'EMU' },
-                      height: { magnitude: Math.round(7.00 * INCH), unit: 'EMU' },
-                    },
-                    transform: {
-                      scaleX: 1, scaleY: 1, shearX: 0, shearY: 0,
-                      translateX: Math.round(0.97 * INCH),
-                      translateY: Math.round(1.61 * INCH),
-                      unit: 'EMU',
-                    },
-                  },
-                },
-              }
-            );
-          }
+    const slideKeys = Object.keys(zip.files)
+      .filter(f => /^ppt\/slides\/slide\d+\.xml$/.test(f))
+      .sort((a, b) => {
+        const na = parseInt(a.match(/slide(\d+)/)[1]);
+        const nb = parseInt(b.match(/slide(\d+)/)[1]);
+        return na - nb;
+      });
+
+    for (const slidePath of slideKeys) {
+      let xml = await zip.files[slidePath].async('string');
+      const slideNum = slidePath.match(/slide(\d+)\.xml$/)[1];
+      const relsPath = `ppt/slides/_rels/slide${slideNum}.xml.rels`;
+      let relsXml = zip.files[relsPath]
+        ? await zip.files[relsPath].async('string')
+        : `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`;
+
+      // Replace {{CAD_IMAGE}} placeholder shape with a real image element
+      let cadInserted = false, cadRId = '', cadName = '';
+      if (cadImgBuf) {
+        xml = xml.replace(/<p:sp>[\s\S]*?<\/p:sp>/g, shapeXml => {
+          if (cadInserted) return shapeXml;
+          const texts = [];
+          const aRe = /<a:t[^>]*>([\s\S]*?)<\/a:t>/g;
+          let am;
+          while ((am = aRe.exec(shapeXml)) !== null) texts.push(am[1]);
+          if (texts.join('').trim() !== '{{CAD_IMAGE}}') return shapeXml;
+
+          cadInserted = true;
+          imgIdx++;
+          cadName = `image${imgIdx}.${cadImgExt}`;
+          cadRId  = `rIdImg${imgIdx}`;
+          zip.file(`ppt/media/${cadName}`, cadImgBuf);
+          ctNeedsUpdate = true;
+
+          const x = Math.round(0.97 * INCH);
+          const y = Math.round(1.61 * INCH);
+          const w = Math.round(2.59 * INCH);
+          const h = Math.round(7.00 * INCH);
+          return (
+            `<p:pic>` +
+            `<p:nvPicPr>` +
+              `<p:cNvPr id="${9900 + imgIdx}" name="${cadName}"/>` +
+              `<p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr>` +
+              `<p:nvPr/>` +
+            `</p:nvPicPr>` +
+            `<p:blipFill>` +
+              `<a:blip r:embed="${cadRId}"/>` +
+              `<a:stretch><a:fillRect/></a:stretch>` +
+            `</p:blipFill>` +
+            `<p:spPr>` +
+              `<a:xfrm><a:off x="${x}" y="${y}"/><a:ext cx="${w}" cy="${h}"/></a:xfrm>` +
+              `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>` +
+            `</p:spPr>` +
+            `</p:pic>`
+          );
+        });
+
+        if (cadInserted) {
+          relsXml = relsXml.replace(
+            '</Relationships>',
+            `<Relationship Id="${cadRId}" ` +
+            `Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" ` +
+            `Target="../media/${cadName}"/></Relationships>`
+          );
+          zip.file(relsPath, relsXml);
+        }
+      }
+
+      // Text token replacement
+      xml = replaceTokens(xml);
+      zip.file(slidePath, xml);
+    }
+
+    // Update [Content_Types].xml for the new image extension if needed
+    if (ctNeedsUpdate) {
+      const ctPath = '[Content_Types].xml';
+      if (zip.files[ctPath]) {
+        let ctXml = await zip.files[ctPath].async('string');
+        if (!ctXml.includes(`Extension="${cadImgExt}"`)) {
+          ctXml = ctXml.replace('</Types>', `<Default Extension="${cadImgExt}" ContentType="${cadImgMime}"/></Types>`);
+          zip.file(ctPath, ctXml);
         }
       }
     }
 
-    await slides.presentations.batchUpdate({ presentationId: copyId, requestBody: { requests } });
+    // 5. Generate the modified PPTX as a Buffer
+    const pptxBuf = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
 
+    // 6. Upload to Drive as Google Slides (Drive converts PPTX on import)
+    const safe = s => (s || '').replace(/[\\/:*?"<>|#\[\]\r\n]/g, '').trim();
+    const cleanStyle = (style || '').replace(/^[A-Za-z]+-?/, '');
+    const fileName = `${safe(norm(model))} - ${safe(supplier || '')} - ${safe(cleanStyle)}`;
+
+    const uploadResp = await drive.files.create({
+      requestBody: {
+        name: fileName,
+        mimeType: 'application/vnd.google-apps.presentation',
+        parents: [folderId],
+      },
+      media: {
+        mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        body: Readable.from(pptxBuf),
+      },
+      supportsAllDrives: true,
+      fields: 'id',
+    });
+
+    const newId = uploadResp.data.id;
     res.json({
       ok: true,
-      presentationUrl: `https://docs.google.com/presentation/d/${copyId}/edit`,
+      presentationUrl: `https://docs.google.com/presentation/d/${newId}/edit`,
       folderUrl: `https://drive.google.com/drive/folders/${folderId}`,
     });
   } catch (e) {
@@ -350,7 +462,7 @@ router.post('/generate-tp', async (req, res) => {
   }
 });
 
-// ─── Dashboard stats ──────────────────────────────────────────────────────────
+// Dashboard stats
 router.get('/dashboard', async (req, res) => {
   if (!requireCreds(res)) return;
   try {
@@ -371,7 +483,6 @@ router.get('/dashboard', async (req, res) => {
     const printCol = col('PRINT SENT TO SUPPLIER');
     const ndcCol   = col('NDC MONTH/YEAR');
 
-    // Only 2026 styles with a style number
     const styleRows = rows.slice(1).filter(r => {
       if (!String(r[styleCol] || '').trim()) return false;
       const ndc = String(r[ndcCol] || '').trim();
@@ -382,7 +493,6 @@ router.get('/dashboard', async (req, res) => {
     const missingTp    = styleRows.filter(r => !String(r[tpCol]    || '').trim()).length;
     const missingPrint = styleRows.filter(r => !String(r[printCol] || '').trim()).length;
 
-    // Group by month — last 4 months with data, each with its own TP/Print counts
     const monthMap = {};
     styleRows.forEach(r => {
       const ndc = String(r[ndcCol] || '').trim();
@@ -412,12 +522,11 @@ router.get('/dashboard', async (req, res) => {
   }
 });
 
-// ─── CAD Image proxy (bypasses Google Drive embed restrictions) ───────────────
+// CAD Image proxy (bypasses Google Drive embed restrictions)
 router.get('/cad-image', async (req, res) => {
   const fileId = String(req.query.id || '').trim();
   if (!fileId) return res.status(400).end();
   try {
-    // Google Drive direct download URL
     const driveUrl = `https://drive.google.com/uc?export=download&id=${encodeURIComponent(fileId)}`;
     const r = await fetch(driveUrl, {
       redirect: 'follow',
@@ -425,7 +534,6 @@ router.get('/cad-image', async (req, res) => {
     });
     if (!r.ok) return res.status(502).end();
     const ct = r.headers.get('content-type') || 'image/jpeg';
-    // If Google returns HTML (virus/size warning page) treat as not found
     if (ct.includes('text/html')) return res.status(404).end();
     res.setHeader('Content-Type', ct);
     res.setHeader('Cache-Control', 'public, max-age=86400');
