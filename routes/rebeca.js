@@ -308,18 +308,28 @@ router.post('/generate-tp', async (req, res) => {
     const drive = google.drive({ version: 'v3', auth: authClient });
 
     // 1. Export the template as a PPTX binary
-    const exportResp = await drive.files.export(
-      {
-        fileId: templateId,
-        mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      },
-      { responseType: 'arraybuffer' }
-    );
+    let exportResp;
+    try {
+      exportResp = await drive.files.export(
+        { fileId: templateId, mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' },
+        { responseType: 'arraybuffer' }
+      );
+    } catch (e) {
+      const detail = e.response?.data?.error?.message || e.message;
+      console.error('[rebeca/generate-tp] export failed:', detail);
+      return res.status(500).json({ error: `Export failed: ${detail}` });
+    }
 
     // 2. Open the ZIP (PPTX is a ZIP archive)
     const JSZip = require('jszip');
-    const rawExport = exportResp.data;
-    const zip = await JSZip.loadAsync(Buffer.isBuffer(rawExport) ? rawExport : Buffer.from(rawExport));
+    let zip;
+    try {
+      const rawExport = exportResp.data;
+      zip = await JSZip.loadAsync(Buffer.isBuffer(rawExport) ? rawExport : Buffer.from(rawExport));
+    } catch (e) {
+      console.error('[rebeca/generate-tp] zip load failed:', e.message);
+      return res.status(500).json({ error: `ZIP load failed: ${e.message}` });
+    }
 
     // 3. Download the CAD image via Drive API
     let cadImgBuf = null, cadImgMime = 'image/png', cadImgExt = 'png';
@@ -431,27 +441,46 @@ router.post('/generate-tp', async (req, res) => {
     // 5. Generate the modified PPTX as a Buffer
     const pptxBuf = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
 
-    // 6. Upload to Drive as Google Slides (Drive converts PPTX on import)
+    // 6. Upload via raw fetch multipart — avoids googleapis stream-handling issues
     const safe = s => (s || '').replace(/[\\/:*?"<>|#\[\]\r\n]/g, '').trim();
     const cleanStyle = (style || '').replace(/^[A-Za-z]+-?/, '');
     const fileName = `${safe(norm(model))} - ${safe(supplier || '')} - ${safe(cleanStyle)}`;
 
-    // Readable.from([buf]) wraps buffer as a single chunk (not byte-by-byte)
-    const uploadResp = await drive.files.create({
-      requestBody: {
-        name: fileName,
-        mimeType: 'application/vnd.google-apps.presentation',
-        parents: [folderId],
-      },
-      media: {
-        mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        body: Readable.from([pptxBuf]),
-      },
-      supportsAllDrives: true,
-      fields: 'id',
+    const { token: accessToken } = await authClient.getAccessToken();
+    const boundary = 'tp_boundary_' + Date.now().toString(36);
+    const metadata  = JSON.stringify({
+      name: fileName,
+      mimeType: 'application/vnd.google-apps.presentation',
+      parents: [folderId],
     });
+    const CRLF = '\r\n';
+    const pptxMime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    const multipartBody = Buffer.concat([
+      Buffer.from(`--${boundary}${CRLF}Content-Type: application/json; charset=UTF-8${CRLF}${CRLF}${metadata}${CRLF}--${boundary}${CRLF}Content-Type: ${pptxMime}${CRLF}${CRLF}`),
+      pptxBuf,
+      Buffer.from(`${CRLF}--${boundary}--`),
+    ]);
 
-    const newId = uploadResp.data.id;
+    const uploadFetch = await fetch(
+      `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': `multipart/related; boundary=${boundary}`,
+          'Content-Length': String(multipartBody.length),
+        },
+        body: multipartBody,
+      }
+    );
+    const uploadData = await uploadFetch.json();
+    if (!uploadFetch.ok) {
+      const detail = uploadData?.error?.message || uploadFetch.statusText;
+      console.error('[rebeca/generate-tp] upload failed:', detail, JSON.stringify(uploadData));
+      return res.status(500).json({ error: `Upload failed: ${detail}` });
+    }
+
+    const newId = uploadData.id;
     res.json({
       ok: true,
       presentationUrl: `https://docs.google.com/presentation/d/${newId}/edit`,
