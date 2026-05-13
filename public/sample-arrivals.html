@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>305 Workspace — Next Arrivals</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f6fa; --surface: #fff; --border: #e4e7ed;
+      --text: #1a1d23; --muted: #6b7280;
+      --accent: #0891b2; --accent-lt: #ecfeff;
+      --blue-hdr: #1e3a8a; --blue-row: #dbeafe;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* NAV */
+    nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 50; }
+    .nav-brand { font-size: 16px; font-weight: 700; display: none; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .nav-link { font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: 6px; text-decoration: none; color: var(--muted); transition: background 0.15s, color 0.15s; white-space: nowrap; }
+    .nav-link:hover { background: var(--bg); color: var(--text); }
+    .nav-link.active { background: var(--accent-lt); color: var(--accent); }
+    .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--muted); line-height: 1; }
+    .nav-hamburger:hover { color: var(--text); }
+
+    /* MODE BAR */
+    .mode-bar { background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 10px 28px; font-size: 14px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; }
+    .mode-bar-left { display: flex; align-items: center; gap: 10px; }
+    .agent-badge { background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.28); border-radius: 6px; padding: 2px 10px; font-size: 11px; font-weight: 700; letter-spacing: 1px; }
+    .mode-bar a { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+    .mode-bar a:hover { color: #fff; }
+
+    /* PAGE */
+    .page-wrap { max-width: 1300px; margin: 0 auto; padding: 24px 24px 60px; }
+
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
+    .page-title { font-size: 18px; font-weight: 700; }
+    .page-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    /* TABLE */
+    .table-card { background: var(--surface); border: 2px solid var(--blue-hdr); border-radius: 10px; overflow: hidden; }
+    .table-hdr { background: var(--blue-hdr); color: #fff; padding: 10px 20px; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      background: #1e40af; color: #fff; font-size: 10px; font-weight: 700;
+      letter-spacing: 0.6px; text-transform: uppercase; padding: 10px 12px;
+      text-align: left; border-right: 1px solid #2d52c4; white-space: nowrap;
+    }
+    thead th:last-child { border-right: none; }
+
+    tbody tr:nth-child(odd)  { background: #fff; }
+    tbody tr:nth-child(even) { background: var(--blue-row); }
+    tbody tr:hover { background: #bfdbfe; }
+    tbody td { padding: 9px 12px; border-right: 1px solid #c7d9f7; border-bottom: 1px solid #dde8fb; font-size: 13px; }
+    tbody td:last-child { border-right: none; }
+
+    .col-eta    { width: 110px; }
+    .col-style  { width: 110px; }
+    .col-cat    { width: 130px; }
+    .col-attn   { width: 160px; }
+    .col-type   { width: 150px; }
+    .col-supp   { width: 120px; }
+    .col-track  { width: 180px; }
+    .col-disc   { min-width: 180px; }
+
+    @media (max-width: 640px) {
+      nav { padding: 0 16px; height: auto; min-height: 52px; position: relative; }
+      .nav-brand { display: block; }
+      .nav-hamburger { display: flex; align-items: center; }
+      .nav-links { display: none; position: absolute; top: 52px; left: 0; right: 0; background: var(--surface); border-bottom: 1px solid var(--border); flex-direction: column; padding: 6px 0 10px; gap: 0; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+      .nav-links.open { display: flex; }
+      .nav-link { padding: 11px 20px; border-radius: 0; font-size: 14px; }
+      .mode-bar { padding: 10px 16px; font-size: 12px; }
+      .page-wrap { padding: 16px 12px 40px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">305 <span>Workspace</span></div>
+  <button class="nav-hamburger" onclick="document.getElementById('nav-links').classList.toggle('open')" aria-label="Menu">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div class="nav-links" id="nav-links">
+    <a class="nav-link" href="/">&#8592; Home</a>
+    <a class="nav-link" href="warehouse.html">Warehouse Now</a>
+    <a class="nav-link" href="production.html">Production</a>
+    <a class="nav-link active" href="samples.html">Samples Tracking</a>
+    <a class="nav-link" href="design.html">Design</a>
+    <a class="nav-link" href="shipment.html">New Shipment</a>
+    <a class="nav-link" href="map.html">Map Updates</a>
+    <a class="nav-link" href="forecast.html">Forecast</a>
+    <a class="nav-link" href="gantt.html">Gantt Chart</a>
+    <a class="nav-link" href="tradestone.html">Tradestone Updates</a>
+    <a class="nav-link" href="rlm.html">RLM Updates</a>
+    <a class="nav-link" href="dhl.html">DHL Duties Cost</a>
+  </div>
+</nav>
+
+<div class="mode-bar">
+  <div class="mode-bar-left">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    Next Arrivals
+    <span class="agent-badge">PAUL</span>
+  </div>
+  <a href="samples.html">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to Samples
+  </a>
+</div>
+
+<div class="page-wrap">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Next Arrivals</div>
+      <div class="page-sub">Anthropologie — Samples arriving next</div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-hdr">Upcoming Sample Arrivals</div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="col-eta">ETA</th>
+            <th class="col-style">Style</th>
+            <th class="col-cat">Category</th>
+            <th class="col-attn">Attn / Buyer</th>
+            <th class="col-type">Sample Type</th>
+            <th class="col-supp">Supplier</th>
+            <th class="col-track">Tracking #</th>
+            <th class="col-disc">Disclaimer / Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
