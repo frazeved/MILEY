@@ -318,7 +318,8 @@ router.post('/generate-tp', async (req, res) => {
 
     // 2. Open the ZIP (PPTX is a ZIP archive)
     const JSZip = require('jszip');
-    const zip = await JSZip.loadAsync(Buffer.from(exportResp.data));
+    const rawExport = exportResp.data;
+    const zip = await JSZip.loadAsync(Buffer.isBuffer(rawExport) ? rawExport : Buffer.from(rawExport));
 
     // 3. Download the CAD image via Drive API
     let cadImgBuf = null, cadImgMime = 'image/png', cadImgExt = 'png';
@@ -435,6 +436,7 @@ router.post('/generate-tp', async (req, res) => {
     const cleanStyle = (style || '').replace(/^[A-Za-z]+-?/, '');
     const fileName = `${safe(norm(model))} - ${safe(supplier || '')} - ${safe(cleanStyle)}`;
 
+    // Pass Buffer directly — Readable.from(Buffer) iterates bytes, not chunks
     const uploadResp = await drive.files.create({
       requestBody: {
         name: fileName,
@@ -443,7 +445,7 @@ router.post('/generate-tp', async (req, res) => {
       },
       media: {
         mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        body: Readable.from(pptxBuf),
+        body: pptxBuf,
       },
       supportsAllDrives: true,
       fields: 'id',
