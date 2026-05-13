@@ -34,6 +34,12 @@ const AUTH_USERS = [
     name:     'Manuela Carvalho',
     role:     'user',
   },
+  {
+    email:    'samples@creativetwotwelve.com',
+    password: process.env.IGO_PASSWORD || '',
+    name:     'Igo Gardel',
+    role:     'user',
+  },
 ];
 
 // ─── Auth middleware ──────────────────────────────────────────────────────────
