@@ -516,11 +516,13 @@ async function saveSample() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          style:      payload['STYLE'],
-          tracking:   payload['TRACKING'],
-          sampleType: payload['SAMPLE TYPE'],
-          attnBuyer:  payload['ATTN / BUYER'],
-          disclaimer: payload['DISCLAIMER'],
+          attnBuyer: payload['ATTN / BUYER'],
+          samples: [{
+            style:      payload['STYLE'],
+            tracking:   payload['TRACKING'],
+            sampleType: payload['SAMPLE TYPE'],
+            disclaimer: payload['DISCLAIMER'],
+          }],
         }),
       });
       const dj = await dr.json();

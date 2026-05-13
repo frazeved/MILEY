@@ -220,12 +220,22 @@ for (let i = 1; i <= ROWS; i++) {
   tbody.appendChild(tr);
 }
 
-function showToast(msg, color) {
+function showToast(msg, color, duration) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.style.background = color || '#1a1d23';
+  t.style.pointerEvents = 'none';
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
+  setTimeout(() => t.classList.remove('show'), duration || 3000);
+}
+
+function showToastHTML(html, color, duration) {
+  const t = document.getElementById('toast');
+  t.innerHTML = html;
+  t.style.background = color || '#1a1d23';
+  t.style.pointerEvents = 'auto';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration || 6000);
 }
 
 function toMDY(val) {
@@ -276,7 +286,8 @@ async function saveAll() {
   });
 
   let saved = 0, errors = 0;
-  for (const { i, payload } of rows) {
+  for (const row of rows) {
+    const { i, payload } = row;
     const dot = document.getElementById(`dot-${i}`);
     try {
       const res  = await fetch('/api/paul/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -284,6 +295,7 @@ async function saveAll() {
       if (!res.ok) throw new Error(json.error || 'Error');
       dot.className = 'row-dot saved';
       dot.title = json.action === 'updated' ? 'Updated' : 'Created';
+      row.savedOk = true;
       saved++;
     } catch (e) {
       dot.className = 'row-dot error';
@@ -293,9 +305,50 @@ async function saveAll() {
   }
 
   status.textContent = `${saved} saved${errors ? `, ${errors} failed` : ''}`;
-  showToast(errors ? `${saved} saved, ${errors} failed` : `${saved} row${saved > 1 ? 's' : ''} saved!`, errors ? '#dc2626' : '#16a34a');
-  btn.disabled = false;
-  btn.innerHTML = btn.innerHTML.replace('Saving...', 'Save All');
+  if (saved === 0) {
+    showToast(errors ? `${errors} failed` : `${saved} saved`, errors ? '#dc2626' : '#16a34a');
+    btn.disabled = false;
+    btn.innerHTML = btn.innerHTML.replace('Saving...', 'Save All');
+  } else {
+    showToast(errors ? `${saved} saved, ${errors} failed` : `${saved} row${saved > 1 ? 's' : ''} saved!`, errors ? '#dc2626' : '#16a34a');
+
+    // Group saved rows by ATTN/BUYER and send one draft per buyer
+    btn.innerHTML = btn.innerHTML.replace('Saving...', 'Drafting...');
+    const byBuyer = {};
+    for (const { payload, savedOk } of rows) {
+      if (!savedOk) continue;
+      const buyer = payload['ATTN / BUYER'];
+      if (!buyer) continue;
+      if (!byBuyer[buyer]) byBuyer[buyer] = [];
+      byBuyer[buyer].push({ style: payload['STYLE'], tracking: payload['TRACKING'], sampleType: payload['SAMPLE TYPE'], disclaimer: payload['DISCLAIMER'] });
+    }
+    let draftsOk = 0, draftErrors = [];
+    for (const [attnBuyer, samplesArr] of Object.entries(byBuyer)) {
+      try {
+        const dr  = await fetch('/api/paul/draft-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ attnBuyer, samples: samplesArr }) });
+        const dj  = await dr.json();
+        if (dr.ok) {
+          draftsOk++;
+        } else if (dj.error && dj.error.includes('not connected')) {
+          showToastHTML(
+            `${saved} saved &nbsp;·&nbsp; ` + dj.error + ' &mdash; ' +
+            '<a href="/setup" target="_blank" style="color:#fff;font-weight:700;text-decoration:underline;">Connect at /setup</a>',
+            '#b45309', 10000
+          );
+          btn.disabled = false; btn.innerHTML = btn.innerHTML.replace('Drafting...', 'Save All'); return;
+        } else {
+          draftErrors.push(dj.error || 'Draft failed');
+        }
+      } catch (e) { draftErrors.push(e.message); }
+    }
+    if (draftErrors.length) {
+      showToast(`${saved} saved · Draft error: ${draftErrors[0]}`, '#b45309', 6000);
+    } else if (draftsOk) {
+      showToast(`${saved} saved · ${draftsOk} draft${draftsOk > 1 ? 's' : ''} created`, '#16a34a', 4000);
+    }
+    btn.disabled = false;
+    btn.innerHTML = btn.innerHTML.replace('Drafting...', 'Save All');
+  }
 
   // Clear all rows
   for (let i = 1; i <= ROWS; i++) {

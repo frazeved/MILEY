@@ -780,10 +780,9 @@ const PAUL_CC = [
 
 app.post('/api/paul/draft-email', async (req, res) => {
   try {
-    const { style, tracking, sampleType, attnBuyer, disclaimer } = req.body || {};
-    if (!tracking)   return res.status(400).json({ error: 'Tracking # is required' });
-    if (!attnBuyer)  return res.status(400).json({ error: 'Attn/Buyer is required' });
-    if (!sampleType) return res.status(400).json({ error: 'Sample Type is required' });
+    const { attnBuyer, samples } = req.body || {};
+    if (!attnBuyer)                                    return res.status(400).json({ error: 'Attn/Buyer is required' });
+    if (!Array.isArray(samples) || !samples.length)    return res.status(400).json({ error: 'samples array is required' });
 
     // Use the logged-in user's Gmail account
     const sessionUser = req.session?.user;
@@ -816,14 +815,37 @@ app.post('/api/paul/draft-email', async (req, res) => {
     };
     const catLabel = CAT_LABEL[mapping.category] || mapping.category.toLowerCase();
 
-    const subject = `FARM RIO // Style# ${style || ''} - Tracking ${tracking} - ${sampleType}`;
+    let subject, htmlBody;
 
-    const htmlBody =
-      `<p>Hello ${leadFirst} and ${catLabel} team,</p>` +
-      `<p>We sent you the style below by tracking <strong>${tracking}</strong><br>` +
-      `<strong>${style || ''}</strong>${style ? ' - ' : ''}${sampleType}</p>` +
-      (disclaimer ? `<p>${disclaimer}</p>` : '') +
-      `<p>Best regards,<br>${sessionUser.name}<br>305 Consulting and Production</p>`;
+    if (samples.length === 1) {
+      const s = samples[0];
+      subject = `FARM RIO // Style# ${s.style || ''} - Tracking ${s.tracking} - ${s.sampleType}`;
+      htmlBody =
+        `<p>Hello ${leadFirst} and ${catLabel} team,</p>` +
+        `<p>We sent you the style below by tracking <strong>${s.tracking}</strong><br>` +
+        `<strong>${s.style || ''}</strong>${s.style ? ' - ' : ''}${s.sampleType}</p>` +
+        (s.disclaimer ? `<p>${s.disclaimer}</p>` : '') +
+        `<p>Best regards,<br>${sessionUser.name}<br>305 Consulting and Production</p>`;
+    } else {
+      subject = `FARM RIO // ${samples.length} Samples - ${catLabel} team`;
+      const tableRows = samples.map(s =>
+        `<tr><td style="padding:4px 12px 4px 0">${s.style || '—'}</td>` +
+        `<td style="padding:4px 12px 4px 0">${s.tracking}</td>` +
+        `<td style="padding:4px 12px 4px 0">${s.sampleType}</td>` +
+        `<td style="padding:4px 0">${s.disclaimer || ''}</td></tr>`
+      ).join('');
+      htmlBody =
+        `<p>Hello ${leadFirst} and ${catLabel} team,</p>` +
+        `<p>We are sending you the following samples:</p>` +
+        `<table style="border-collapse:collapse;font-family:sans-serif;font-size:13px">` +
+        `<tr style="font-weight:700;border-bottom:2px solid #000">` +
+        `<td style="padding:4px 12px 4px 0">Style #</td>` +
+        `<td style="padding:4px 12px 4px 0">Tracking</td>` +
+        `<td style="padding:4px 12px 4px 0">Sample Type</td>` +
+        `<td style="padding:4px 0">Notes</td></tr>` +
+        tableRows + `</table>` +
+        `<p>Best regards,<br>${sessionUser.name}<br>305 Consulting and Production</p>`;
+    }
 
     const rawMime = await buildRawMime({
       from:    `"${sessionUser.name}" <${sessionUser.email}>`,
