@@ -11,6 +11,7 @@ const suppliers   = require('./contacts/suppliers');
 const team305     = require('./contacts/team305');
 const TEAM_USERS  = require('./contacts/users');
 const AUTH_CONFIG = require('./contacts/authUsers');
+const buyers      = require('./contacts/buyers');
 
 const app = express();
 app.use(express.json());
@@ -756,6 +757,82 @@ app.use('/api/rebeca', require('./routes/rebeca'));
 
 // ─── Paul: Samples Tracking routes ───────────────────────────────────────────
 app.use('/api/paul', require('./routes/paul'));
+
+// ATTN/BUYER dropdown value → { brand, category } for buyer lookup
+const PAUL_BUYER_MAP = {
+  'JULIE/DRESSES':              { brand: 'anthropologie', category: 'DRESS & ROMPER' },
+  'IVY/SWIM':                   { brand: 'anthropologie', category: 'SWIMWEAR' },
+  'ALY/BLOUSES':                { brand: 'anthropologie', category: 'BLOUSES & SHIRTS' },
+  'CAROLINE/BOTTOM':            { brand: 'anthropologie', category: 'PANTS & JUMPSUIT' },
+  'ABBY/SKIRTS':                { brand: 'anthropologie', category: 'SKIRTS & SHORTS' },
+  'Jacqueline Mazzi/ KNITS':    { brand: 'anthropologie', category: 'LOUNGE' },
+  'MC Miskuly/Maternity/Nuuly': { brand: 'nuuly',         category: 'PANTS, JUMPSUIT, SKIRTS & SHORTS' },
+};
+
+// 305 team always CC'd on sample emails
+const PAUL_CC = [
+  'kamilla@creativetwotwelve.com',
+  'paula@creativetwotwelve.com',
+  'business@creativetwotwelve.com',
+  'rafaela.neves@farmrio.com',
+  'ozan.guruscu@creativetwotwelve.com',
+];
+
+app.post('/api/paul/draft-email', async (req, res) => {
+  try {
+    const { style, tracking, sampleType, attnBuyer, disclaimer } = req.body || {};
+    if (!tracking)   return res.status(400).json({ error: 'Tracking # is required' });
+    if (!attnBuyer)  return res.status(400).json({ error: 'Attn/Buyer is required' });
+    if (!sampleType) return res.status(400).json({ error: 'Sample Type is required' });
+
+    // Igo's Gmail token
+    const token = userTokens['igo'];
+    if (!token?.refreshToken) {
+      return res.status(401).json({ error: "Igo's Gmail is not connected. Visit /setup to connect samples@creativetwotwelve.com" });
+    }
+
+    // Resolve buyer list from ATTN/BUYER value
+    const mapping   = PAUL_BUYER_MAP[attnBuyer];
+    if (!mapping) return res.status(400).json({ error: `No buyer mapping found for: ${attnBuyer}` });
+    const buyerList = (buyers[mapping.brand]?.[mapping.category]) || [];
+    if (!buyerList.length) return res.status(400).json({ error: `No buyer emails found for category: ${mapping.category}` });
+
+    const toEmails   = buyerList.map(b => b.email);
+    const firstNames = buyerList.map(b => b.name.split(' ')[0]);
+    const greeting   = firstNames.length === 1
+      ? firstNames[0]
+      : firstNames.slice(0, -1).join(', ') + ' and ' + firstNames[firstNames.length - 1];
+
+    // Subject uses STYLE# (not FedEx tracking) — matches email thread convention
+    const subject = `FARM RIO // Tracking Number ${style || tracking} - ${sampleType}`;
+
+    const htmlBody =
+      `<p>Hi ${greeting} &amp; team,</p>` +
+      `<p>We sent you the style below by tracking <strong>${tracking}</strong><br>` +
+      `<strong>${style || ''}</strong>${style ? ' - ' : ''}${sampleType}</p>` +
+      (disclaimer ? `<p>${disclaimer}</p>` : '') +
+      `<p>Best regards,<br>Igo Gardel<br>305 Consulting and Production</p>`;
+
+    const rawMime = await buildRawMime({
+      from:    '"Igo Gardel" <samples@creativetwotwelve.com>',
+      to:      toEmails.join(', '),
+      cc:      PAUL_CC.join(', '),
+      subject,
+      html:    htmlBody,
+    });
+    const encoded = rawMime.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+    const authClient = makeOAuth2Client();
+    authClient.setCredentials({ refresh_token: token.refreshToken });
+    const gmail = google.gmail({ version: 'v1', auth: authClient });
+    await gmail.users.drafts.create({ userId: 'me', requestBody: { message: { raw: encoded } } });
+
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[paul/draft-email]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // ─── Gabriel: MAP DATA (chart feed) ──────────────────────────────────────────
 app.get('/api/gabriel/map-data', async (req, res) => {

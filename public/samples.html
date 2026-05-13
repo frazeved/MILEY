@@ -497,7 +497,28 @@ async function saveSample() {
     const res  = await fetch('/api/paul/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || 'Save failed');
-    showToast(json.action === 'updated' ? 'Updated!' : 'Created!', '#16a34a');
+
+    // Create Gmail draft for buyer notification
+    btn.textContent = 'Creating draft...';
+    let draftNote = '';
+    try {
+      const dr = await fetch('/api/paul/draft-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          style:      payload['STYLE'],
+          tracking:   payload['TRACKING'],
+          sampleType: payload['SAMPLE TYPE'],
+          attnBuyer:  payload['ATTN / BUYER'],
+          disclaimer: payload['DISCLAIMER'],
+        }),
+      });
+      const dj = await dr.json();
+      draftNote = dr.ok ? ' · Draft email created' : ` · Draft skipped: ${dj.error}`;
+    } catch (_) { draftNote = ' · Draft failed'; }
+
+    const label = json.action === 'updated' ? 'Updated' : 'Saved';
+    showToast(label + ' ✓' + draftNote, '#16a34a');
     dbAllRows = [];
     clearForm();
   } catch (e) {
