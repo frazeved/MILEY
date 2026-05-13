@@ -409,18 +409,22 @@ router.post('/generate-tp', async (req, res) => {
     const fileName = `${safe(norm(model))} - ${safe(supplier || '')} - ${safe(cleanStyle)}`;
     const PPTX_MIME = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
 
-    // Step 3: Upload PPTX to service account's own drive (not Shared Drive — avoids Bad Request)
-    //         and convert to Google Slides format on the way in.
+    // Step 3: Upload PPTX directly into the Shared Drive folder with conversion to Slides
+    const { PassThrough } = require('stream');
     let newId;
     try {
+      const bodyStream = new PassThrough();
+      bodyStream.end(pptxBuf);
       const createResp = await drive.files.create({
+        supportsAllDrives: true,
         requestBody: {
           name: fileName,
           mimeType: 'application/vnd.google-apps.presentation',
+          parents: [folderId],
         },
         media: {
           mimeType: PPTX_MIME,
-          body: Readable.from([pptxBuf]),
+          body: bodyStream,
         },
         fields: 'id',
       });
@@ -428,22 +432,6 @@ router.post('/generate-tp', async (req, res) => {
     } catch (e) {
       const detail = e.response?.data?.error?.message || e.message;
       return res.status(500).json({ error: `Upload failed: ${detail}` });
-    }
-
-    // Step 4: Move the new file into the Shared Drive folder
-    try {
-      await drive.files.update({
-        fileId: newId,
-        addParents: folderId,
-        removeParents: 'root',
-        supportsAllDrives: true,
-        fields: 'id',
-        requestBody: {},
-      });
-    } catch (e) {
-      const detail = e.response?.data?.error?.message || e.message;
-      console.warn('[rebeca/generate-tp] move to folder failed:', detail);
-      // File exists but wasn't moved — still return the link
     }
 
     res.json({
@@ -490,17 +478,30 @@ router.get('/dashboard', async (req, res) => {
     const parseNdc = (ndcRaw, yearRaw) => {
       const s = String(ndcRaw || '').trim();
       if (!s) return null;
-      const withYear = s.match(/^([A-Za-z]+|\d{1,2})[\s\/\-](\d{4})$/);
+
+      // Full date: "6/1/2026" or "06/01/2026" or "2026-06-01"
+      const fullDate = s.match(/^(\d{1,2})\/\d{1,2}\/(\d{4})$/);
+      if (fullDate) return { mon: parseInt(fullDate[1]), yr: parseInt(fullDate[2]) };
+      const isoDate = s.match(/^(\d{4})-(\d{2})-\d{2}$/);
+      if (isoDate) return { mon: parseInt(isoDate[2]), yr: parseInt(isoDate[1]) };
+
+      // Combined: "05/2026" "May/2026" "May 2026" "May-2026"
+      const withYear = s.match(/^([A-Za-z]+|\d{1,2})[\s\/\-](\d{2,4})$/);
       if (withYear) {
-        const monPart = withYear[1], yr = parseInt(withYear[2]);
+        const monPart = withYear[1];
+        let yr = parseInt(withYear[2]);
+        if (yr < 100) yr += 2000; // "26" → 2026
         const mon = /^\d+$/.test(monPart) ? parseInt(monPart) : (MON_MAP[monPart.toUpperCase()] || 0);
         return mon ? { mon, yr } : null;
       }
+
+      // Month name or number only — pair with separate YEAR column
       const mon = /^\d{1,2}$/.test(s)
         ? parseInt(s)
         : (MON_MAP[s.toUpperCase()] || 0);
       if (!mon) return null;
-      const yr = yearRaw ? parseInt(String(yearRaw).trim()) : NaN;
+      let yr = yearRaw ? parseInt(String(yearRaw).trim()) : NaN;
+      if (yr < 100) yr += 2000;
       return { mon, yr };
     };
 
