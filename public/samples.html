@@ -381,12 +381,22 @@ async function sendChat() {
   } catch { btn.disabled = false; btn.textContent = 'Send Message'; alert('Could not send. Please try again.'); }
 }
 
-function showToast(msg, color) {
+function showToast(msg, color, duration) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.style.background = color || '#1a1d23';
+  t.style.pointerEvents = 'none';
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
+  setTimeout(() => t.classList.remove('show'), duration || 3000);
+}
+
+function showToastHTML(html, color, duration) {
+  const t = document.getElementById('toast');
+  t.innerHTML = html;
+  t.style.background = color || '#1a1d23';
+  t.style.pointerEvents = 'auto';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration || 6000);
 }
 
 // ── Database Modal ──────────────────────────────────────────────────────────
@@ -500,7 +510,7 @@ async function saveSample() {
 
     // Create Gmail draft for buyer notification
     btn.textContent = 'Creating draft...';
-    let draftNote = '';
+    const label = json.action === 'updated' ? 'Updated' : 'Saved';
     try {
       const dr = await fetch('/api/paul/draft-email', {
         method: 'POST',
@@ -514,11 +524,20 @@ async function saveSample() {
         }),
       });
       const dj = await dr.json();
-      draftNote = dr.ok ? ' · Draft email created' : ` · Draft skipped: ${dj.error}`;
-    } catch (_) { draftNote = ' · Draft failed'; }
-
-    const label = json.action === 'updated' ? 'Updated' : 'Saved';
-    showToast(label + ' ✓' + draftNote, '#16a34a');
+      if (dr.ok) {
+        showToast(label + ' ✓ · Draft email created', '#16a34a');
+      } else if (dj.error && dj.error.includes('not connected')) {
+        showToastHTML(
+          label + ' ✓ &nbsp;·&nbsp; Igo\'s Gmail not connected &mdash; ' +
+          '<a href="/setup" target="_blank" style="color:#fff;font-weight:700;text-decoration:underline;">Connect at /setup</a>',
+          '#b45309', 8000
+        );
+      } else {
+        showToast(label + ' ✓ · Draft skipped: ' + dj.error, '#b45309', 5000);
+      }
+    } catch (_) {
+      showToast(label + ' ✓ · Draft failed', '#b45309', 4000);
+    }
     dbAllRows = [];
     clearForm();
   } catch (e) {
