@@ -19,6 +19,47 @@ app.use(session({
   saveUninitialized: false,
   cookie: { maxAge: 24 * 60 * 60 * 1000 },
 }));
+
+// ─── Auth users ───────────────────────────────────────────────────────────────
+const AUTH_USERS = [
+  {
+    email:    process.env.ADMIN_EMAIL    || 'support@creativetwotwelve.com',
+    password: process.env.ADMIN_PASSWORD || '',
+    name:     'Flavio Azevedo',
+    role:     'admin',
+  },
+];
+
+// ─── Auth middleware ──────────────────────────────────────────────────────────
+const OPEN_PATHS = ['/login', '/api/login', '/api/logout'];
+app.use((req, res, next) => {
+  if (OPEN_PATHS.some(p => req.path === p)) return next();
+  if (req.session?.user) return next();
+  if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Not authenticated' });
+  return res.redirect('/login');
+});
+
+// ─── Login / logout routes ────────────────────────────────────────────────────
+app.get('/login', (req, res) => {
+  if (req.session?.user) return res.redirect('/');
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+app.post('/api/login', (req, res) => {
+  const { email, password } = req.body || {};
+  const user = AUTH_USERS.find(
+    u => u.email.toLowerCase() === (email || '').toLowerCase().trim()
+      && u.password === password
+  );
+  if (!user) return res.status(401).json({ error: 'Invalid email or password' });
+  req.session.user = { email: user.email, name: user.name, role: user.role };
+  res.json({ ok: true, name: user.name });
+});
+
+app.get('/api/logout', (req, res) => {
+  req.session.destroy(() => res.redirect('/login'));
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ─── Constants ────────────────────────────────────────────────────────────────
