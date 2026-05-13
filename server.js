@@ -785,10 +785,14 @@ app.post('/api/paul/draft-email', async (req, res) => {
     if (!attnBuyer)  return res.status(400).json({ error: 'Attn/Buyer is required' });
     if (!sampleType) return res.status(400).json({ error: 'Sample Type is required' });
 
-    // Igo's Gmail token
-    const token = userTokens['igo'];
+    // Use the logged-in user's Gmail account
+    const sessionUser = req.session?.user;
+    if (!sessionUser) return res.status(401).json({ error: 'Not authenticated' });
+    const teamUser = TEAM_USERS.find(u => u.email.toLowerCase() === sessionUser.email.toLowerCase());
+    if (!teamUser) return res.status(400).json({ error: `${sessionUser.name} is not configured for Gmail drafts` });
+    const token = userTokens[teamUser.id];
     if (!token?.refreshToken) {
-      return res.status(401).json({ error: "Igo's Gmail is not connected. Visit /setup to connect samples@creativetwotwelve.com" });
+      return res.status(401).json({ error: `${sessionUser.name}'s Gmail is not connected` });
     }
 
     // Resolve buyer list from ATTN/BUYER value
@@ -811,10 +815,10 @@ app.post('/api/paul/draft-email', async (req, res) => {
       `<p>We sent you the style below by tracking <strong>${tracking}</strong><br>` +
       `<strong>${style || ''}</strong>${style ? ' - ' : ''}${sampleType}</p>` +
       (disclaimer ? `<p>${disclaimer}</p>` : '') +
-      `<p>Best regards,<br>Igo Gardel<br>305 Consulting and Production</p>`;
+      `<p>Best regards,<br>${sessionUser.name}<br>305 Consulting and Production</p>`;
 
     const rawMime = await buildRawMime({
-      from:    '"Igo Gardel" <samples@creativetwotwelve.com>',
+      from:    `"${sessionUser.name}" <${sessionUser.email}>`,
       to:      toEmails.join(', '),
       cc:      PAUL_CC.join(', '),
       subject,
