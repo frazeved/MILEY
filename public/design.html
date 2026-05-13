@@ -696,24 +696,40 @@ function populateForm(style) {
       el.value = val;
     }
   });
-  // Parse NDC MONTH/YEAR → set month + year selects
-  // Supports both numeric (01/2026) and name (JAN/2026) formats
+  // Parse NDC month/year → set both selects.
+  // Handles: "May", "MAY", "05", "May/2026", "May 2026", "05/2026", "January", etc.
+  const MON_NAME_MAP = {
+    JAN:'01',JANUARY:'01', FEB:'02',FEBRUARY:'02', MAR:'03',MARCH:'03',
+    APR:'04',APRIL:'04',   MAY:'05',                JUN:'06',JUNE:'06',
+    JUL:'07',JULY:'07',   AUG:'08',AUGUST:'08',    SEP:'09',SEPT:'09',SEPTEMBER:'09',
+    OCT:'10',OCTOBER:'10', NOV:'11',NOVEMBER:'11',  DEC:'12',DECEMBER:'12'
+  };
   const ndcKey = Object.keys(style).find(k => k.toUpperCase().replace(/\s+/g,'').includes('NDC'));
-  const ndcRaw = ndcKey ? String(style[ndcKey] || '') : '';
-  const MON_NAME_MAP = {JAN:'01',FEB:'02',MAR:'03',APR:'04',MAY:'05',JUN:'06',
-                        JUL:'07',AUG:'08',SEP:'09',OCT:'10',NOV:'11',DEC:'12'};
+  const ndcRaw = ndcKey ? String(style[ndcKey] || '').trim() : '';
   let ndcMon = '', ndcYr = '';
-  const ndcNumM  = ndcRaw.match(/^(\d{1,2})[\/](\d{4})$/);
-  const ndcNameM = ndcRaw.match(/^([A-Za-z]{3})[\/](\d{4})$/);
-  if (ndcNumM)  { ndcMon = ndcNumM[1].padStart(2,'0');                          ndcYr = ndcNumM[2]; }
-  else if (ndcNameM) { ndcMon = MON_NAME_MAP[ndcNameM[1].toUpperCase()] || ''; ndcYr = ndcNameM[2]; }
-  if (ndcMon && ndcYr) {
-    const monEl = document.getElementById('f-ndc-month');
-    const yrEl  = document.getElementById('f-ndc-year');
-    if (monEl) monEl.value = ndcMon;
-    if (yrEl)  yrEl.value  = ndcYr;
-    updateNdc();
+  if (ndcRaw) {
+    // Try "May/2026", "05/2026", "May 2026", "May-2026"
+    const withYear = ndcRaw.match(/^([A-Za-z]+|\d{1,2})[\s\/\-](\d{4})$/);
+    if (withYear) {
+      const part = withYear[1];
+      ndcYr  = withYear[2];
+      ndcMon = /^\d+$/.test(part) ? part.padStart(2,'0') : (MON_NAME_MAP[part.toUpperCase()] || '');
+    } else {
+      // Month name or number alone — "May", "MAY", "05", "5"
+      ndcMon = /^\d{1,2}$/.test(ndcRaw)
+        ? ndcRaw.padStart(2,'0')
+        : (MON_NAME_MAP[ndcRaw.toUpperCase()] || '');
+      // Year from a separate column if present
+      const yrKey = Object.keys(style).find(k => {
+        const ku = k.toUpperCase().replace(/\s+/g,'');
+        return ku === 'YEAR' || ku === 'NDCYEAR';
+      });
+      if (yrKey) ndcYr = String(style[yrKey] || '').trim();
+    }
   }
+  if (ndcMon) { const el = document.getElementById('f-ndc-month'); if (el) el.value = ndcMon; }
+  if (ndcYr)  { const el = document.getElementById('f-ndc-year');  if (el) el.value = ndcYr;  }
+  if (ndcMon || ndcYr) updateNdc();
 
   // Show CAD image from CAD URL field
   const cadUrl = style['CAD IMAGE'] || '';

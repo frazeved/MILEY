@@ -436,7 +436,7 @@ router.post('/generate-tp', async (req, res) => {
     const cleanStyle = (style || '').replace(/^[A-Za-z]+-?/, '');
     const fileName = `${safe(norm(model))} - ${safe(supplier || '')} - ${safe(cleanStyle)}`;
 
-    // Pass Buffer directly — Readable.from(Buffer) iterates bytes, not chunks
+    // Readable.from([buf]) wraps buffer as a single chunk (not byte-by-byte)
     const uploadResp = await drive.files.create({
       requestBody: {
         name: fileName,
@@ -445,7 +445,7 @@ router.post('/generate-tp', async (req, res) => {
       },
       media: {
         mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        body: pptxBuf,
+        body: Readable.from([pptxBuf]),
       },
       supportsAllDrives: true,
       fields: 'id',
