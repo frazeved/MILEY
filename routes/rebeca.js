@@ -215,9 +215,11 @@ router.get('/missing-styles', async (req, res) => {
     const printCol = colIdx('PRINT SENT TO SUPPLIER');
     const supCol   = colIdx('SUPPLIER');
     const catCol   = colIdx('CATEGORY');
+    const phaseCol = colIdx('PHASE');
 
     const styles = rows.slice(1)
       .filter(r => String(r[styleCol] || '').trim())
+      .filter(r => phaseCol < 0 || String(r[phaseCol] || '').trim().toUpperCase() !== 'CANCELED')
       .filter(r => {
         const checkCol = field === 'tp' ? tpCol : printCol;
         return checkCol >= 0 && !String(r[checkCol] || '').trim();
@@ -305,6 +307,7 @@ router.get('/dashboard', async (req, res) => {
     const styleCol = colIdx('STYLE #');
     const tpCol    = colIdx('TP SENT TO SUPPLIER');
     const printCol = colIdx('PRINT SENT TO SUPPLIER');
+    const phaseCol = colIdx('PHASE');
     const ndcCol   = headers.findIndex(h => h.toUpperCase().replace(/\s+/g,'').includes('NDC'));
     const yearCol  = headers.findIndex(h => {
       const k = h.toUpperCase().replace(/\s+/g,'');
@@ -349,7 +352,9 @@ router.get('/dashboard', async (req, res) => {
     };
 
     const MONTH_NAMES = ['','JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-    const styleRows  = rows.slice(1).filter(r => String(r[styleCol] || '').trim());
+    const styleRows  = rows.slice(1)
+      .filter(r => String(r[styleCol] || '').trim())
+      .filter(r => phaseCol < 0 || String(r[phaseCol] || '').trim().toUpperCase() !== 'CANCELED');
 
     const monthMap = {};
     let total = 0, missingTp = 0, missingPrint = 0;
