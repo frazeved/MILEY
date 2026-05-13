@@ -528,7 +528,7 @@ async function saveSample() {
         showToast(label + ' ✓ · Draft email created', '#16a34a');
       } else if (dj.error && dj.error.includes('not connected')) {
         showToastHTML(
-          label + ' ✓ &nbsp;·&nbsp; Igo\'s Gmail not connected &mdash; ' +
+          label + ' ✓ &nbsp;·&nbsp; ' + dj.error + ' &mdash; ' +
           '<a href="/setup" target="_blank" style="color:#fff;font-weight:700;text-decoration:underline;">Connect at /setup</a>',
           '#b45309', 8000
         );
