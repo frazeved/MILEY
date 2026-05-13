@@ -495,13 +495,14 @@ router.get('/dashboard', async (req, res) => {
         return mon ? { mon, yr } : null;
       }
 
-      // Month name or number only — pair with separate YEAR column
+      // Month name or number only — pair with separate YEAR column or default to current year
       const mon = /^\d{1,2}$/.test(s)
         ? parseInt(s)
         : (MON_MAP[s.toUpperCase()] || 0);
       if (!mon) return null;
       let yr = yearRaw ? parseInt(String(yearRaw).trim()) : NaN;
       if (yr < 100) yr += 2000;
+      if (isNaN(yr)) yr = new Date().getFullYear(); // no year info → assume current year
       return { mon, yr };
     };
 
