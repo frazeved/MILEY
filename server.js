@@ -23,10 +23,16 @@ app.use(session({
 // ─── Auth users ───────────────────────────────────────────────────────────────
 const AUTH_USERS = [
   {
-    email:    process.env.ADMIN_EMAIL    || 'support@creativetwotwelve.com',
+    email:    'support@creativetwotwelve.com',
     password: process.env.ADMIN_PASSWORD || '',
     name:     'Flavio Azevedo',
     role:     'admin',
+  },
+  {
+    email:    'business@creativetwotwelve.com',
+    password: process.env.MANUELA_PASSWORD || '',
+    name:     'Manuela Carvalho',
+    role:     'user',
   },
 ];
 
