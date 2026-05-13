@@ -644,6 +644,9 @@ app.post('/api/fedex/create-label', async (req, res) => {
 // ─── Rebeca: Design / Style routes ───────────────────────────────────────────
 app.use('/api/rebeca', require('./routes/rebeca'));
 
+// ─── Paul: Samples Tracking routes ───────────────────────────────────────────
+app.use('/api/paul', require('./routes/paul'));
+
 // ─── Gabriel: MAP DATA (chart feed) ──────────────────────────────────────────
 app.get('/api/gabriel/map-data', async (req, res) => {
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {

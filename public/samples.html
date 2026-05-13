@@ -57,7 +57,8 @@
     .content { flex: 1; min-width: 0; }
     .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
     .section-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.6px; }
-    .btn-run { background: #e5e7eb; color: var(--text-muted); border: none; border-radius: 8px; padding: 8px 18px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: not-allowed; display: flex; align-items: center; gap: 7px; }
+    .btn-run { background: #0891b2; color: #fff; border: none; border-radius: 8px; padding: 8px 18px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: background 0.15s; }
+    .btn-run:hover { background: #0e7490; }
     .soon-label { font-size: 10px; background: #fef9c3; color: #854d0e; border: 1px solid #fde68a; border-radius: 20px; padding: 2px 8px; font-weight: 600; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
     .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; opacity: 0.8; }
@@ -69,12 +70,57 @@
     .card-body { display: flex; flex-direction: column; gap: 5px; flex: 1; }
     .card-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.55; }
     .section-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .btn-database { background: #ede9fe; color: #6d28d9; border: 1px solid #c4b5fd; border-radius: 8px; padding: 8px 18px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: not-allowed; display: flex; align-items: center; gap: 7px; }
-    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--text); color: #fff; font-size: 13px; font-weight: 500; padding: 10px 16px; border-radius: 8px; opacity: 0; transform: translateY(8px); transition: all 0.2s; pointer-events: none; z-index: 100; }
+    .btn-database { background: #ede9fe; color: #6d28d9; border: 1px solid #c4b5fd; border-radius: 8px; padding: 8px 18px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: background 0.15s; }
+    .btn-database:hover { background: #ddd6fe; }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--text); color: #fff; font-size: 13px; font-weight: 500; padding: 10px 16px; border-radius: 8px; opacity: 0; transform: translateY(8px); transition: all 0.2s; pointer-events: none; z-index: 1000; }
     .toast.show { opacity: 1; transform: translateY(0); }
     .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--text-secondary); line-height: 1; }
     .nav-hamburger:hover { color: var(--text); }
-    @media (max-width: 768px) {
+
+    /* ── Modals ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay.open { display: flex; }
+    .modal-box { background: var(--surface); border-radius: 16px; width: 100%; max-width: 960px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .modal-title { font-size: 15px; font-weight: 700; color: var(--text); }
+    .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-secondary); line-height: 1; padding: 4px; }
+    .modal-close:hover { color: var(--text); }
+    .modal-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+
+    /* Database modal */
+    .db-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+    .db-search { flex: 1; min-width: 160px; font-family: inherit; font-size: 13px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; outline: none; color: var(--text); }
+    .db-search:focus { border-color: var(--accent); }
+    .btn-refresh { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .btn-refresh:hover { background: var(--accent-hover); }
+    .db-table-wrap { overflow-x: auto; }
+    .db-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .db-table th { background: var(--bg); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); padding: 8px 10px; text-align: left; white-space: nowrap; border-bottom: 2px solid var(--border); position: sticky; top: 0; }
+    .db-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); color: var(--text); white-space: nowrap; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+    .db-table tr:hover td { background: var(--accent-light); }
+    .db-count { font-size: 11px; color: var(--text-muted); margin-top: 10px; }
+    .db-loading { text-align: center; padding: 40px; color: var(--text-muted); font-size: 13px; }
+
+    /* Sample form modal */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+    .form-input { font-family: inherit; font-size: 14px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; outline: none; color: var(--text); background: var(--surface); transition: border-color 0.15s; }
+    .form-input:focus { border-color: var(--accent); }
+    .form-search-bar { display: flex; gap: 8px; margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+    .form-search-bar input { flex: 1; font-family: inherit; font-size: 14px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; outline: none; color: var(--text); }
+    .form-search-bar input:focus { border-color: var(--accent); }
+    .btn-search { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 9px 16px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text); white-space: nowrap; }
+    .btn-search:hover { background: var(--border); }
+    .form-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+    .btn-save { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 24px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .btn-save:hover { background: var(--accent-hover); }
+    .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-clear-form { background: var(--bg); color: var(--text-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 10px 20px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .btn-clear-form:hover { background: var(--border); }
+
+    @media (max-width: 640px) {
       nav { padding: 0 16px; height: auto; min-height: 52px; position: relative; }
       .nav-hamburger { display: flex; align-items: center; }
       .nav-links { display: none; position: absolute; top: 52px; left: 0; right: 0; background: var(--surface); border-bottom: 1px solid var(--border); flex-direction: column; padding: 6px 0 10px; gap: 0; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
@@ -85,6 +131,19 @@
       .sidebar-agent { max-width: 360px; margin-left: auto; margin-right: auto; }
       .content { width: 100%; }
       .grid { grid-template-columns: 1fr; }
+      .modal-overlay { padding: 0; align-items: flex-end; }
+      .modal-box { border-radius: 16px 16px 0 0; max-height: 92vh; max-width: 100%; }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-group.full { grid-column: 1; }
+      .btn-run, .btn-database { font-size: 12px; padding: 8px 12px; }
+      .form-input { font-size: 16px; min-height: 44px; }
+      .btn-save, .btn-clear-form { min-height: 44px; font-size: 16px; }
+      .btn-save { flex: 1; }
+    }
+    @media (min-width: 641px) and (max-width: 768px) {
+      .layout { flex-direction: column; padding: 20px 16px 40px; gap: 16px; }
+      .sidebar { width: 100%; position: static; }
+      .grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
@@ -151,12 +210,15 @@
   <div class="content">
     <div class="section-header">
       <div class="section-title">Active Tasks</div>
-            <div class="section-actions">
-<button class="btn-run" disabled>
-        <span>Run Agent</span>
-        <span class="soon-label">Coming Soon</span>
-      </button>
-      <button class="btn-database" disabled><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg><span>Database</span><span class="soon-label">Coming Soon</span></button>
+      <div class="section-actions">
+        <button class="btn-run" onclick="openFormModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          <span>New Sample</span>
+        </button>
+        <button class="btn-database" onclick="openDatabaseModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>
+          <span>Database</span>
+        </button>
       </div>
     </div>
     <div class="grid">
@@ -191,6 +253,113 @@
   </div>
 </div>
 
+<!-- Database Modal -->
+<div class="modal-overlay" id="db-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">Sample Database — SAMPLE DATABASE NEW</div>
+      <button class="modal-close" onclick="closeDatabaseModal()">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="db-toolbar">
+        <input class="db-search" id="db-search" type="text" placeholder="Filter by any field..." oninput="filterTable()" />
+        <button class="btn-refresh" onclick="loadDatabase()">&#8635; Refresh</button>
+      </div>
+      <div class="db-table-wrap">
+        <div class="db-loading" id="db-loading">Loading...</div>
+        <table class="db-table" id="db-table" style="display:none">
+          <thead id="db-thead"></thead>
+          <tbody id="db-tbody"></tbody>
+        </table>
+      </div>
+      <div class="db-count" id="db-count"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Sample Tracking Form Modal -->
+<div class="modal-overlay" id="form-modal">
+  <div class="modal-box" style="max-width:680px">
+    <div class="modal-header">
+      <div class="modal-title">Anthropologie Sample Tracking</div>
+      <button class="modal-close" onclick="closeFormModal()">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-search-bar">
+        <input id="sf-tracking-search" type="text" placeholder="Search by tracking # to load existing..." />
+        <button class="btn-search" onclick="searchSample()">Search</button>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Style</label>
+          <input class="form-input" id="sf-style" type="text" placeholder="e.g. 88015" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-input" id="sf-category">
+            <option value="">Select...</option>
+            <option>Blouses</option><option>Dresses</option><option>Jumpsuit</option>
+            <option>Knit</option><option>LOUNGE</option><option>Pants</option>
+            <option>Shorts</option><option>Skirts</option><option>Sweaters</option>
+            <option>Swimwear</option><option>Accessories</option><option>OTHER</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Attn / Buyer</label>
+          <select class="form-input" id="sf-attn">
+            <option value="">Select...</option>
+            <option>ALEX</option><option>ASHLEY</option><option>JACLYN</option>
+            <option>JESSICA</option><option>KATE</option><option>LEAH</option>
+            <option>RACHEL</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sample Type</label>
+          <select class="form-input" id="sf-sample-type">
+            <option value="">Select...</option>
+            <option>TOP OF PRODUCTION</option><option>PROTO</option><option>SALESMAN SAMPLE</option>
+            <option>FIT SAMPLE</option><option>PHOTO SAMPLE</option><option>PRESS SAMPLE</option>
+            <option>COUNTER SAMPLE</option><option>BULK APPROVED SAMPLE</option><option>OTHER</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Supplier</label>
+          <select class="form-input" id="sf-supplier">
+            <option value="">Select...</option>
+            <option>ECICO</option><option>GAIA</option><option>H&F</option>
+            <option>HS FASHION</option><option>KONCEPTION</option><option>PQSWIM</option>
+            <option>S&S</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tracking #</label>
+          <input class="form-input" id="sf-tracking" type="text" placeholder="Required" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ship Date</label>
+          <input class="form-input" id="sf-ship-date" type="text" placeholder="MM/DD/YYYY" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">ETA</label>
+          <input class="form-input" id="sf-eta" type="text" placeholder="MM/DD/YYYY" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Created By</label>
+          <input class="form-input" id="sf-created-by" type="text" placeholder="Your name" />
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Disclaimer / Notes</label>
+          <input class="form-input" id="sf-disclaimer" type="text" placeholder="Optional notes" />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-save" id="sf-save-btn" onclick="saveSample()">Save</button>
+        <button class="btn-clear-form" onclick="clearForm()">Clear</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <script>
 function toggleNav() { document.getElementById('nav-links').classList.toggle('open'); }
@@ -209,6 +378,129 @@ async function sendChat() {
     document.getElementById('chat-success').style.display = 'block';
   } catch { btn.disabled = false; btn.textContent = 'Send Message'; alert('Could not send. Please try again.'); }
 }
+
+function showToast(msg, color) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = color || '#1a1d23';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── Database Modal ──────────────────────────────────────────────────────────
+let dbAllRows = [], dbHeaders = [];
+
+function openDatabaseModal() {
+  document.getElementById('db-modal').classList.add('open');
+  if (!dbAllRows.length) loadDatabase();
+}
+function closeDatabaseModal() { document.getElementById('db-modal').classList.remove('open'); }
+
+async function loadDatabase() {
+  const loading = document.getElementById('db-loading');
+  const table   = document.getElementById('db-table');
+  loading.style.display = 'block'; table.style.display = 'none';
+  document.getElementById('db-count').textContent = '';
+  try {
+    const res  = await fetch('/api/paul/database');
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to load');
+    dbHeaders = json.headers;
+    dbAllRows = json.data;
+    renderTable(dbAllRows);
+  } catch (e) {
+    loading.textContent = 'Error: ' + e.message;
+  }
+}
+
+function renderTable(rows) {
+  const loading = document.getElementById('db-loading');
+  const table   = document.getElementById('db-table');
+  const thead   = document.getElementById('db-thead');
+  const tbody   = document.getElementById('db-tbody');
+  loading.style.display = 'none';
+  thead.innerHTML = '<tr>' + dbHeaders.map(h => `<th>${h}</th>`).join('') + '</tr>';
+  tbody.innerHTML = rows.map(row =>
+    '<tr>' + dbHeaders.map(h => `<td title="${row[h]||''}">${row[h]||''}</td>`).join('') + '</tr>'
+  ).join('');
+  table.style.display = rows.length ? 'table' : 'none';
+  document.getElementById('db-count').textContent = rows.length + ' records';
+  if (!rows.length) loading.style.display = 'block', loading.textContent = 'No records found.';
+}
+
+function filterTable() {
+  const q = document.getElementById('db-search').value.toLowerCase();
+  if (!q) { renderTable(dbAllRows); return; }
+  renderTable(dbAllRows.filter(row => dbHeaders.some(h => (row[h]||'').toLowerCase().includes(q))));
+}
+
+// ── Sample Form Modal ───────────────────────────────────────────────────────
+function openFormModal() { document.getElementById('form-modal').classList.add('open'); }
+function closeFormModal() { document.getElementById('form-modal').classList.remove('open'); }
+
+function clearForm() {
+  ['sf-style','sf-category','sf-attn','sf-sample-type','sf-supplier','sf-tracking',
+   'sf-ship-date','sf-eta','sf-created-by','sf-disclaimer'].forEach(id => {
+    const el = document.getElementById(id);
+    el.tagName === 'SELECT' ? el.value = '' : el.value = '';
+  });
+}
+
+async function searchSample() {
+  const tracking = document.getElementById('sf-tracking-search').value.trim();
+  if (!tracking) { showToast('Enter a tracking number to search'); return; }
+  try {
+    const res  = await fetch('/api/paul/search?tracking=' + encodeURIComponent(tracking));
+    const json = await res.json();
+    if (!res.ok) { showToast(json.error || 'Not found'); return; }
+    const s = json.sample;
+    document.getElementById('sf-style').value        = s['STYLE']        || '';
+    document.getElementById('sf-category').value     = s['CATEGORY']     || '';
+    document.getElementById('sf-attn').value         = s['ATTN / BUYER'] || '';
+    document.getElementById('sf-sample-type').value  = s['SAMPLE TYPE']  || '';
+    document.getElementById('sf-supplier').value     = s['SUPPLIER']     || '';
+    document.getElementById('sf-tracking').value     = s['TRACKING']     || '';
+    document.getElementById('sf-ship-date').value    = s['SHIP DATE']    || '';
+    document.getElementById('sf-eta').value          = s['ETA']          || '';
+    document.getElementById('sf-created-by').value   = s['CREATED BY']   || '';
+    document.getElementById('sf-disclaimer').value   = s['DISCLAIMER']   || '';
+    showToast('Loaded!', '#16a34a');
+  } catch (e) { showToast('Error: ' + e.message); }
+}
+
+async function saveSample() {
+  const tracking = document.getElementById('sf-tracking').value.trim();
+  if (!tracking) { showToast('Tracking # is required'); return; }
+  const btn = document.getElementById('sf-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try {
+    const payload = {
+      'STYLE':        document.getElementById('sf-style').value.trim(),
+      'CATEGORY':     document.getElementById('sf-category').value,
+      'ATTN / BUYER': document.getElementById('sf-attn').value,
+      'SAMPLE TYPE':  document.getElementById('sf-sample-type').value,
+      'SUPPLIER':     document.getElementById('sf-supplier').value,
+      'TRACKING':     tracking,
+      'SHIP DATE':    document.getElementById('sf-ship-date').value.trim(),
+      'ETA':          document.getElementById('sf-eta').value.trim(),
+      'CREATED BY':   document.getElementById('sf-created-by').value.trim(),
+      'DISCLAIMER':   document.getElementById('sf-disclaimer').value.trim(),
+    };
+    const res  = await fetch('/api/paul/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Save failed');
+    showToast(json.action === 'updated' ? 'Updated!' : 'Created!', '#16a34a');
+    dbAllRows = []; // force reload on next database open
+  } catch (e) {
+    showToast('Error: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save';
+  }
+}
+
+// Close modals on overlay click
+document.getElementById('db-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeDatabaseModal(); });
+document.getElementById('form-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeFormModal(); });
 </script>
 </body>
 </html>
