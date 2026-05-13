@@ -193,6 +193,99 @@ router.delete('/delete-style', async (req, res) => {
   res.json({ ok: true, deletedFrom, skipped });
 });
 
+// Missing styles list (for popup)
+router.get('/missing-styles', async (req, res) => {
+  const field = req.query.field; // 'tp' or 'print'
+  if (field !== 'tp' && field !== 'print') return res.status(400).json({ error: 'field must be tp or print' });
+  if (!requireCreds(res)) return;
+  try {
+    const sheets  = sheetsClient(true);
+    const r = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: `'Design DataBase'`,
+      valueRenderOption: 'FORMATTED_VALUE',
+      dateTimeRenderOption: 'FORMATTED_STRING',
+    });
+    const rows    = r.data.values || [];
+    if (rows.length < 2) return res.json({ styles: [] });
+    const headers  = rows[0].map(h => String(h).trim());
+    const colIdx   = name => headers.findIndex(h => h.toUpperCase() === name.toUpperCase());
+    const styleCol = colIdx('STYLE #');
+    const tpCol    = colIdx('TP SENT TO SUPPLIER');
+    const printCol = colIdx('PRINT SENT TO SUPPLIER');
+    const supCol   = colIdx('SUPPLIER');
+    const catCol   = colIdx('CATEGORY');
+
+    const styles = rows.slice(1)
+      .filter(r => String(r[styleCol] || '').trim())
+      .filter(r => {
+        const checkCol = field === 'tp' ? tpCol : printCol;
+        return checkCol >= 0 && !String(r[checkCol] || '').trim();
+      })
+      .map(r => ({
+        style:    String(r[styleCol] || '').trim(),
+        supplier: supCol >= 0 ? String(r[supCol] || '').trim() : '',
+        category: catCol >= 0 ? String(r[catCol] || '').trim() : '',
+      }));
+
+    res.json({ styles });
+  } catch (e) {
+    console.error('[rebeca/missing-styles]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Fill missing field for multiple styles across all tabs
+router.post('/fill-missing', async (req, res) => {
+  const { field, updates } = req.body;
+  if (field !== 'tp' && field !== 'print') return res.status(400).json({ error: 'field must be tp or print' });
+  if (!Array.isArray(updates) || updates.length === 0) return res.status(400).json({ error: 'updates required' });
+  if (!requireCreds(res)) return;
+
+  const colName = field === 'tp' ? 'TP SENT TO SUPPLIER' : 'PRINT SENT TO SUPPLIER';
+  const tabs    = ['Design DataBase', 'Production & PO DataBase', 'Print DataBase', 'PowerBI database Process'];
+  const sheets  = sheetsClient(false);
+
+  const saved = [], skipped = [];
+
+  for (const { style, date } of updates) {
+    if (!style || !date) continue;
+    const styleNum = String(style).trim().toUpperCase();
+
+    for (const tab of tabs) {
+      try {
+        const r = await sheets.spreadsheets.values.get({
+          spreadsheetId: SHEET_ID, range: `'${tab}'`,
+          valueRenderOption: 'FORMATTED_VALUE',
+        });
+        const rows    = r.data.values || [];
+        const headers = (rows[0] || []).map(h => String(h).trim());
+        const styleCol = headers.findIndex(h => h.toUpperCase() === 'STYLE #');
+        const fieldCol = headers.findIndex(h => h.toUpperCase() === colName.toUpperCase());
+        if (styleCol < 0 || fieldCol < 0) continue;
+
+        const rowIdx = rows.slice(1).findIndex(r => String(r[styleCol] || '').trim().toUpperCase() === styleNum);
+        if (rowIdx < 0) continue;
+
+        const sheetRow = rowIdx + 2; // 1-based + header
+        const colLetter = String.fromCharCode(65 + fieldCol);
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: SHEET_ID,
+          range: `'${tab}'!${colLetter}${sheetRow}`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: { values: [[date]] },
+        });
+      } catch (e) {
+        console.warn(`[rebeca/fill-missing] ${tab} ${styleNum}:`, e.message);
+        skipped.push(`${styleNum} in ${tab}`);
+      }
+    }
+    saved.push(styleNum);
+  }
+
+  res.json({ ok: true, saved, skipped });
+});
+
 // Dashboard stats
 router.get('/dashboard', async (req, res) => {
   if (!requireCreds(res)) return;

@@ -149,6 +149,32 @@
     .month-stat-value { font-size: 14px; font-weight: 800; color: #1a1d23; line-height: 1; }
     .month-stat-value.warn { color: #dc2626; }
     .dash-loading { font-size: 11px; color: #9ca3af; padding: 12px 0; text-align: center; }
+    .kpi-card.clickable { cursor: pointer; transition: box-shadow 0.15s, transform 0.15s; }
+    .kpi-card.clickable:hover { box-shadow: 0 4px 14px rgba(220,38,38,0.15); transform: translateY(-1px); }
+
+    /* Missing styles modal */
+    .miss-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .miss-modal { background: #fff; border-radius: 14px; width: 100%; max-width: 540px; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    .miss-header { padding: 16px 20px 12px; border-bottom: 1px solid #f0ecfb; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .miss-title { font-size: 13px; font-weight: 700; color: #1a1d23; }
+    .miss-subtitle { font-size: 11px; color: #9ca3af; margin-top: 1px; }
+    .miss-close { background: none; border: none; font-size: 18px; cursor: pointer; color: #9ca3af; line-height: 1; padding: 0 4px; }
+    .miss-close:hover { color: #1a1d23; }
+    .miss-body { overflow-y: auto; flex: 1; padding: 12px 20px; display: flex; flex-direction: column; gap: 8px; }
+    .miss-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: #fafafa; border: 1px solid #f0f0f0; border-radius: 8px; }
+    .miss-style { font-size: 12px; font-weight: 700; color: #1a1d23; min-width: 90px; }
+    .miss-sup { font-size: 11px; color: #9ca3af; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .miss-date { border: 1px solid #e4e7ed; border-radius: 6px; padding: 5px 8px; font-size: 12px; font-family: inherit; color: #1a1d23; width: 130px; flex-shrink: 0; }
+    .miss-date:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 2px #ede9fe; }
+    .miss-footer { padding: 12px 20px; border-top: 1px solid #f0ecfb; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; gap: 10px; }
+    .miss-count { font-size: 11px; color: #9ca3af; }
+    .miss-footer-btns { display: flex; gap: 8px; }
+    .miss-btn { padding: 7px 16px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; font-family: inherit; }
+    .miss-btn.cancel { background: #f5f6fa; color: #6b7280; border: 1px solid #e4e7ed; }
+    .miss-btn.cancel:hover { background: #e9eaf0; }
+    .miss-btn.save { background: #7c3aed; color: #fff; }
+    .miss-btn.save:hover { background: #6d28d9; }
+    .miss-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
     /* ── TABLET (≤900px) ──────────────────────────────────────── */
     @media (max-width: 900px) {
@@ -564,11 +590,11 @@
           <div class="kpi-label">Total Styles 2026</div>
           <div class="kpi-value" id="kpi-total">—</div>
         </div>
-        <div class="kpi-card warn">
+        <div class="kpi-card warn clickable" onclick="openMissingModal('tp')" title="Click to view & fill missing TP dates">
           <div class="kpi-label">Missing TP Sent</div>
           <div class="kpi-value" id="kpi-tp">—</div>
         </div>
-        <div class="kpi-card warn">
+        <div class="kpi-card warn clickable" onclick="openMissingModal('print')" title="Click to view & fill missing Print dates">
           <div class="kpi-label">Missing Print Sent</div>
           <div class="kpi-value" id="kpi-print">—</div>
         </div>
@@ -577,6 +603,29 @@
       <div class="dash-months" id="dash-months" style="display:none;"></div>
     </div>
 
+  </div>
+</div>
+
+<!-- Missing styles modal -->
+<div class="miss-overlay" id="miss-overlay" style="display:none;" onclick="if(event.target===this)closeMissingModal()">
+  <div class="miss-modal">
+    <div class="miss-header">
+      <div>
+        <div class="miss-title" id="miss-title">Missing TP Sent</div>
+        <div class="miss-subtitle" id="miss-subtitle">Enter dates and click Save to update all databases</div>
+      </div>
+      <button class="miss-close" onclick="closeMissingModal()">×</button>
+    </div>
+    <div class="miss-body" id="miss-body">
+      <div style="text-align:center;padding:20px;color:#9ca3af;font-size:12px;">Loading…</div>
+    </div>
+    <div class="miss-footer">
+      <span class="miss-count" id="miss-count"></span>
+      <div class="miss-footer-btns">
+        <button class="miss-btn cancel" onclick="closeMissingModal()">Cancel</button>
+        <button class="miss-btn save" id="miss-save-btn" onclick="saveMissingDates()">Save</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -831,6 +880,78 @@ async function deleteStyle() {
     msg.className = 'search-msg err';
   } finally {
     btn.disabled = false;
+  }
+}
+
+let _missingField = 'tp';
+
+async function openMissingModal(field) {
+  _missingField = field;
+  const label = field === 'tp' ? 'TP Sent to Supplier' : 'Print Sent to Supplier';
+  document.getElementById('miss-title').textContent    = `Missing ${label}`;
+  document.getElementById('miss-subtitle').textContent = 'Enter dates and click Save to update all databases';
+  document.getElementById('miss-body').innerHTML       = '<div style="text-align:center;padding:20px;color:#9ca3af;font-size:12px;">Loading…</div>';
+  document.getElementById('miss-count').textContent    = '';
+  document.getElementById('miss-save-btn').disabled    = false;
+  document.getElementById('miss-overlay').style.display = 'flex';
+
+  try {
+    const res  = await fetch(`/api/rebeca/missing-styles?field=${field}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed');
+    const styles = data.styles || [];
+    document.getElementById('miss-count').textContent = `${styles.length} style${styles.length !== 1 ? 's' : ''} missing`;
+    if (styles.length === 0) {
+      document.getElementById('miss-body').innerHTML = '<div style="text-align:center;padding:20px;color:#16a34a;font-size:12px;">All styles have this date filled ✓</div>';
+      document.getElementById('miss-save-btn').disabled = true;
+      return;
+    }
+    document.getElementById('miss-body').innerHTML = styles.map(s => `
+      <div class="miss-row">
+        <span class="miss-style">${s.style}</span>
+        <span class="miss-sup">${s.supplier || s.category || ''}</span>
+        <input class="miss-date" type="date" data-style="${s.style}" placeholder="mm/dd/yyyy" />
+      </div>`).join('');
+  } catch (e) {
+    document.getElementById('miss-body').innerHTML = `<div style="text-align:center;padding:20px;color:#dc2626;font-size:12px;">${e.message}</div>`;
+  }
+}
+
+function closeMissingModal() {
+  document.getElementById('miss-overlay').style.display = 'none';
+}
+
+async function saveMissingDates() {
+  const inputs  = document.querySelectorAll('#miss-body .miss-date');
+  const updates = [];
+  inputs.forEach(inp => {
+    if (!inp.value) return;
+    const d = new Date(inp.value + 'T12:00:00');
+    if (isNaN(d)) return;
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    updates.push({ style: inp.dataset.style, date: `${mm}/${dd}/${yyyy}` });
+  });
+  if (updates.length === 0) { alert('Enter at least one date to save.'); return; }
+
+  const btn = document.getElementById('miss-save-btn');
+  btn.disabled    = true;
+  btn.textContent = 'Saving…';
+
+  try {
+    const res  = await fetch('/api/rebeca/fill-missing', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ field: _missingField, updates }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Save failed');
+    closeMissingModal();
+    loadDashboard(); // refresh counts
+  } catch (e) {
+    alert('Save failed: ' + e.message);
+    btn.disabled    = false;
+    btn.textContent = 'Save';
   }
 }
 
