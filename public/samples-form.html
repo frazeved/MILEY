@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>305 Workspace — Sample Tracking</title>
+  <title>305 Workspace — Sample Batch Tracking</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
       --bg: #f5f6fa; --surface: #fff; --border: #e4e7ed;
-      --text: #1a1d23; --text-secondary: #6b7280; --text-muted: #9ca3af;
-      --accent: #0ea5e9; --accent-light: #e0f2fe;
-      --blue: #1a56db; --blue-hdr: #1e40af; --blue-row: #dbeafe;
+      --text: #1a1d23; --text-2: #6b7280; --text-3: #9ca3af;
+      --accent: #0891b2; --accent-light: #ecfeff;
+      --blue: #1e40af; --blue-hdr: #1e3a8a; --blue-row: #dbeafe;
     }
     body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
@@ -21,10 +21,11 @@
     .nav-brand { font-size: 16px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; display: none; }
     .nav-brand span { color: var(--accent); }
     .nav-links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-    .nav-link { font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: 6px; text-decoration: none; color: var(--text-secondary); transition: background 0.15s, color 0.15s; white-space: nowrap; }
+    .nav-link { font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: 6px; text-decoration: none; color: var(--text-2); transition: background 0.15s, color 0.15s; white-space: nowrap; }
     .nav-link:hover { background: var(--bg); color: var(--text); }
     .nav-link.active { background: var(--accent-light); color: var(--accent); }
-    .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--text-secondary); }
+    .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--text-2); line-height: 1; }
+    .nav-hamburger:hover { color: var(--text); }
 
     /* MODE BAR */
     .mode-bar { background: var(--blue-hdr); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 10px 28px; font-size: 14px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; }
@@ -32,74 +33,83 @@
     .mode-bar a:hover { color: #fff; }
 
     /* WRAPPER */
-    .form-wrapper { max-width: 1300px; margin: 0 auto; padding: 20px 24px 40px; }
+    .form-wrapper { max-width: 1400px; margin: 0 auto; padding: 20px 24px 60px; }
 
     /* TOP BAR */
-    .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 12px; flex-wrap: wrap; }
+    .top-bar-left { display: flex; align-items: center; gap: 14px; }
     .logo-fr { height: 44px; width: auto; object-fit: contain; }
-    .save-area { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
-    .save-label { font-size: 11px; font-weight: 700; color: var(--blue); letter-spacing: 0.8px; text-transform: uppercase; }
-    .save-btn { width: 50px; height: 50px; background: var(--blue); border: none; border-radius: 9px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: filter 0.15s; }
+    .top-bar-info { font-size: 11px; color: var(--text-2); }
+    .top-bar-info strong { display: block; font-size: 14px; color: var(--text); font-weight: 700; }
+    .save-area { display: flex; align-items: center; gap: 10px; }
+    .save-status { font-size: 12px; color: var(--text-2); min-width: 140px; text-align: right; }
+    .save-btn { display: flex; align-items: center; gap: 8px; background: var(--blue); color: #fff; border: none; border-radius: 9px; padding: 0 20px; height: 46px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; transition: filter 0.15s; white-space: nowrap; }
     .save-btn:hover { filter: brightness(0.88); }
-    .save-btn svg { width: 26px; height: 26px; }
+    .save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .save-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
 
     /* TABLE CARD */
     .table-card { background: #fff; border: 2px solid var(--blue); border-radius: 10px; overflow: hidden; }
+    .section-hdr { background: var(--blue-hdr); color: #fff; padding: 9px 20px; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; display: flex; align-items: center; justify-content: space-between; }
+    .section-hdr-note { font-size: 11px; font-weight: 400; opacity: 0.75; letter-spacing: 0; }
 
-    .section-hdr { background: var(--blue-hdr); color: #fff; padding: 9px 20px; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
-
+    .table-scroll { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; }
     thead th {
-      background: #1e40af;
-      color: #fff;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.6px;
-      text-transform: uppercase;
-      padding: 9px 10px;
-      text-align: left;
-      border-right: 1px solid #2d52c4;
-      white-space: nowrap;
+      background: #1e40af; color: #fff; font-size: 10px; font-weight: 700;
+      letter-spacing: 0.6px; text-transform: uppercase; padding: 9px 8px;
+      text-align: left; border-right: 1px solid #2d52c4; white-space: nowrap;
     }
     thead th:last-child { border-right: none; }
+    .th-num { width: 36px; text-align: center; }
 
     tbody tr:nth-child(odd)  { background: #fff; }
     tbody tr:nth-child(even) { background: var(--blue-row); }
     tbody tr:hover { background: #bfdbfe; }
-
-    tbody td { padding: 5px 6px; border-right: 1px solid #c7d9f7; border-bottom: 1px solid #dde8fb; }
+    tbody td { padding: 4px 5px; border-right: 1px solid #c7d9f7; border-bottom: 1px solid #dde8fb; }
     tbody td:last-child { border-right: none; }
+    .td-num { text-align: center; font-size: 11px; color: var(--text-3); }
 
     .td-input, .td-select {
       width: 100%; font-family: inherit; font-size: 12px; color: var(--text);
-      border: 1px solid transparent; border-radius: 3px; padding: 4px 6px;
+      border: 1px solid transparent; border-radius: 4px; padding: 5px 6px;
       background: transparent; outline: none; transition: border-color 0.12s, background 0.12s;
     }
     .td-input:focus, .td-select:focus { border-color: var(--blue); background: #fff; }
     .td-select { cursor: pointer; }
 
-    /* col widths */
-    .col-style    { width: 140px; min-width: 100px; }
-    .col-cat      { width: 130px; min-width: 100px; }
-    .col-attn     { width: 130px; min-width: 100px; }
-    .col-type     { width: 120px; min-width: 90px; }
-    .col-supp     { width: 140px; min-width: 100px; }
-    .col-ship     { width: 110px; min-width: 90px; }
-    .col-eta      { width: 110px; min-width: 90px; }
-    .col-track    { width: 180px; min-width: 120px; }
-    .col-disc     { min-width: 160px; }
+    .col-style  { width: 110px; }
+    .col-cat    { width: 120px; }
+    .col-attn   { width: 160px; }
+    .col-type   { width: 150px; }
+    .col-supp   { width: 120px; }
+    .col-ship   { width: 100px; }
+    .col-eta    { width: 100px; }
+    .col-track  { width: 160px; }
+    .col-disc   { min-width: 150px; }
+    .col-by     { width: 140px; }
 
-    /* RESPONSIVE */
-    .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--text-secondary); line-height: 1; }
-    .nav-hamburger:hover { color: var(--text); }
-    @media (max-width: 768px) {
+    /* Row status dot */
+    .row-dot { width: 8px; height: 8px; border-radius: 50%; background: #e5e7eb; display: inline-block; }
+    .row-dot.saved  { background: #16a34a; }
+    .row-dot.error  { background: #dc2626; }
+    .row-dot.saving { background: #f59e0b; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--text); color: #fff; font-size: 13px; font-weight: 500; padding: 10px 18px; border-radius: 8px; opacity: 0; transform: translateY(8px); transition: all 0.2s; pointer-events: none; z-index: 100; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 640px) {
       nav { padding: 0 16px; height: auto; min-height: 52px; position: relative; }
       .nav-brand { display: block; }
       .nav-hamburger { display: flex; align-items: center; }
       .nav-links { display: none; position: absolute; top: 52px; left: 0; right: 0; background: var(--surface); border-bottom: 1px solid var(--border); flex-direction: column; padding: 6px 0 10px; gap: 0; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
       .nav-links.open { display: flex; }
       .nav-link { padding: 10px 20px; border-radius: 0; font-size: 13px; }
-      .form-wrapper { padding: 16px 12px 40px; overflow-x: auto; }
+      .form-wrapper { padding: 16px 12px 40px; }
+      .mode-bar { padding: 10px 16px; font-size: 12px; }
+      .save-status { display: none; }
+      .save-btn { padding: 0 14px; font-size: 13px; }
     }
   </style>
 </head>
@@ -124,73 +134,161 @@
 </nav>
 
 <div class="mode-bar">
-  <span>Sample Shipping — Tracking</span>
+  <span>Sample Batch Tracking</span>
   <a href="samples.html"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg> Back to Samples</a>
 </div>
 
 <div class="form-wrapper">
-
-  <!-- TOP: logo + save -->
   <div class="top-bar">
-    <img src="FARM RIO LOGO.png" alt="Farm Rio" class="logo-fr" />
+    <div class="top-bar-left">
+      <img src="FARM RIO LOGO.png" alt="Farm Rio" class="logo-fr" />
+      <div class="top-bar-info">
+        <strong>Sample Batch Tracking</strong>
+        Fill rows and click Save — only rows with a Tracking # are saved
+      </div>
+    </div>
     <div class="save-area">
-      <span class="save-label">Save</span>
-      <button class="save-btn" title="Save">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      <span class="save-status" id="save-status"></span>
+      <button class="save-btn" id="save-btn" onclick="saveAll()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Save All
       </button>
     </div>
   </div>
 
-  <!-- TABLE CARD -->
   <div class="table-card">
-    <div class="section-hdr">Sample Shipping</div>
-    <table id="samples-table">
-      <thead>
-        <tr>
-          <th class="col-style">Style</th>
-          <th class="col-cat">Category</th>
-          <th class="col-attn">Attn / Buyer</th>
-          <th class="col-type">Sample Type</th>
-          <th class="col-supp">Supplier</th>
-          <th class="col-ship">Ship Date</th>
-          <th class="col-eta">ETA</th>
-          <th class="col-track">Tracking</th>
-          <th class="col-disc">Disclaimer</th>
-        </tr>
-      </thead>
-      <tbody id="samples-body">
-      </tbody>
-    </table>
+    <div class="section-hdr">
+      <span>Anthropologie — Sample Database New</span>
+      <span class="section-hdr-note">Rows with Tracking # are upserted on save</span>
+    </div>
+    <div class="table-scroll">
+      <table id="samples-table">
+        <thead>
+          <tr>
+            <th class="th-num">#</th>
+            <th class="col-style">Style</th>
+            <th class="col-cat">Category</th>
+            <th class="col-attn">Attn / Buyer</th>
+            <th class="col-type">Sample Type</th>
+            <th class="col-supp">Supplier</th>
+            <th class="col-ship">Ship Date</th>
+            <th class="col-eta">ETA</th>
+            <th class="col-track">Tracking #</th>
+            <th class="col-disc">Disclaimer</th>
+            <th class="col-by">Created By</th>
+            <th class="th-num">&#x25CF;</th>
+          </tr>
+        </thead>
+        <tbody id="samples-body"></tbody>
+      </table>
+    </div>
   </div>
-
 </div>
 
+<div class="toast" id="toast"></div>
 <script>
 function toggleNav() { document.getElementById('nav-links').classList.toggle('open'); }
 
-const CATEGORIES = ['—','Tops','Bottoms','Dresses','Outerwear','Swimwear','Accessories','Shoes','Bags'];
-const BUYERS     = ['—','Anthropologie','URBN','Farm Rio US','Farm Rio INT','Other'];
-const TYPES      = ['—','Proto','SMS','TOP','PP','Photo','Salesman'];
-const SUPPLIERS  = ['—','Supplier A','Supplier B','Supplier C','Supplier D','Other'];
+const CATEGORIES = ['','Blouses','Dresses','Jumpsuit','Knit','LOUNGE','Pants','Shorts','Skirts','Sweaters','Swimwear','Accessories','OTHER'];
+const BUYERS     = ['','JULIE/DRESSES','IVY/SWIM','ALY/BLOUSES','CAROLINE/BOTTOM','ABBY/SKIRTS','Jacqueline Mazzi/ KNITS','MC Miskuly/Maternity/Nuuly'];
+const TYPES      = ['','TOP OF PRODUCTION','PROTO','SALESMAN SAMPLE','FIT SAMPLE','PHOTO SAMPLE','PRESS SAMPLE','COUNTER SAMPLE','BULK APPROVED SAMPLE','OTHER'];
+const SUPPLIERS  = ['','ECICO','GAIA','H&F','HS FASHION','KONCEPTION','PQSWIM','S&S'];
+const CREATORS   = ['','IGO GARDEL','Kamilla Aguiar','Paula Erthal','Ozan Guruscu','Flavio Azevedo','Eduardo Moraes','Julian Fajardo','Manuela Carvalho'];
 
 function opt(arr) {
-  return arr.map(v => `<option value="${v === '—' ? '' : v}">${v}</option>`).join('');
+  return arr.map(v => `<option value="${v}">${v || '--'}</option>`).join('');
 }
 
 const tbody = document.getElementById('samples-body');
-for (let i = 1; i <= 20; i++) {
-  tbody.innerHTML += `
-    <tr>
-      <td><input type="text" class="td-input" placeholder="Style #" /></td>
-      <td><select class="td-select">${opt(CATEGORIES)}</select></td>
-      <td><select class="td-select">${opt(BUYERS)}</select></td>
-      <td><select class="td-select">${opt(TYPES)}</select></td>
-      <td><select class="td-select">${opt(SUPPLIERS)}</select></td>
-      <td><input type="text" class="td-input" placeholder="MM/DD/YY" /></td>
-      <td><input type="text" class="td-input" placeholder="MM/DD/YY" /></td>
-      <td><input type="text" class="td-input" placeholder="Tracking #" /></td>
-      <td><input type="text" class="td-input" placeholder="Notes..." /></td>
-    </tr>`;
+const ROWS = 20;
+for (let i = 1; i <= ROWS; i++) {
+  const tr = document.createElement('tr');
+  tr.id = `row-${i}`;
+  tr.innerHTML = `
+    <td class="td-num">${i}</td>
+    <td><input type="text" class="td-input r-style" placeholder="e.g. 88015" /></td>
+    <td><select class="td-select r-cat">${opt(CATEGORIES)}</select></td>
+    <td><select class="td-select r-attn">${opt(BUYERS)}</select></td>
+    <td><select class="td-select r-type">${opt(TYPES)}</select></td>
+    <td><select class="td-select r-supp">${opt(SUPPLIERS)}</select></td>
+    <td><input type="text" class="td-input r-ship" placeholder="MM/DD/YYYY" /></td>
+    <td><input type="text" class="td-input r-eta"  placeholder="MM/DD/YYYY" /></td>
+    <td><input type="text" class="td-input r-track" placeholder="Required to save" /></td>
+    <td><input type="text" class="td-input r-disc"  placeholder="Notes..." /></td>
+    <td><select class="td-select r-by">${opt(CREATORS)}</select></td>
+    <td class="td-num"><span class="row-dot" id="dot-${i}"></span></td>`;
+  tbody.appendChild(tr);
+}
+
+function showToast(msg, color) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = color || '#1a1d23';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+async function saveAll() {
+  const btn = document.getElementById('save-btn');
+  const status = document.getElementById('save-status');
+  btn.disabled = true; btn.innerHTML = btn.innerHTML.replace('Save All', 'Saving...');
+
+  const rows = [];
+  for (let i = 1; i <= ROWS; i++) {
+    const tr = document.getElementById(`row-${i}`);
+    const tracking = tr.querySelector('.r-track').value.trim();
+    if (!tracking) continue;
+    rows.push({
+      i,
+      payload: {
+        'STYLE':        tr.querySelector('.r-style').value.trim(),
+        'CATEGORY':     tr.querySelector('.r-cat').value,
+        'ATTN / BUYER': tr.querySelector('.r-attn').value,
+        'SAMPLE TYPE':  tr.querySelector('.r-type').value,
+        'SUPPLIER':     tr.querySelector('.r-supp').value,
+        'SHIP DATE':    tr.querySelector('.r-ship').value.trim(),
+        'ETA':          tr.querySelector('.r-eta').value.trim(),
+        'TRACKING':     tracking,
+        'DISCLAIMER':   tr.querySelector('.r-disc').value.trim(),
+        'CREATED BY':   tr.querySelector('.r-by').value,
+      }
+    });
+  }
+
+  if (!rows.length) {
+    showToast('No rows with a Tracking # to save');
+    btn.disabled = false; btn.innerHTML = btn.innerHTML.replace('Saving...', 'Save All');
+    return;
+  }
+
+  status.textContent = `Saving ${rows.length} row${rows.length > 1 ? 's' : ''}...`;
+
+  // Mark all pending rows as saving
+  rows.forEach(({ i }) => {
+    const dot = document.getElementById(`dot-${i}`);
+    dot.className = 'row-dot saving';
+  });
+
+  let saved = 0, errors = 0;
+  for (const { i, payload } of rows) {
+    const dot = document.getElementById(`dot-${i}`);
+    try {
+      const res  = await fetch('/api/paul/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Error');
+      dot.className = 'row-dot saved';
+      dot.title = json.action === 'updated' ? 'Updated' : 'Created';
+      saved++;
+    } catch (e) {
+      dot.className = 'row-dot error';
+      dot.title = e.message;
+      errors++;
+    }
+  }
+
+  status.textContent = `${saved} saved${errors ? `, ${errors} failed` : ''}`;
+  showToast(errors ? `${saved} saved, ${errors} failed` : `${saved} row${saved > 1 ? 's' : ''} saved!`, errors ? '#dc2626' : '#16a34a');
+  btn.disabled = false; btn.innerHTML = btn.innerHTML.replace('Saving...', 'Save All');
 }
 </script>
 </body>
