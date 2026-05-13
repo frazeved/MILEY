@@ -520,41 +520,72 @@ router.get('/dashboard', async (req, res) => {
     if (rows.length < 2) return res.json({ total: 0, missingTp: 0, missingPrint: 0, months: [] });
 
     const headers  = rows[0].map(h => String(h).trim());
-    const col      = (name) => headers.findIndex(h => h.toUpperCase() === name.toUpperCase());
-    const styleCol = col('STYLE #');
-    const tpCol    = col('TP SENT TO SUPPLIER');
-    const printCol = col('PRINT SENT TO SUPPLIER');
-    const ndcCol   = col('NDC MONTH/YEAR');
+    const colIdx   = (name) => headers.findIndex(h => h.toUpperCase() === name.toUpperCase());
+    const styleCol = colIdx('STYLE #');
+    const tpCol    = colIdx('TP SENT TO SUPPLIER');
+    const printCol = colIdx('PRINT SENT TO SUPPLIER');
 
-    const styleRows = rows.slice(1).filter(r => {
-      if (!String(r[styleCol] || '').trim()) return false;
-      const ndc = String(r[ndcCol] || '').trim();
-      return ndc.endsWith('/2026');
-    });
+    // Fuzzy-find NDC column and optional separate YEAR column
+    const ndcCol  = headers.findIndex(h => h.toUpperCase().replace(/\s+/g,'').includes('NDC'));
+    const yearCol = headers.findIndex(h => h.toUpperCase().replace(/\s+/g,'') === 'YEAR' ||
+                                          h.toUpperCase().replace(/\s+/g,'') === 'NDCYEAR');
 
-    const total        = styleRows.length;
-    const missingTp    = styleRows.filter(r => !String(r[tpCol]    || '').trim()).length;
-    const missingPrint = styleRows.filter(r => !String(r[printCol] || '').trim()).length;
+    // Parse month number (1-12) and year from an NDC cell value
+    const MON_MAP = {
+      JAN:1,JANUARY:1, FEB:2,FEBRUARY:2, MAR:3,MARCH:3, APR:4,APRIL:4,
+      MAY:5, JUN:6,JUNE:6, JUL:7,JULY:7, AUG:8,AUGUST:8,
+      SEP:9,SEPT:9,SEPTEMBER:9, OCT:10,OCTOBER:10, NOV:11,NOVEMBER:11, DEC:12,DECEMBER:12,
+    };
+    const parseNdc = (ndcRaw, yearRaw) => {
+      const s = String(ndcRaw || '').trim();
+      if (!s) return null;
+      // Combined "05/2026" or "May/2026" or "May 2026" or "May-2026"
+      const withYear = s.match(/^([A-Za-z]+|\d{1,2})[\s\/\-](\d{4})$/);
+      if (withYear) {
+        const monPart = withYear[1], yr = parseInt(withYear[2]);
+        const mon = /^\d+$/.test(monPart) ? parseInt(monPart) : (MON_MAP[monPart.toUpperCase()] || 0);
+        return mon ? { mon, yr } : null;
+      }
+      // Month only: "May", "MAY", "05", "5"
+      const mon = /^\d{1,2}$/.test(s)
+        ? parseInt(s)
+        : (MON_MAP[s.toUpperCase()] || 0);
+      if (!mon) return null;
+      const yr = yearRaw ? parseInt(String(yearRaw).trim()) : NaN;
+      return { mon, yr };
+    };
 
+    const MONTH_NAMES = ['','JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+    const styleRows = rows.slice(1).filter(r => String(r[styleCol] || '').trim());
+
+    // Build month map — include all 2026 rows
     const monthMap = {};
+    let total = 0, missingTp = 0, missingPrint = 0;
     styleRows.forEach(r => {
-      const ndc = String(r[ndcCol] || '').trim();
-      if (!ndc) return;
-      if (!monthMap[ndc]) monthMap[ndc] = { count: 0, missingTp: 0, missingPrint: 0 };
-      monthMap[ndc].count++;
-      if (!String(r[tpCol]    || '').trim()) monthMap[ndc].missingTp++;
-      if (!String(r[printCol] || '').trim()) monthMap[ndc].missingPrint++;
+      const ndcRaw  = ndcCol  >= 0 ? r[ndcCol]  : '';
+      const yearRaw = yearCol >= 0 ? r[yearCol] : '';
+      const parsed  = parseNdc(ndcRaw, yearRaw);
+      if (!parsed || parsed.yr !== 2026) return; // only 2026
+
+      total++;
+      const noTp    = !String(r[tpCol]    || '').trim();
+      const noPrint = !String(r[printCol] || '').trim();
+      if (noTp)    missingTp++;
+      if (noPrint) missingPrint++;
+
+      const key = parsed.mon; // group by month number
+      if (!monthMap[key]) monthMap[key] = { count: 0, missingTp: 0, missingPrint: 0 };
+      monthMap[key].count++;
+      if (noTp)    monthMap[key].missingTp++;
+      if (noPrint) monthMap[key].missingPrint++;
     });
 
-    const MONTH_NAMES = ['', 'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-                              'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
     const months = Object.entries(monthMap)
       .map(([key, stats]) => {
-        const [mm] = key.split('/');
-        const m = parseInt(mm);
-        return { label: MONTH_NAMES[m] || mm, sortKey: m, ...stats };
+        const m = parseInt(key);
+        return { label: MONTH_NAMES[m] || String(m), sortKey: m, ...stats };
       })
-      .filter(m => !isNaN(m.sortKey))
       .sort((a, b) => a.sortKey - b.sortKey)
       .slice(-4);
 
