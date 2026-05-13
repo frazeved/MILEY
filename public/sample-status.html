@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>305 Workspace — Sample Status Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f6fa; --surface: #fff; --border: #e4e7ed;
+      --text: #1a1d23; --muted: #6b7280;
+      --accent: #0891b2; --accent-lt: #ecfeff;
+      --green: #16a34a; --green-lt: #dcfce7;
+      --blue: #0891b2; --blue-lt: #cffafe;
+      --orange: #ea580c; --orange-lt: #fff7ed;
+      --red: #dc2626; --red-lt: #fee2e2;
+      --purple: #7c3aed; --purple-lt: #ede9fe;
+      --gray-lt: #f3f4f6;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* NAV */
+    nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 60; }
+    .nav-brand { font-size: 16px; font-weight: 700; display: none; }
+    .nav-brand span { color: var(--accent); }
+    .nav-links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .nav-link { font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: 6px; text-decoration: none; color: var(--muted); transition: background 0.15s, color 0.15s; white-space: nowrap; }
+    .nav-link:hover { background: var(--bg); color: var(--text); }
+    .nav-link.active { background: var(--accent-lt); color: var(--accent); }
+    .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--muted); }
+
+    /* MODE BAR */
+    .mode-bar { background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 10px 28px; font-size: 14px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; }
+    .mode-bar-left { display: flex; align-items: center; gap: 10px; }
+    .agent-badge { background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.28); border-radius: 6px; padding: 2px 10px; font-size: 11px; font-weight: 700; letter-spacing: 1px; }
+    .mode-bar a { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+    .mode-bar a:hover { color: #fff; }
+
+    /* PAGE */
+    .page-wrap { padding: 16px 24px 40px; margin: 0 auto; width: 100%; }
+
+    /* TOOLBAR */
+    .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+    .status-text { font-size: 12px; color: var(--muted); flex: 1; min-width: 120px; }
+    .search-wrap { position: relative; }
+    .search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+    .search-input { font-family: inherit; font-size: 12px; padding: 7px 10px 7px 30px; border: 1px solid var(--border); border-radius: 7px; outline: none; color: var(--text); background: var(--surface); width: 220px; transition: border-color 0.15s; }
+    .search-input:focus { border-color: var(--accent); }
+    .filter-select { font-family: inherit; font-size: 12px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 7px; outline: none; color: var(--text); background: var(--surface); cursor: pointer; }
+    .tb-btn { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 7px 12px; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--accent); transition: background 0.15s; white-space: nowrap; }
+    .tb-btn:hover { background: var(--accent-lt); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .tb-btn.loading svg { animation: spin 0.8s linear infinite; }
+
+    /* TABLE */
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { border-collapse: collapse; width: 100%; white-space: nowrap; }
+    thead { background: #f8f9fb; border-bottom: 2px solid var(--border); }
+    th { padding: 9px 12px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); text-align: left; cursor: pointer; user-select: none; }
+    th:hover { color: var(--text); }
+    th .sort-icon { margin-left: 3px; opacity: 0.4; font-size: 9px; }
+    th.sorted .sort-icon { opacity: 1; color: var(--accent); }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #fafbfc; }
+    td { padding: 8px 12px; font-size: 12px; vertical-align: middle; }
+
+    .cell-style { font-weight: 700; }
+    .cell-muted { color: var(--muted); font-size: 11px; }
+    .tracking-link { font-size: 11px; font-weight: 600; color: var(--accent); text-decoration: none; font-family: 'Courier New', monospace; }
+    .tracking-link:hover { text-decoration: underline; }
+    .copy-btn { background: none; border: none; cursor: pointer; color: var(--muted); padding: 2px 3px; border-radius: 3px; display: inline-flex; transition: color 0.15s; }
+    .copy-btn:hover { color: var(--accent); }
+    .tracking-wrap { display: flex; align-items: center; gap: 5px; }
+
+    /* STATUS BADGES */
+    .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+    .s-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .badge-delivered  { background: var(--green-lt);  color: #166534; }
+    .badge-delivered  .s-dot { background: var(--green); }
+    .badge-transit    { background: var(--blue-lt);   color: #155e75; }
+    .badge-transit    .s-dot { background: var(--blue); }
+    .badge-preparing  { background: var(--purple-lt); color: #5b21b6; }
+    .badge-preparing  .s-dot { background: var(--purple); }
+    .badge-overdue    { background: var(--red-lt);    color: #991b1b; }
+    .badge-overdue    .s-dot { background: var(--red); animation: pulse-r 1.5s ease-in-out infinite; }
+    .badge-arriving   { background: var(--orange-lt); color: #9a3412; }
+    .badge-arriving   .s-dot { background: var(--orange); animation: pulse-o 1.5s ease-in-out infinite; }
+    .badge-pending    { background: var(--gray-lt);   color: var(--muted); }
+    .badge-pending    .s-dot { background: #9ca3af; }
+    @keyframes pulse-r { 0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.4)} 50%{box-shadow:0 0 0 4px rgba(220,38,38,0)} }
+    @keyframes pulse-o { 0%,100%{box-shadow:0 0 0 0 rgba(234,88,12,.4)} 50%{box-shadow:0 0 0 4px rgba(234,88,12,0)} }
+
+    .msg-row td { padding: 60px 24px; text-align: center; color: var(--muted); font-size: 13px; }
+    .spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px; }
+
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--text); color: #fff; font-size: 13px; font-weight: 500; padding: 10px 16px; border-radius: 8px; opacity: 0; transform: translateY(8px); transition: all 0.2s; pointer-events: none; z-index: 200; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0 16px; height: auto; min-height: 52px; position: relative; }
+      .nav-brand { display: block; }
+      .nav-hamburger { display: flex; align-items: center; }
+      .nav-links { display: none; position: absolute; top: 52px; left: 0; right: 0; background: var(--surface); border-bottom: 1px solid var(--border); flex-direction: column; padding: 6px 0 10px; gap: 0; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+      .nav-links.open { display: flex; }
+      .nav-link { padding: 11px 20px; border-radius: 0; font-size: 14px; }
+      .mode-bar { padding: 10px 16px; font-size: 12px; }
+      .page-wrap { padding: 12px 12px 40px; }
+      .search-input { width: 160px; }
+      .filter-select { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">305 <span>Workspace</span></div>
+  <button class="nav-hamburger" onclick="document.getElementById('nav-links').classList.toggle('open')" aria-label="Menu">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div class="nav-links" id="nav-links">
+    <a class="nav-link" href="/">&#8592; Home</a>
+    <a class="nav-link" href="warehouse.html">Warehouse Now</a>
+    <a class="nav-link" href="production.html">Production</a>
+    <a class="nav-link active" href="samples.html">Samples Tracking</a>
+    <a class="nav-link" href="design.html">Design</a>
+    <a class="nav-link" href="shipment.html">New Shipment</a>
+    <a class="nav-link" href="map.html">Map Updates</a>
+    <a class="nav-link" href="forecast.html">Forecast</a>
+    <a class="nav-link" href="gantt.html">Gantt Chart</a>
+    <a class="nav-link" href="tradestone.html">Tradestone Updates</a>
+    <a class="nav-link" href="rlm.html">RLM Updates</a>
+    <a class="nav-link" href="dhl.html">DHL Duties Cost</a>
+  </div>
+</nav>
+
+<div class="mode-bar">
+  <div class="mode-bar-left">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    Sample Status Tracker
+    <span class="agent-badge">PAUL</span>
+  </div>
+  <a href="samples.html">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to Samples
+  </a>
+</div>
+
+<div class="page-wrap">
+  <div class="toolbar">
+    <span class="status-text" id="status-text">Loading…</span>
+    <div class="search-wrap">
+      <svg class="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="search-input" id="search-input" type="text" placeholder="Style, tracking, buyer…" oninput="renderRows()" />
+    </div>
+    <select class="filter-select" id="status-filter" onchange="renderRows()">
+      <option value="">All Statuses</option>
+      <option value="pending">Pending</option>
+      <option value="preparing">Preparing</option>
+      <option value="transit">In Transit</option>
+      <option value="arriving">Arriving Soon</option>
+      <option value="delivered">Delivered</option>
+      <option value="overdue">Overdue</option>
+    </select>
+    <select class="filter-select" id="buyer-filter" onchange="renderRows()">
+      <option value="">All Buyers</option>
+    </select>
+    <button class="tb-btn" id="reload-btn" onclick="loadData()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Refresh
+    </button>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-scroll">
+      <table id="data-table">
+        <thead>
+          <tr>
+            <th onclick="sortBy('STYLE')">Style <span class="sort-icon">&#8597;</span></th>
+            <th onclick="sortBy('CATEGORY')">Category <span class="sort-icon">&#8597;</span></th>
+            <th onclick="sortBy('ATTN / BUYER')">Attn / Buyer <span class="sort-icon">&#8597;</span></th>
+            <th onclick="sortBy('SAMPLE TYPE')">Sample Type <span class="sort-icon">&#8597;</span></th>
+            <th onclick="sortBy('SUPPLIER')">Supplier <span class="sort-icon">&#8597;</span></th>
+            <th onclick="sortBy('SHIP DATE')">Ship Date <span class="sort-icon">&#8597;</span></th>
+            <th onclick="sortBy('ETA')">ETA <span class="sort-icon">&#8597;</span></th>
+            <th onclick="sortBy('TRACKING')">Tracking # <span class="sort-icon">&#8597;</span></th>
+            <th onclick="sortBy('_status')">Status <span class="sort-icon">&#8597;</span></th>
+            <th onclick="sortBy('CREATED BY')">Created By <span class="sort-icon">&#8597;</span></th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr class="msg-row"><td colspan="10"><div class="spinner"></div>Fetching samples…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let allRows = [];
+let sortCol = 'SHIP DATE';
+let sortAsc = false;
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function parseDate(str) {
+  if (!str || !str.trim()) return null;
+  // Try MM/DD/YYYY
+  const m = str.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return new Date(+m[3], +m[1]-1, +m[2]);
+  const d = new Date(str.trim());
+  return isNaN(d) ? null : d;
+}
+
+function getStatus(row) {
+  const today   = new Date(); today.setHours(0,0,0,0);
+  const ship    = parseDate(row['SHIP DATE']);
+  const eta     = parseDate(row['ETA']);
+  const tracking = (row['TRACKING'] || '').trim();
+
+  if (!tracking) return 'pending';
+  if (!ship) return 'preparing';
+
+  if (ship > today) return 'preparing';
+
+  if (eta) {
+    const daysToETA = Math.ceil((eta - today) / 86400000);
+    if (daysToETA < 0) return 'delivered';    // ETA passed → assumed delivered
+    if (daysToETA <= 2) return 'arriving';    // arriving within 2 days
+    return 'transit';
+  }
+
+  // ship date passed, no ETA
+  const daysSinceShip = Math.ceil((today - ship) / 86400000);
+  if (daysSinceShip > 14) return 'overdue';
+  return 'transit';
+}
+
+const STATUS_META = {
+  pending:   { label: 'Pending',       cls: 'badge-pending'  },
+  preparing: { label: 'Preparing',     cls: 'badge-preparing' },
+  transit:   { label: 'In Transit',    cls: 'badge-transit'  },
+  arriving:  { label: 'Arriving Soon', cls: 'badge-arriving' },
+  delivered: { label: 'Delivered',     cls: 'badge-delivered'},
+  overdue:   { label: 'Overdue',       cls: 'badge-overdue'  },
+};
+
+function badge(status) {
+  const m = STATUS_META[status] || STATUS_META.pending;
+  return `<span class="badge ${m.cls}"><span class="s-dot"></span>${m.label}</span>`;
+}
+
+function fmtDate(str) {
+  const d = parseDate(str);
+  if (!d) return str || '';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+async function loadData() {
+  const btn = document.getElementById('reload-btn');
+  btn.classList.add('loading'); btn.disabled = true;
+  document.getElementById('status-text').textContent = 'Loading…';
+  document.getElementById('tbody').innerHTML = '<tr class="msg-row"><td colspan="10"><div class="spinner"></div>Fetching samples…</td></tr>';
+  try {
+    const res  = await fetch('/api/paul/database');
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed');
+
+    allRows = json.data.map(r => ({ ...r, _status: getStatus(r) }));
+
+    // Populate buyer filter
+    const buyers = [...new Set(allRows.map(r => r['ATTN / BUYER']).filter(Boolean))].sort();
+    const bSel = document.getElementById('buyer-filter');
+    bSel.innerHTML = '<option value="">All Buyers</option>' + buyers.map(b => `<option value="${b}">${esc(b)}</option>`).join('');
+
+    sortCol = 'SHIP DATE'; sortAsc = false;
+    renderRows();
+  } catch (e) {
+    document.getElementById('tbody').innerHTML = `<tr class="msg-row"><td colspan="10">Error: ${esc(e.message)}</td></tr>`;
+    document.getElementById('status-text').textContent = 'Error loading data';
+  } finally {
+    btn.classList.remove('loading'); btn.disabled = false;
+  }
+}
+
+function sortBy(col) {
+  if (sortCol === col) { sortAsc = !sortAsc; }
+  else { sortCol = col; sortAsc = true; }
+  renderRows();
+}
+
+function renderRows() {
+  const q          = document.getElementById('search-input').value.toLowerCase().trim();
+  const statusF    = document.getElementById('status-filter').value;
+  const buyerF     = document.getElementById('buyer-filter').value;
+
+  let visible = allRows.filter(r => {
+    if (statusF && r._status !== statusF) return false;
+    if (buyerF  && r['ATTN / BUYER'] !== buyerF) return false;
+    if (q) {
+      const haystack = [r['STYLE'], r['TRACKING'], r['ATTN / BUYER'], r['SUPPLIER'], r['SAMPLE TYPE'], r['CATEGORY']].join(' ').toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    return true;
+  });
+
+  visible.sort((a, b) => {
+    let av = a[sortCol] || '', bv = b[sortCol] || '';
+    // date-aware sort for date columns
+    if (sortCol === 'SHIP DATE' || sortCol === 'ETA') {
+      const da = parseDate(av), db = parseDate(bv);
+      if (da && db) { av = da; bv = db; }
+      else if (da) { av = da; bv = new Date(0); }
+      else if (db) { av = new Date(0); bv = db; }
+    }
+    if (av < bv) return sortAsc ? -1 : 1;
+    if (av > bv) return sortAsc ?  1 : -1;
+    return 0;
+  });
+
+  // Update sort icons
+  document.querySelectorAll('th').forEach(th => th.classList.remove('sorted'));
+  const ths = document.querySelectorAll('th');
+  const colNames = ['STYLE','CATEGORY','ATTN / BUYER','SAMPLE TYPE','SUPPLIER','SHIP DATE','ETA','TRACKING','_status','CREATED BY'];
+  const idx = colNames.indexOf(sortCol);
+  if (idx >= 0 && ths[idx]) ths[idx].classList.add('sorted');
+
+  const tbody = document.getElementById('tbody');
+  if (!visible.length) {
+    tbody.innerHTML = '<tr class="msg-row"><td colspan="10">No samples found.</td></tr>';
+    document.getElementById('status-text').textContent = '0 samples';
+    return;
+  }
+
+  document.getElementById('status-text').textContent = `${visible.length} sample${visible.length !== 1 ? 's' : ''}`;
+
+  tbody.innerHTML = visible.map(r => {
+    const tracking = (r['TRACKING'] || '').trim();
+    const trackingHtml = tracking
+      ? `<div class="tracking-wrap">
+           <a class="tracking-link" href="https://www.google.com/search?q=${encodeURIComponent(tracking)}" target="_blank" rel="noopener">${esc(tracking)}</a>
+           <button class="copy-btn" title="Copy" onclick="navigator.clipboard.writeText('${tracking.replace(/'/g,"\\'")}');showToast('Copied!')">
+             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+           </button>
+         </div>`
+      : '<span class="cell-muted">—</span>';
+
+    return `<tr>
+      <td class="cell-style">${esc(r['STYLE'])}</td>
+      <td>${esc(r['CATEGORY'])}</td>
+      <td>${esc(r['ATTN / BUYER'])}</td>
+      <td>${esc(r['SAMPLE TYPE'])}</td>
+      <td>${esc(r['SUPPLIER'])}</td>
+      <td class="cell-muted">${fmtDate(r['SHIP DATE'])}</td>
+      <td class="cell-muted">${fmtDate(r['ETA'])}</td>
+      <td>${trackingHtml}</td>
+      <td>${badge(r._status)}</td>
+      <td class="cell-muted">${esc(r['CREATED BY'])}</td>
+    </tr>`;
+  }).join('');
+}
+
+loadData();
+</script>
+</body>
+</html>
