@@ -2,6 +2,7 @@
    - 30-minute inactivity auto-logout
    - Username on the LEFT of the nav bar
    - Log Out button on the RIGHT of the nav bar
+   - role:'mainline' users are locked to main-line.html only
 */
 (function () {
   'use strict';
@@ -28,11 +29,31 @@
     if (!nav) return;
 
     // Get logged-in user
-    let userName = '';
+    let user = null;
     try {
       const r = await fetch('/api/me');
-      if (r.ok) { const u = await r.json(); userName = u.name || ''; }
+      if (r.ok) { user = await r.json(); }
     } catch (_) {}
+
+    const userName = user ? (user.name || '') : '';
+    const userRole = user ? (user.role || '') : '';
+
+    // ── Mainline-only restriction ──────────────────────────────────────────
+    if (userRole === 'mainline') {
+      const path = window.location.pathname;
+      const onAllowed = path.endsWith('/main-line.html') || path.endsWith('/change-password.html');
+      if (!onAllowed) {
+        window.location.href = '/main-line.html';
+        return;
+      }
+      // Hide all nav links except the Main Line one
+      document.querySelectorAll('.nav-link').forEach(function (link) {
+        const href = link.getAttribute('href') || '';
+        if (!href.includes('main-line')) {
+          link.style.display = 'none';
+        }
+      });
+    }
 
     // Styles
     const s = document.createElement('style');

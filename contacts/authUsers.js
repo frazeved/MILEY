@@ -14,5 +14,8 @@ module.exports = {
     { email: 'rafaela.neves@farmrio.com',            envVar: 'RAFAELA_PASSWORD',  name: 'Rafaela Neves',    role: 'user'  },
     { email: 'ozan.guruscu@creativetwotwelve.com',   envVar: 'OZAN_PASSWORD',     name: 'Ozan Guruscu',     role: 'user'  },
     { email: 'kamilla@creativetwotwelve.com',        envVar: 'KAMILLA_PASSWORD',  name: 'Kamilla Aguiar',   role: 'user'  },
+    { email: 'isa@creativetwotwelve.com',            envVar: 'ISABELA_PASSWORD',  name: 'Isabela Figueiredo', role: 'user'  },
+    { email: 'victor@creativetwotwelve.com',         envVar: 'VICTOR_PASSWORD',   name: 'Victor Vidal',     role: 'user'  },
+    { email: 'caio.vitorio@farmrio.com',             envVar: 'CAIO_PASSWORD',     name: 'Caio Vitorio',     role: 'mainline' },
   ],
 };
