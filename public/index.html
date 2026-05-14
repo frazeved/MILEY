@@ -75,24 +75,27 @@
     nav {
       background: var(--surface);
       border-bottom: 1px solid var(--border);
-      padding: 0 48px;
+      padding: 0 24px;
       height: 52px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
       position: relative;
     }
 
     .nav-brand {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
       font-size: 16px;
       font-weight: 700;
       color: var(--text);
       letter-spacing: -0.3px;
-      flex-shrink: 0;
+      white-space: nowrap;
+      pointer-events: none;
     }
     .nav-brand span { color: var(--accent); }
 
-    .nav-dropdown { position: relative; }
+    .nav-dropdown { position: relative; margin-left: auto; }
 
     .nav-menu-btn {
       display: flex;
@@ -140,11 +143,6 @@
     }
     .nav-menu-item:hover { background: var(--bg); color: var(--text); }
     .nav-menu-item.active { background: var(--accent-light); color: var(--accent); font-weight: 600; }
-
-    @media (max-width: 640px) {
-      nav { padding: 0 16px; }
-      .nav-menu-panel { right: 0; min-width: 200px; }
-    }
 
     /* â”€â”€ MAIN â”€â”€ */
     main {
@@ -299,8 +297,6 @@
       <a class="nav-menu-item" href="forecast.html">Forecast</a>
       <a class="nav-menu-item" href="tradestone.html">Tradestone Updates</a>
       <a class="nav-menu-item" href="rlm.html">RLM Updates</a>
-      <a class="nav-menu-item" href="dhl.html">DHL Duties Cost</a>
-      <a class="nav-menu-item" href="main-line.html">Main Line Sample Management</a>
     </div>
   </div>
 </nav>
@@ -379,20 +375,6 @@
       <div class="card-icon"><img src="RLM LOGO.png" alt="RLM" /></div>
       <div class="card-label">RLM Updates</div>
       <div class="card-name">Caroline</div>
-    </a>
-
-    <!-- DAVID â€” DHL Duties Cost -->
-    <a class=”workspace-card” href=”dhl.html”>
-      <div class=”card-icon”><img src=”DHL_Logo.svg.png” alt=”DHL Duties Cost” /></div>
-      <div class=”card-label”>DHL Duties Cost</div>
-      <div class=”card-name”>David</div>
-    </a>
-
-    <!-- ANTHONY â€” Main Line Sample Management -->
-    <a class=”workspace-card” href=”main-line.html”>
-      <div class=”card-icon”><img src=”SAMPLE MANAGEMENT.png” alt=”Main Line” /></div>
-      <div class=”card-label”>Main Line Sample Management</div>
-      <div class=”card-name”>Anthony</div>
     </a>
 
   </div>

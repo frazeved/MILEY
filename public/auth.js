@@ -63,13 +63,12 @@
 
       '.auth-logout{font-size:12px;font-weight:700;padding:5px 14px;border-radius:6px;' +
       'background:#fee2e2;color:#dc2626;border:none;cursor:pointer;font-family:inherit;' +
-      'transition:background 0.15s;white-space:nowrap;flex-shrink:0;margin-left:auto;}' +
+      'transition:background 0.15s;white-space:nowrap;flex-shrink:0;margin-left:8px;}' +
       '.auth-logout:hover{background:#fecaca;}' +
 
-      /* On mobile: hide username, remove auto-margin from logout (hamburger handles the push) */
       '@media(max-width:640px){' +
         '.auth-username{display:none;}' +
-        '.auth-logout{margin-left:0;font-size:11px;padding:5px 10px;}' +
+        '.auth-logout{font-size:11px;padding:5px 10px;}' +
       '}';
     document.head.appendChild(s);
 
