@@ -990,11 +990,12 @@ async function openMissingModal(field) {
       document.getElementById('miss-save-btn').disabled = true;
       return;
     }
+    const today = new Date().toISOString().split('T')[0];
     document.getElementById('miss-body').innerHTML = styles.map(s => `
       <div class="miss-row">
         <span class="miss-style">${s.style}</span>
         <span class="miss-sup">${s.supplier || s.category || ''}</span>
-        <input class="miss-date" type="date" data-style="${s.style}" placeholder="mm/dd/yyyy" />
+        <input class="miss-date" type="date" data-style="${s.style}" value="${today}" />
       </div>`).join('');
   } catch (e) {
     document.getElementById('miss-body').innerHTML = `<div style="text-align:center;padding:20px;color:#dc2626;font-size:12px;">${e.message}</div>`;
