@@ -1116,7 +1116,7 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
 
 // ─── Samantha: URBN Invoice Generator ────────────────────────────────────────
 
-// Preview: return SHIPPED POs with no URBN INVOICE TOTAL for the modal checklist
+// Preview: return SHIPPED POs with no URBN INVOICE DATE for the modal checklist
 app.get('/api/samantha/invoice-preview', async (req, res) => {
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
     return res.status(500).json({ error: 'Google credentials not configured' });
@@ -1137,7 +1137,7 @@ app.get('/api/samantha/invoice-preview', async (req, res) => {
     const statusCol   = idx(['status']);
     const styleCol    = idx(['style#', 'style number', 'style']);
     const trackingCol = idx(['tracking number', 'tracking']);
-    const invTotalCol = idx(['urbn invoice total', 'invoice total']);
+    const invDateCol  = idx(['urbn invoice date']);
 
     if (poCol < 0 || statusCol < 0) return res.status(500).json({ error: 'Required columns not found' });
 
@@ -1146,11 +1146,11 @@ app.get('/api/samantha/invoice-preview', async (req, res) => {
       const row      = rows[i];
       const poNumber = (row[poCol]     || '').trim();
       const status   = (row[statusCol] || '').trim().toUpperCase();
-      const invTotal = invTotalCol >= 0 ? (row[invTotalCol] || '').trim() : null;
+      const invDate  = invDateCol >= 0 ? (row[invDateCol] || '').trim() : null;
 
       if (!poNumber) continue;
       if (status !== 'SHIPPED') continue;
-      if (invTotal !== null && invTotal !== '') continue;
+      if (invDate !== null && invDate !== '') continue;
 
       result.push({
         poNumber,
