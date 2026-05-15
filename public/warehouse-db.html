@@ -336,7 +336,10 @@ function setMonth(m) {
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function col(headers, ...kws) {
-  return headers.findIndex(h => kws.some(k => h.toLowerCase().includes(k.toLowerCase())));
+  return headers.findIndex(h => {
+    const norm = h.toLowerCase().replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim();
+    return kws.some(k => norm.includes(k.toLowerCase()));
+  });
 }
 
 function classify(v) {
@@ -401,10 +404,10 @@ function filterCards() {
     if (show) visible++;
   });
 
-  // Sort all SHIPPED cards by invoice date descending (latest first, empty last)
-  if (activeFilter === 'sh' || activeFilter === 'shipped-last') {
-    const shown = cards.filter(c => !c.classList.contains('hidden'));
-    shown.sort((a, b) => {
+  // Always sort shown SHIPPED cards: latest invoice date first, no-date last
+  const shownShipped = cards.filter(c => !c.classList.contains('hidden') && c.dataset.cls === 'sh');
+  if (shownShipped.length > 1) {
+    shownShipped.sort((a, b) => {
       const da = a.dataset.invDate ? new Date(a.dataset.invDate) : null;
       const db = b.dataset.invDate ? new Date(b.dataset.invDate) : null;
       if (!da && !db) return 0;
@@ -412,7 +415,7 @@ function filterCards() {
       if (!db) return -1;
       return db - da;
     });
-    shown.forEach(c => grid.appendChild(c));
+    shownShipped.forEach(c => grid.appendChild(c));
   }
 
   document.querySelectorAll('.pill').forEach(p => {
@@ -582,7 +585,7 @@ function build(rows) {
             <div class="lbl ${pl?'done':'pending'}">PL</div>
             <div class="lbl ${fx?'done':'pending'}">FDEX</div>
           </div>
-          ${awb ? `<div class="awb-row">
+          ${awb && cls !== 'sh' ? `<div class="awb-row">
             <a class="awb-link" id="awb-${ri}" href="https://www.google.com/search?q=${encodeURIComponent(awb)}+airway+bill+cargo+tracking" target="_blank" rel="noopener">${esc(awb)}</a>
             <button class="awb-copy" title="Copy" onclick="navigator.clipboard?.writeText(document.getElementById('awb-${ri}').textContent)">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
