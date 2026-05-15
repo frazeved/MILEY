@@ -55,6 +55,7 @@
     .pill.sh   { color: var(--purple); }
     .pill.prod { color: var(--orange); }
     .pill.dl   { color: var(--red); }
+    .pill.sl   { color: var(--orange); }
     .pill.active { background: currentColor; border-color: currentColor; }
     .pill.active span { color: #fff !important; }
 
@@ -369,7 +370,9 @@ function parseCSV(text) {
 function filterCards() {
   let visible = 0;
   document.querySelectorAll('.card').forEach(c => {
-    const show = activeFilter === 'all' || c.dataset.cls === activeFilter;
+    const show = activeFilter === 'all'
+      || c.dataset.cls === activeFilter
+      || (activeFilter === 'shipped-last' && c.dataset.cls === 'sh' && !c.dataset.invDate);
     c.classList.toggle('hidden', !show);
     if (show) visible++;
   });
@@ -394,7 +397,8 @@ function build(rows) {
     units:  col(H,'units','pcs','pieces','unit qty','qty'),
     ws:     col(H,'wholesale','wsp','total value','amount'),
     awb:    col(H,'awb','tracking','airway'),
-    inv:    col(H,'urbn invoice','invoice total','inv total','urbn inv'),
+    inv:     col(H,'urbn invoice total','invoice total','inv total'),
+    invDate: col(H,'urbn invoice date'),
     al:     col(H,'anthro label','anthro lbl'),
     pl:     col(H,'packing list','pack list'),
     fx:     col(H,'fedex label','fedex lbl','fed ex label'),
@@ -403,7 +407,7 @@ function build(rows) {
   const g = v => (v !== null && v >= 0 ? (data[0]?.[v]??'') : ''); // just for ref
   const get = (r, ci) => ci >= 0 ? (r[ci]||'').trim() : '';
 
-  const counts = { wh:0, tr:0, sh:0, prod:0, dl:0, oth:0 };
+  const counts = { wh:0, tr:0, sh:0, prod:0, dl:0, oth:0, sl:0 };
   const cards = data.map((r, ri) => {
     const statusRaw = get(r, C.status);
     const cls = classify(statusRaw);
@@ -417,7 +421,9 @@ function build(rows) {
     const units  = get(r, C.units);
     const ws     = get(r, C.ws);
     const awb    = get(r, C.awb);
-    const inv    = get(r, C.inv);
+    const inv     = get(r, C.inv);
+    const invDate = get(r, C.invDate);
+    if (cls === 'sh' && !invDate) counts.sl++;
     const al     = get(r, C.al);
     const pl     = get(r, C.pl);
     const fx     = get(r, C.fx);
@@ -484,7 +490,7 @@ function build(rows) {
       </div>`;
     }
 
-    return `<div class="card ${cls}" data-cls="${cls}">
+    return `<div class="card ${cls}" data-cls="${cls}" data-inv-date="${invDate}">
       <div class="card-body">
         <div class="card-top">
           <div>
@@ -530,6 +536,7 @@ function build(rows) {
     <div class="pill wh"  data-f="wh"   onclick="activeFilter='wh';filterCards()"><div class="dot"></div><span>In Warehouse <span class="cnt">(${counts.wh})</span></span></div>
     <div class="pill tr"  data-f="tr"   onclick="activeFilter='tr';filterCards()"><div class="dot"></div><span>In Transit <span class="cnt">(${counts.tr})</span></span></div>
     <div class="pill sh"  data-f="sh"   onclick="activeFilter='sh';filterCards()"><div class="dot"></div><span>Shipped <span class="cnt">(${counts.sh})</span></span></div>
+    ${counts.sl ? `<div class="pill sl" data-f="shipped-last" onclick="activeFilter='shipped-last';filterCards()"><div class="dot" style="background:var(--orange)"></div><span>Shipped Last <span class="cnt">(${counts.sl})</span></span></div>` : ''}
     ${counts.prod ? `<div class="pill prod" data-f="prod" onclick="activeFilter='prod';filterCards()"><div class="dot"></div><span>Production <span class="cnt">(${counts.prod})</span></span></div>` : ''}
     <div class="pill dl"  data-f="dl"   onclick="activeFilter='dl';filterCards()"><div class="dot"></div><span>Delayed <span class="cnt">(${counts.dl})</span></span></div>
     ${counts.oth ? `<div class="pill oth"  data-f="oth"  onclick="activeFilter='oth';filterCards()"><div class="dot" style="background:#9ca3af"></div><span>Other <span class="cnt">(${counts.oth})</span></span></div>` : ''}
