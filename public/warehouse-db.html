@@ -56,10 +56,8 @@
     .pill.prod { color: var(--orange); }
     .pill.dl   { color: var(--red); }
     .pill.sl   { color: var(--orange); }
-    .month-pills-wrap { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 0; min-height: 0; }
-    .month-pill { font-family: inherit; font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; letter-spacing: 0.5px; transition: all 0.15s; }
-    .month-pill:hover { background: var(--accent-lt); color: var(--accent); border-color: var(--accent); }
-    .month-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .month-select { font-family: inherit; font-size: 12px; font-weight: 600; padding: 6px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--accent); cursor: pointer; outline: none; transition: border-color 0.15s; }
+    .month-select:focus { border-color: var(--accent); }
     .pill.active { background: currentColor; border-color: currentColor; }
     .pill.active span { color: #fff !important; }
 
@@ -310,6 +308,9 @@
 <div class="page-wrap">
   <div class="toolbar">
     <span class="status-text" id="status-text">Loadingâ€¦</span>
+    <select class="month-select" id="month-select" onchange="setMonth(this.value)">
+      <option value="">All Months</option>
+    </select>
     <button class="tb-btn" id="reload-btn" onclick="loadData()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
       Refresh
@@ -317,7 +318,6 @@
   </div>
 
   <div class="pills" id="pills"></div>
-  <div class="month-pills-wrap" id="month-pills"></div>
   <div class="grid"  id="grid"><div class="msg-box"><div class="spinner"></div>Fetching dataâ€¦</div></div>
 </div>
 
@@ -329,8 +329,7 @@ let activeFilter = 'all';
 let activeMonth  = null; // 'YYYY-MM' or null
 
 function setMonth(m) {
-  activeMonth = (activeMonth === m) ? null : m; // toggle off if same
-  document.querySelectorAll('.month-pill').forEach(p => p.classList.toggle('active', p.dataset.m === activeMonth));
+  activeMonth = m || null;
   filterCards();
 }
 
@@ -583,8 +582,8 @@ function build(rows) {
     </div>`;
   }).join('');
 
-  // Build month pills from shipped cards' invoice dates
-  const monthSet = new Map(); // 'YYYY-MM' → display label
+  // Populate month dropdown from shipped cards' invoice dates
+  const monthSet = new Map();
   data.forEach(r => {
     const st = get(r, C.status);
     if (!st.toLowerCase().includes('shipped')) return;
@@ -592,18 +591,16 @@ function build(rows) {
     if (!inv) return;
     const d = parseDate(inv);
     if (!d) return;
-    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
     if (!monthSet.has(key)) {
-      const label = d.toLocaleDateString('en-US',{month:'short',year:'2-digit'}).toUpperCase().replace(' ',' ');
+      const label = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
       monthSet.set(key, label);
     }
   });
-  const sortedMonths = [...monthSet.entries()].sort((a,b) => b[0].localeCompare(a[0])); // newest first
-  document.getElementById('month-pills').innerHTML = sortedMonths.length
-    ? sortedMonths.map(([key, label]) =>
-        `<button class="month-pill${activeMonth===key?' active':''}" data-m="${key}" onclick="setMonth('${key}')">${label}</button>`
-      ).join('')
-    : '';
+  const sortedMonths = [...monthSet.entries()].sort((a,b) => b[0].localeCompare(a[0]));
+  const sel = document.getElementById('month-select');
+  sel.innerHTML = '<option value="">All Months</option>'
+    + sortedMonths.map(([key, label]) => '<option value="' + key + '"' + (activeMonth===key?' selected':'') + '>' + label + '</option>').join('');
 
   document.getElementById('grid').innerHTML = cards || '<div class="msg-box">No data found.</div>';
 
