@@ -56,6 +56,7 @@
     .pill.prod { color: var(--orange); }
     .pill.dl   { color: var(--red); }
     .pill.sl   { color: var(--orange); }
+    .pill.an   { color: var(--blue); }
     .month-select { font-family: inherit; font-size: 12px; font-weight: 600; padding: 6px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--accent); cursor: pointer; outline: none; transition: border-color 0.15s; }
     .month-select:focus { border-color: var(--accent); }
     .pill.active { background: currentColor; border-color: currentColor; }
@@ -389,6 +390,14 @@ function parseCSV(text) {
   return rows;
 }
 
+function arrivingNext(dateStr) {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  const now = new Date(); now.setHours(0,0,0,0);
+  const in3 = new Date(+now + 3*86400000);
+  return d >= now && d <= in3;
+}
+
 function filterCards() {
   const grid  = document.getElementById('grid');
   const cards = Array.from(grid.querySelectorAll('.card'));
@@ -397,25 +406,28 @@ function filterCards() {
   cards.forEach(c => {
     const primaryMatch = activeFilter === 'all'
       || c.dataset.cls === activeFilter
-      || (activeFilter === 'shipped-last' && c.dataset.cls === 'sh' && !c.dataset.invDate);
+      || (activeFilter === 'shipped-last'   && c.dataset.cls === 'sh' && !c.dataset.invDate)
+      || (activeFilter === 'arriving-next'  && c.dataset.cls === 'tr' && arrivingNext(c.dataset.arrDate));
     const monthMatch = !activeMonth || (c.dataset.invDate && c.dataset.invDate.slice(0,7) === activeMonth);
     const show = primaryMatch && monthMatch;
     c.classList.toggle('hidden', !show);
     if (show) visible++;
   });
 
-  // Always sort shown SHIPPED cards: latest invoice date first, fallback newest row first
-  const shownShipped = cards.filter(c => !c.classList.contains('hidden') && c.dataset.cls === 'sh');
-  if (shownShipped.length > 1) {
-    shownShipped.sort((a, b) => {
-      const da = a.dataset.invDate ? new Date(a.dataset.invDate) : null;
-      const db = b.dataset.invDate ? new Date(b.dataset.invDate) : null;
-      if (da && db) return db - da;
-      if (da) return -1;
-      if (db) return 1;
+  // Sort all visible cards by their rule:
+  // SHIPPED → latest URBN INVOICE DATE; everything else → latest ship date
+  // Fallback for equal/missing dates: newest row index first
+  const shown = cards.filter(c => !c.classList.contains('hidden'));
+  if (shown.length > 1) {
+    shown.sort((a, b) => {
+      const keyA = (a.dataset.cls === 'sh' && a.dataset.invDate) ? a.dataset.invDate : (a.dataset.shipDate || '');
+      const keyB = (b.dataset.cls === 'sh' && b.dataset.invDate) ? b.dataset.invDate : (b.dataset.shipDate || '');
+      if (keyA && keyB) return keyB.localeCompare(keyA);
+      if (keyA) return -1;
+      if (keyB) return 1;
       return (+b.dataset.ri) - (+a.dataset.ri);
     });
-    shownShipped.forEach(c => grid.appendChild(c));
+    shown.forEach(c => grid.appendChild(c));
   }
 
   document.querySelectorAll('.pill').forEach(p => {
@@ -450,7 +462,7 @@ function build(rows) {
   const g = v => (v !== null && v >= 0 ? (data[0]?.[v]??'') : ''); // just for ref
   const get = (r, ci) => ci >= 0 ? (r[ci]||'').trim() : '';
 
-  const counts = { wh:0, tr:0, sh:0, prod:0, dl:0, oth:0, sl:0 };
+  const counts = { wh:0, tr:0, sh:0, prod:0, dl:0, oth:0, sl:0, an:0 };
   const cards = data.map((r, ri) => {
     const statusRaw = get(r, C.status);
     const cls = classify(statusRaw);
@@ -467,8 +479,8 @@ function build(rows) {
     const inv          = get(r, C.inv);
     const invDate      = get(r, C.invDate);
     const deliveryDate = get(r, C.deliveryDate);
-    const invDateParsed = parseDate(invDate);
-    const invDateISO    = invDateParsed ? invDateParsed.toISOString().split('T')[0] : '';
+    const invDateParsed  = parseDate(invDate);
+    const invDateISO     = invDateParsed ? invDateParsed.toISOString().split('T')[0] : '';
     if (cls === 'sh' && !invDateISO) counts.sl++;
     const al     = get(r, C.al);
     const pl     = get(r, C.pl);
@@ -476,8 +488,12 @@ function build(rows) {
 
     const now     = new Date();
     const exDate  = parseDate(exfac);
+    const shipDateISO = exDate ? exDate.toISOString().split('T')[0] : '';
     const arrDate = exDate ? new Date(+exDate + 3*86400000) : null;
+    const arrDateISO  = arrDate ? arrDate.toISOString().split('T')[0] : '';
     const arrStr  = arrDate ? arrDate.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}) : 'â€"';
+    const in3Days = new Date(+now + 3*86400000);
+    if (cls === 'tr' && arrDate && arrDate >= now && arrDate <= in3Days) counts.an++;
 
     // Red conditions
     const flightRed  = exDate  && exDate  < now && cls !== 'tr' && cls !== 'sh' && cls !== 'wh';
@@ -558,7 +574,7 @@ function build(rows) {
       </div>`;
     }
 
-    return `<div class="card ${cls}" data-cls="${cls}" data-inv-date="${invDateISO}" data-delivery-date="${deliveryDate}" data-ri="${ri}">
+    return `<div class="card ${cls}" data-cls="${cls}" data-inv-date="${invDateISO}" data-ship-date="${shipDateISO}" data-arr-date="${arrDateISO}" data-delivery-date="${deliveryDate}" data-ri="${ri}">
       <div class="card-body">
         <div class="card-top">
           <div>
@@ -625,6 +641,7 @@ function build(rows) {
     <div class="pill tr"  data-f="tr"   onclick="activeFilter='tr';filterCards()"><div class="dot"></div><span>In Transit <span class="cnt">(${counts.tr})</span></span></div>
     <div class="pill sh"  data-f="sh"   onclick="activeFilter='sh';filterCards()"><div class="dot"></div><span>Shipped <span class="cnt">(${counts.sh})</span></span></div>
     ${counts.sl ? `<div class="pill sl" data-f="shipped-last" onclick="activeFilter='shipped-last';filterCards()"><div class="dot" style="background:var(--orange)"></div><span>Shipped Last <span class="cnt">(${counts.sl})</span></span></div>` : ''}
+    ${counts.an ? `<div class="pill an" data-f="arriving-next" onclick="activeFilter='arriving-next';filterCards()"><div class="dot" style="background:var(--blue)"></div><span>Arriving Next <span class="cnt">(${counts.an})</span></span></div>` : ''}
     ${counts.prod ? `<div class="pill prod" data-f="prod" onclick="activeFilter='prod';filterCards()"><div class="dot"></div><span>Production <span class="cnt">(${counts.prod})</span></span></div>` : ''}
     <div class="pill dl"  data-f="dl"   onclick="activeFilter='dl';filterCards()"><div class="dot"></div><span>Delayed <span class="cnt">(${counts.dl})</span></span></div>
     ${counts.oth ? `<div class="pill oth"  data-f="oth"  onclick="activeFilter='oth';filterCards()"><div class="dot" style="background:#9ca3af"></div><span>Other <span class="cnt">(${counts.oth})</span></span></div>` : ''}
