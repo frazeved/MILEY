@@ -464,7 +464,9 @@ function build(rows) {
     const inv          = get(r, C.inv);
     const invDate      = get(r, C.invDate);
     const deliveryDate = get(r, C.deliveryDate);
-    if (cls === 'sh' && !invDate) counts.sl++;
+    const invDateParsed = parseDate(invDate);
+    const invDateISO    = invDateParsed ? invDateParsed.toISOString().split('T')[0] : '';
+    if (cls === 'sh' && !invDateISO) counts.sl++;
     const al     = get(r, C.al);
     const pl     = get(r, C.pl);
     const fx     = get(r, C.fx);
@@ -553,7 +555,7 @@ function build(rows) {
       </div>`;
     }
 
-    return `<div class="card ${cls}" data-cls="${cls}" data-inv-date="${invDate}" data-delivery-date="${deliveryDate}">
+    return `<div class="card ${cls}" data-cls="${cls}" data-inv-date="${invDateISO}" data-delivery-date="${deliveryDate}">
       <div class="card-body">
         <div class="card-top">
           <div>
@@ -575,7 +577,7 @@ function build(rows) {
         </div>` : ''}
         <div class="bottom-row">
           <div class="label-row">
-            <div class="lbl ${invDate?'done':'pending'}">INV</div>
+            <div class="lbl ${invDateISO?'done':'pending'}">INV</div>
             <div class="lbl ${al?'done':'pending'}">AL</div>
             <div class="lbl ${pl?'done':'pending'}">PL</div>
             <div class="lbl ${fx?'done':'pending'}">FDEX</div>
@@ -595,7 +597,7 @@ function build(rows) {
   const monthSet = new Map();
   data.forEach(r => {
     const st = get(r, C.status);
-    if (!st.toLowerCase().includes('shipped')) return;
+    if (classify(st) !== 'sh') return;
     const inv = get(r, C.invDate);
     if (!inv) return;
     const d = parseDate(inv);
