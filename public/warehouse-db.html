@@ -404,16 +404,16 @@ function filterCards() {
     if (show) visible++;
   });
 
-  // Always sort shown SHIPPED cards: latest invoice date first, no-date last
+  // Always sort shown SHIPPED cards: latest invoice date first, fallback newest row first
   const shownShipped = cards.filter(c => !c.classList.contains('hidden') && c.dataset.cls === 'sh');
   if (shownShipped.length > 1) {
     shownShipped.sort((a, b) => {
       const da = a.dataset.invDate ? new Date(a.dataset.invDate) : null;
       const db = b.dataset.invDate ? new Date(b.dataset.invDate) : null;
-      if (!da && !db) return 0;
-      if (!da) return 1;
-      if (!db) return -1;
-      return db - da;
+      if (da && db) return db - da;
+      if (da) return -1;
+      if (db) return 1;
+      return (+b.dataset.ri) - (+a.dataset.ri);
     });
     shownShipped.forEach(c => grid.appendChild(c));
   }
@@ -558,7 +558,7 @@ function build(rows) {
       </div>`;
     }
 
-    return `<div class="card ${cls}" data-cls="${cls}" data-inv-date="${invDateISO}" data-delivery-date="${deliveryDate}">
+    return `<div class="card ${cls}" data-cls="${cls}" data-inv-date="${invDateISO}" data-delivery-date="${deliveryDate}" data-ri="${ri}">
       <div class="card-body">
         <div class="card-top">
           <div>
