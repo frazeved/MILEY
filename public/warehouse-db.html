@@ -56,6 +56,10 @@
     .pill.prod { color: var(--orange); }
     .pill.dl   { color: var(--red); }
     .pill.sl   { color: var(--orange); }
+    .month-pills-wrap { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 0; min-height: 0; }
+    .month-pill { font-family: inherit; font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; letter-spacing: 0.5px; transition: all 0.15s; }
+    .month-pill:hover { background: var(--accent-lt); color: var(--accent); border-color: var(--accent); }
+    .month-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
     .pill.active { background: currentColor; border-color: currentColor; }
     .pill.active span { color: #fff !important; }
 
@@ -313,6 +317,7 @@
   </div>
 
   <div class="pills" id="pills"></div>
+  <div class="month-pills-wrap" id="month-pills"></div>
   <div class="grid"  id="grid"><div class="msg-box"><div class="spinner"></div>Fetching dataâ€¦</div></div>
 </div>
 
@@ -321,6 +326,13 @@ const SHEET_ID = '1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q';
 const CSV_URL  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=99866922`;
 
 let activeFilter = 'all';
+let activeMonth  = null; // 'YYYY-MM' or null
+
+function setMonth(m) {
+  activeMonth = (activeMonth === m) ? null : m; // toggle off if same
+  document.querySelectorAll('.month-pill').forEach(p => p.classList.toggle('active', p.dataset.m === activeMonth));
+  filterCards();
+}
 
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
@@ -373,9 +385,11 @@ function filterCards() {
 
   let visible = 0;
   cards.forEach(c => {
-    const show = activeFilter === 'all'
+    const primaryMatch = activeFilter === 'all'
       || c.dataset.cls === activeFilter
       || (activeFilter === 'shipped-last' && c.dataset.cls === 'sh' && !c.dataset.invDate);
+    const monthMatch = !activeMonth || (c.dataset.invDate && c.dataset.invDate.slice(0,7) === activeMonth);
+    const show = primaryMatch && monthMatch;
     c.classList.toggle('hidden', !show);
     if (show) visible++;
   });
@@ -569,6 +583,28 @@ function build(rows) {
     </div>`;
   }).join('');
 
+  // Build month pills from shipped cards' invoice dates
+  const monthSet = new Map(); // 'YYYY-MM' → display label
+  data.forEach(r => {
+    const st = get(r, C.status);
+    if (!st.toLowerCase().includes('shipped')) return;
+    const inv = get(r, C.invDate);
+    if (!inv) return;
+    const d = parseDate(inv);
+    if (!d) return;
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if (!monthSet.has(key)) {
+      const label = d.toLocaleDateString('en-US',{month:'short',year:'2-digit'}).toUpperCase().replace(' ',' ');
+      monthSet.set(key, label);
+    }
+  });
+  const sortedMonths = [...monthSet.entries()].sort((a,b) => b[0].localeCompare(a[0])); // newest first
+  document.getElementById('month-pills').innerHTML = sortedMonths.length
+    ? sortedMonths.map(([key, label]) =>
+        `<button class="month-pill${activeMonth===key?' active':''}" data-m="${key}" onclick="setMonth('${key}')">${label}</button>`
+      ).join('')
+    : '';
+
   document.getElementById('grid').innerHTML = cards || '<div class="msg-box">No data found.</div>';
 
   const total = data.length;
@@ -592,6 +628,7 @@ async function loadData() {
   document.getElementById('status-text').textContent = 'Loadingâ€¦';
   document.getElementById('reload-btn').classList.add('loading');
   activeFilter = 'all';
+  activeMonth  = null;
 
   try {
     const res = await fetch(CSV_URL);
