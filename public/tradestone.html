@@ -840,6 +840,32 @@
       </div>
     </div>
 
+    <!-- INVOICE PDF EXTRACT card -->
+    <div style="margin-top:12px;">
+      <div class="card clickable" id="pdf-card" style="border-top:3px solid #7c6fcd;" onclick="openPDFModal()">
+        <div class="card-header">
+          <div>
+            <div class="card-title">INVOICE PDF EXTRACT</div>
+            <div class="card-sheet">&#x2192; Google Drive / Month Folder</div>
+          </div>
+          <span class="status-badge badge-idle" id="pdf-badge"><span class="dot"></span><span id="pdf-badge-label">Ready</span></span>
+        </div>
+        <div class="card-body">
+          <div class="meta-row">
+            <span class="meta-label">Last run</span>
+            <span class="meta-value" id="pdf-last-run">—</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Duration</span>
+            <span class="meta-value" id="pdf-duration">—</span>
+          </div>
+          <div class="meta-row" style="margin-top:6px;">
+            <span style="font-size:11px;color:#7c6fcd;font-weight:500;">&#x2192; Click to select POs &amp; extract PDFs</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- POWERBI DATABASE card — runs after extractions complete -->
     <div id="powerbi-section" style="margin-top:12px;">
       <div class="card" id="powerbi-card">
@@ -910,6 +936,41 @@
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- Invoice PDF Extract Modal -->
+<div class="inv-overlay" id="pdf-overlay" onclick="handlePDFOverlayClick(event)">
+  <div class="inv-modal" id="pdf-modal">
+    <div class="inv-modal-head">
+      <div>
+        <div class="inv-modal-title">Invoice PDF Extract</div>
+        <div class="inv-modal-sub">Select POs to extract &amp; upload PDFs</div>
+      </div>
+      <button class="inv-modal-close" onclick="closePDFModal()">&#x2715;</button>
+    </div>
+    <div class="inv-modal-body" id="pdf-modal-body">
+      <div class="inv-loading" id="pdf-loading"><div class="inv-spinner"></div><span>Loading POs…</span></div>
+      <div class="inv-empty" id="pdf-empty" style="display:none;"><strong>All caught up!</strong> No POs need PDF extraction.</div>
+      <div id="pdf-list-wrap" style="display:none;">
+        <label class="inv-selall" id="pdf-selall" onclick="togglePDFSelectAll()">
+          <input type="checkbox" id="pdf-chk-all" checked />
+          <span class="inv-selall-label">Select all</span>
+          <span class="inv-count" id="pdf-total-count" style="margin-left:auto;"></span>
+        </label>
+        <div id="pdf-po-list"></div>
+      </div>
+    </div>
+    <div class="inv-modal-foot" id="pdf-modal-foot" style="display:none;">
+      <span class="inv-count" id="pdf-selected-count"></span>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-secondary" style="padding:9px 18px;font-size:13px;" onclick="closePDFModal()">Cancel</button>
+        <button class="btn-generate" id="pdf-run-btn" onclick="submitPDFExtract()" style="background:#7c6fcd;">
+          <span class="spinner"></span>
+          <span class="btn-lbl">Extract PDFs</span>
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1325,6 +1386,132 @@ async function submitInvoices() {
 }
 
 fetchInvoiceStatus();
+
+// ── Invoice PDF Extract ───────────────────────────────────────────────────────
+
+let pdfPollInterval;
+
+async function openPDFModal() {
+  document.getElementById('pdf-overlay').classList.add('open');
+  document.getElementById('pdf-loading').style.display = 'flex';
+  document.getElementById('pdf-empty').style.display = 'none';
+  document.getElementById('pdf-list-wrap').style.display = 'none';
+  document.getElementById('pdf-modal-foot').style.display = 'none';
+
+  try {
+    const res  = await fetch('/api/samantha/pdf-preview');
+    const pos  = await res.json();
+    document.getElementById('pdf-loading').style.display = 'none';
+
+    if (!Array.isArray(pos) || !pos.length) {
+      document.getElementById('pdf-empty').style.display = 'block';
+      return;
+    }
+
+    document.getElementById('pdf-total-count').textContent = `${pos.length} PO${pos.length !== 1 ? 's' : ''}`;
+    const list = document.getElementById('pdf-po-list');
+    list.innerHTML = pos.map(p => `
+      <label class="inv-po-row">
+        <input type="checkbox" class="inv-po-chk pdf-po-chk" value="${p.poNumber}" checked>
+        <span class="inv-po-num">${p.poNumber}</span>
+      </label>`).join('');
+
+    document.querySelectorAll('.pdf-po-chk').forEach(c => c.addEventListener('change', updatePDFCount));
+    document.getElementById('pdf-list-wrap').style.display = 'block';
+    document.getElementById('pdf-modal-foot').style.display = 'flex';
+    updatePDFCount();
+  } catch (e) {
+    document.getElementById('pdf-loading').style.display = 'none';
+    showToast('Failed to load POs: ' + e.message, true);
+  }
+}
+
+function closePDFModal() { document.getElementById('pdf-overlay').classList.remove('open'); }
+function handlePDFOverlayClick(e) { if (e.target.id === 'pdf-overlay') closePDFModal(); }
+
+function updatePDFCount() {
+  const n = document.querySelectorAll('.pdf-po-chk:checked').length;
+  document.getElementById('pdf-selected-count').textContent = `${n} selected`;
+}
+
+function togglePDFSelectAll() {
+  const chkAll = document.getElementById('pdf-chk-all');
+  document.querySelectorAll('.pdf-po-chk').forEach(c => c.checked = chkAll.checked);
+  updatePDFCount();
+}
+
+async function submitPDFExtract() {
+  const selected = [...document.querySelectorAll('.pdf-po-chk:checked')].map(c => c.value);
+  if (!selected.length) return;
+
+  const btn = document.getElementById('pdf-run-btn');
+  btn.disabled = true;
+  btn.classList.add('loading');
+
+  try {
+    const res  = await fetch('/api/samantha/run-pdf-extract', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pos: selected }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+
+    closePDFModal();
+    document.getElementById('pdf-badge').className = 'status-badge badge-running';
+    document.getElementById('pdf-badge-label').textContent = 'Running';
+    showToast(`PDF Extract running for ${selected.length} PO${selected.length !== 1 ? 's' : ''} — checking every 10s`);
+
+    clearInterval(pdfPollInterval);
+    pdfPollInterval = setInterval(async () => {
+      const r    = await fetch('/api/samantha/pdf-status');
+      const info = await r.json().catch(() => ({}));
+      const { status, conclusion, updated_at, duration } = info;
+
+      let cls = 'badge-idle', lbl = 'Ready';
+      if (status === 'in_progress' || status === 'queued') { cls = 'badge-running'; lbl = 'Running'; }
+      else if (conclusion === 'success') { cls = 'badge-success'; lbl = 'Success'; }
+      else if (conclusion === 'failure') { cls = 'badge-fail';    lbl = 'Failed'; }
+      else if (conclusion === 'timed_out') { cls = 'badge-fail'; lbl = 'Timed out'; }
+
+      document.getElementById('pdf-badge').className = `status-badge ${cls}`;
+      document.getElementById('pdf-badge-label').textContent = lbl;
+      if (updated_at) document.getElementById('pdf-last-run').textContent = new Date(updated_at).toLocaleString();
+      if (duration)   document.getElementById('pdf-duration').textContent = `${duration}s`;
+
+      if (lbl === 'Success' || lbl === 'Failed' || lbl === 'Timed out') {
+        clearInterval(pdfPollInterval);
+        if (lbl === 'Success') showToast('PDF extraction complete!');
+        else showToast('PDF extraction had issues — check GitHub Actions', true);
+      }
+    }, 10000);
+  } catch (e) {
+    showToast(`Failed: ${e.message}`, true);
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+  }
+}
+
+async function fetchPDFStatus() {
+  try {
+    const r    = await fetch('/api/samantha/pdf-status');
+    const info = await r.json().catch(() => ({}));
+    const { status, conclusion, updated_at, duration } = info;
+
+    let cls = 'badge-idle', lbl = 'Ready';
+    if (status === 'in_progress' || status === 'queued') { cls = 'badge-running'; lbl = 'Running'; }
+    else if (conclusion === 'success') { cls = 'badge-success'; lbl = 'Success'; }
+    else if (conclusion === 'failure') { cls = 'badge-fail';    lbl = 'Failed'; }
+
+    document.getElementById('pdf-badge').className = `status-badge ${cls}`;
+    document.getElementById('pdf-badge-label').textContent = lbl;
+    if (updated_at) document.getElementById('pdf-last-run').textContent = new Date(updated_at).toLocaleString();
+    if (duration)   document.getElementById('pdf-duration').textContent = `${duration}s`;
+  } catch (_) {}
+}
+
+fetchPDFStatus();
 </script>
 <script src="/auth.js"></script>
 </body>

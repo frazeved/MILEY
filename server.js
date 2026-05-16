@@ -1194,6 +1194,75 @@ app.post('/api/samantha/run-invoices', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ─── Samantha: Invoice PDF Extract ────────────────────────────────────────────
+
+// Preview: SHIPPED POs with invoice date but no PDF link
+app.get('/api/samantha/pdf-preview', async (req, res) => {
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+    return res.status(500).json({ error: 'Google credentials not configured' });
+  }
+  try {
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    const r    = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Warehouse Now Database' });
+    const rows = r.data.values || [];
+    if (rows.length < 2) return res.json([]);
+
+    const headers  = rows[0].map(h => (h || '').trim().toLowerCase());
+    const idx      = keys => headers.findIndex(h => keys.some(k => h.includes(k)));
+    const poCol    = idx(['po#', 'po number']);
+    const statCol  = idx(['status']);
+    const dateCol  = idx(['urbn invoice date']);
+    const linkCol  = idx(['invoice link']);
+
+    if (poCol < 0 || statCol < 0) return res.status(500).json({ error: 'Required columns not found' });
+
+    const result = [];
+    for (let i = 1; i < rows.length; i++) {
+      const row    = rows[i];
+      const po     = (row[poCol]   || '').trim();
+      const status = (row[statCol] || '').trim().toUpperCase();
+      const date   = dateCol >= 0 ? (row[dateCol] || '').trim() : '';
+      const link   = linkCol >= 0 ? (row[linkCol] || '').trim() : '';
+      if (!po || status !== 'SHIPPED' || !date || link) continue;
+      result.push({ poNumber: po });
+    }
+    res.json(result);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/samantha/pdf-status', async (req, res) => {
+  try {
+    const r    = await ghFetch(`https://api.github.com/repos/${REPO}/actions/workflows/invoice-pdf.yml/runs?per_page=1`);
+    const data = await r.json();
+    const run  = data.workflow_runs?.[0] || null;
+    const duration = run && run.status === 'completed' && run.run_started_at && run.updated_at
+      ? Math.round((new Date(run.updated_at) - new Date(run.run_started_at)) / 1000) : null;
+    res.json({
+      status:     run?.status     || 'unknown',
+      conclusion: run?.conclusion || null,
+      updated_at: run?.updated_at || null,
+      started_at: run?.run_started_at || null,
+      duration,
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/samantha/run-pdf-extract', async (req, res) => {
+  try {
+    const { pos } = req.body || {};
+    const inputs  = {};
+    if (Array.isArray(pos) && pos.length) inputs.po_numbers = pos.join(',');
+    const r = await ghFetch(`https://api.github.com/repos/${REPO}/actions/workflows/invoice-pdf.yml/dispatches`, {
+      method: 'POST', body: JSON.stringify({ ref: 'main', inputs }),
+    });
+    if (r.status !== 204) { const b = await r.text(); return res.status(500).json({ error: `GitHub returned ${r.status}: ${b}` }); }
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ─── Gabriel: MAP DATA SYNC ───────────────────────────────────────────────────
 app.post('/api/gabriel/map-sync', async (req, res) => {
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
