@@ -406,7 +406,7 @@ function filterCards() {
   cards.forEach(c => {
     const primaryMatch = activeFilter === 'all'
       || c.dataset.cls === activeFilter
-      || (activeFilter === 'shipped-last'   && c.dataset.cls === 'sh' && !c.dataset.invDate)
+      || (activeFilter === 'shipped-last'   && c.dataset.cls === 'sh' && !c.dataset.hasInv)
       || (activeFilter === 'arriving-next'  && c.dataset.cls === 'tr' && arrivingNext(c.dataset.arrDate));
     const monthMatch = !activeMonth || (c.dataset.invDate && c.dataset.invDate.slice(0,7) === activeMonth);
     const show = primaryMatch && monthMatch;
@@ -485,7 +485,7 @@ function build(rows) {
     const deliveryDate = get(r, C.deliveryDate);
     const invDateParsed  = parseDate(invDate);
     const invDateISO     = invDateParsed ? invDateParsed.toISOString().split('T')[0] : '';
-    if (cls === 'sh' && !invDateISO) counts.sl++;
+    if (cls === 'sh' && !invDate) counts.sl++;
     const al     = get(r, C.al);
     const pl     = get(r, C.pl);
     const fx     = get(r, C.fx);
@@ -578,7 +578,7 @@ function build(rows) {
       </div>`;
     }
 
-    return `<div class="card ${cls}" data-cls="${cls}" data-inv-date="${invDateISO}" data-ship-date="${shipDateISO}" data-arr-date="${arrDateISO}" data-delivery-date="${deliveryDate}" data-ri="${ri}">
+    return `<div class="card ${cls}" data-cls="${cls}" data-inv-date="${invDateISO}" data-has-inv="${invDate ? '1' : ''}" data-ship-date="${shipDateISO}" data-arr-date="${arrDateISO}" data-delivery-date="${deliveryDate}" data-ri="${ri}">
       <div class="card-body">
         <div class="card-top">
           <div>
