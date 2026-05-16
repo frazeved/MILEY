@@ -452,12 +452,16 @@ function build(rows) {
     ws:     col(H,'wholesale','wsp','total value','amount'),
     awb:    col(H,'awb','tracking','airway'),
     inv:          col(H,'urbn invoice total','invoice total','inv total'),
-    invDate:      col(H,'urbn invoice date'),
+    invDate:      col(H,'urbn invoice date','invoice date','inv date','urbn inv date','invoicedate'),
     deliveryDate: col(H,'delivery date','delivered date','fedex delivery date','actual delivery','delivery status'),
     al:           col(H,'anthro label','anthro lbl'),
     pl:     col(H,'packing list','pack list'),
     fx:     col(H,'fedex label','fedex lbl','fed ex label'),
   };
+
+  console.log('[DEBUG] Headers:', H);
+  console.log('[DEBUG] Columns found:', C);
+  console.log('[DEBUG] invDate col index:', C.invDate, '→', C.invDate >= 0 ? H[C.invDate] : 'NOT FOUND');
 
   const g = v => (v !== null && v >= 0 ? (data[0]?.[v]??'') : ''); // just for ref
   const get = (r, ci) => ci >= 0 ? (r[ci]||'').trim() : '';
@@ -536,7 +540,7 @@ function build(rows) {
 
       let shLabel, shBg, shTextColor, shFill, shDateColor, shPct2;
 
-      if (delivD && ndcD && delivD <= ndcD) {
+      if (delivD && ndcD && delivD < ndcD) {
         shLabel = 'DELIVERED ON TIME'; shBg = 'var(--green-lt)';
         shTextColor = '#14532d'; shFill = 'var(--green)'; shDateColor = '#166534'; shPct2 = 100;
       } else if (invD && refDate && invD < refDate) {
@@ -596,7 +600,7 @@ function build(rows) {
         </div>` : ''}
         <div class="bottom-row">
           <div class="label-row">
-            <div class="lbl ${invDateISO?'done':'pending'}">INV</div>
+            <div class="lbl ${invDate?'done':'pending'}">INV</div>
             <div class="lbl ${al?'done':'pending'}">AL</div>
             <div class="lbl ${pl?'done':'pending'}">PL</div>
             <div class="lbl ${fx?'done':'pending'}">FDEX</div>
