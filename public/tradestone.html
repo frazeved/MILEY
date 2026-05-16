@@ -1096,11 +1096,6 @@ async function fetchStatus() {
     const res  = await fetch('/api/status');
     const data = await res.json();
     renderCards(data);
-    // Auto-trigger PowerBI sync once all workflows succeed
-    if (!pbTriggered && data.every(wf => wf.conclusion === 'success')) {
-      pbTriggered = true;
-      await runPowerBISync();
-    }
     return data;
   } catch {
     showToast('Could not load status', true);
