@@ -135,7 +135,9 @@
     /* BOTTOM ROW â€" labels + awb together */
     .bottom-row { display: flex; align-items: center; gap: 6px; }
     .label-row { display: flex; gap: 4px; }
-    .lbl { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.3px; }
+    .lbl { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.3px; border: none; cursor: default; font-family: inherit; }
+    button.lbl { cursor: pointer; }
+    button.lbl:disabled { opacity: 0.6; cursor: not-allowed; }
     .lbl.done    { background: var(--green-lt); color: #166534; border: 1px solid #86efac; }
     .lbl.pending { background: var(--red-lt);  color: var(--red); border: 1px solid #fca5a5; }
 
@@ -600,7 +602,7 @@ function build(rows) {
         </div>` : ''}
         <div class="bottom-row">
           <div class="label-row">
-            <div class="lbl ${invDate?'done':'pending'}">INV</div>
+            <button class="lbl ${invDate?'done':'pending'}" onclick="runInvoice(this,'${esc(po)}')" title="Generate invoice + PDF for this PO">INV</button>
             <div class="lbl ${al?'done':'pending'}">AL</div>
             <div class="lbl ${pl?'done':'pending'}">PL</div>
             <div class="lbl ${fx?'done':'pending'}">FDEX</div>
@@ -652,6 +654,27 @@ function build(rows) {
   `;
 
   document.getElementById('status-text').textContent = `${total} POs`;
+}
+
+async function runInvoice(btn, poNumber) {
+  btn.disabled = true;
+  const orig = btn.textContent;
+  btn.textContent = '...';
+  try {
+    const r = await fetch('/api/samantha/run-invoice-for-po', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ poNumber }),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'Failed');
+    btn.textContent = 'OK';
+    btn.classList.add('done');
+    setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 3000);
+  } catch (e) {
+    btn.textContent = 'ERR';
+    setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 3000);
+  }
 }
 
 async function loadData() {

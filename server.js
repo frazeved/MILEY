@@ -1269,6 +1269,25 @@ app.post('/api/samantha/run-pdf-extract', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.post('/api/samantha/run-invoice-for-po', async (req, res) => {
+  try {
+    const { poNumber } = req.body || {};
+    if (!poNumber) return res.status(400).json({ error: 'poNumber required' });
+    const inputs = { po_numbers: String(poNumber) };
+    const [r1, r2] = await Promise.all([
+      ghFetch(`https://api.github.com/repos/${REPO}/actions/workflows/urbn-invoice-generator.yml/dispatches`, {
+        method: 'POST', body: JSON.stringify({ ref: 'main', inputs }),
+      }),
+      ghFetch(`https://api.github.com/repos/${REPO}/actions/workflows/invoice-pdf.yml/dispatches`, {
+        method: 'POST', body: JSON.stringify({ ref: 'main', inputs }),
+      }),
+    ]);
+    if (r1.status !== 204) { const b = await r1.text(); return res.status(500).json({ error: `invoice workflow: ${b}` }); }
+    if (r2.status !== 204) { const b = await r2.text(); return res.status(500).json({ error: `pdf workflow: ${b}` }); }
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ─── Gabriel: MAP DATA SYNC ───────────────────────────────────────────────────
 app.post('/api/gabriel/map-sync', async (req, res) => {
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
