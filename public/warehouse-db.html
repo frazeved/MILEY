@@ -602,7 +602,10 @@ function build(rows) {
         </div>` : ''}
         <div class="bottom-row">
           <div class="label-row">
-            <button class="lbl ${invDate?'done':'pending'}" onclick="runInvoice(this,'${esc(po)}')" title="Generate invoice + PDF for this PO">INV</button>
+            ${invDate
+              ? `<div class="lbl done">INV</div>`
+              : `<button class="lbl pending" onclick="runInvoice(this,'${esc(po)}')" title="Generate invoice + PDF for this PO">INV</button>`
+            }
             <div class="lbl ${al?'done':'pending'}">AL</div>
             <div class="lbl ${pl?'done':'pending'}">PL</div>
             <div class="lbl ${fx?'done':'pending'}">FDEX</div>
