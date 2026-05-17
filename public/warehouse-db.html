@@ -62,6 +62,20 @@
     .pill.active { background: currentColor; border-color: currentColor; }
     .pill.active span { color: #fff !important; }
 
+    /* CONFIRM MODAL */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; align-items:center; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+    .modal-box { background:#fff; border-radius:14px; padding:28px 28px 22px; max-width:340px; width:90%; box-shadow:0 8px 32px rgba(0,0,0,0.18); text-align:center; }
+    .modal-icon { font-size:28px; margin-bottom:10px; }
+    .modal-title { font-size:15px; font-weight:700; color:#111; margin-bottom:8px; }
+    .modal-body { font-size:13px; color:#555; margin-bottom:22px; line-height:1.5; }
+    .modal-body strong { color:#111; }
+    .modal-actions { display:flex; gap:10px; justify-content:center; }
+    .modal-btn { padding:9px 24px; border-radius:8px; font-size:13px; font-weight:700; border:none; cursor:pointer; font-family:inherit; transition:opacity 0.15s; }
+    .modal-btn.confirm { background:#0f766e; color:#fff; }
+    .modal-btn.cancel  { background:#f1f5f9; color:#555; }
+    .modal-btn:hover { opacity:0.85; }
+
     /* CARDS */
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
     .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; transition: box-shadow 0.15s; border-left: 3px solid var(--border); }
@@ -668,8 +682,21 @@ function build(rows) {
   document.getElementById('status-text').textContent = `${total} POs`;
 }
 
-async function runInvoice(btn, poNumber) {
-  if (!confirm(`Generate invoice + PDF for PO ${poNumber}?`)) return;
+let _invBtn = null;
+function runInvoice(btn, poNumber) {
+  _invBtn = btn;
+  document.getElementById('inv-modal-po').textContent = poNumber;
+  document.getElementById('inv-modal-confirm').onclick = () => confirmInvoice(poNumber);
+  document.getElementById('inv-modal').classList.add('open');
+}
+function closeInvModal() {
+  document.getElementById('inv-modal').classList.remove('open');
+  _invBtn = null;
+}
+async function confirmInvoice(poNumber) {
+  closeInvModal();
+  const btn = _invBtn;
+  if (!btn) return;
   btn.disabled = true;
   const orig = btn.textContent;
   btn.textContent = '...';
@@ -713,6 +740,17 @@ async function loadData() {
 
 loadData();
 </script>
+<div class="modal-overlay" id="inv-modal">
+  <div class="modal-box">
+    <div class="modal-icon">⚠️</div>
+    <div class="modal-title">Invoice Generation</div>
+    <div class="modal-body">JHONNY is going to generate the invoice for PO <strong id="inv-modal-po"></strong>.<br>Do you confirm?</div>
+    <div class="modal-actions">
+      <button class="modal-btn confirm" id="inv-modal-confirm">Confirm</button>
+      <button class="modal-btn cancel" onclick="closeInvModal()">Cancel</button>
+    </div>
+  </div>
+</div>
 <script src="/auth.js"></script>
 </body>
 </html>
