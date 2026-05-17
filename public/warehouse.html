@@ -75,6 +75,39 @@
     .section-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .btn-database { background: #ede9fe; color: #6d28d9; border: 1px solid #c4b5fd; border-radius: 8px; padding: 8px 18px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: not-allowed; display: flex; align-items: center; gap: 7px; }
     .toast { position: fixed; bottom: 24px; right: 24px; background: var(--text); color: #fff; font-size: 13px; font-weight: 500; padding: 10px 16px; border-radius: 8px; opacity: 0; transform: translateY(8px); transition: all 0.2s; pointer-events: none; z-index: 100; }
+    /* GENERATOR MODAL */
+    .gen-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:200; align-items:center; justify-content:center; padding:16px; }
+    .gen-overlay.open { display:flex; }
+    .gen-modal { background:#fff; border-radius:14px; width:100%; max-width:720px; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 12px 40px rgba(0,0,0,0.18); }
+    .gen-header { padding:18px 22px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+    .gen-title { font-size:15px; font-weight:700; color:var(--text); }
+    .gen-subtitle { font-size:11px; color:var(--text-muted); margin-top:2px; }
+    .gen-close { background:none; border:none; font-size:20px; cursor:pointer; color:var(--text-muted); line-height:1; padding:2px 6px; }
+    .gen-close:hover { color:var(--text); }
+    .gen-body { overflow-y:auto; flex:1; padding:16px 22px; }
+    .gen-loading { text-align:center; padding:40px; color:var(--text-muted); font-size:13px; }
+    .gen-table { width:100%; border-collapse:collapse; font-size:12px; }
+    .gen-table th { text-align:left; padding:8px 10px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); border-bottom:2px solid var(--border); white-space:nowrap; }
+    .gen-table td { padding:9px 10px; border-bottom:1px solid var(--border); color:var(--text); vertical-align:middle; }
+    .gen-table tr:last-child td { border-bottom:none; }
+    .gen-table tr:hover td { background:#f9fafb; }
+    .gen-cb { width:15px; height:15px; accent-color:var(--accent); cursor:pointer; }
+    .gen-status { display:inline-block; font-size:10px; font-weight:600; padding:2px 7px; border-radius:20px; }
+    .gen-status.tr { background:#dbeafe; color:#1d4ed8; }
+    .gen-status.wh { background:#d1fae5; color:#065f46; }
+    .gen-status.dl { background:#fee2e2; color:#991b1b; }
+    .gen-status.sh { background:#ede9fe; color:#5b21b6; }
+    .gen-status.oth { background:#f3f4f6; color:#6b7280; }
+    .gen-footer { padding:14px 22px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; gap:12px; }
+    .gen-count { font-size:12px; color:var(--text-muted); }
+    .gen-count strong { color:var(--text); }
+    .gen-btn { padding:9px 22px; border-radius:8px; font-size:13px; font-weight:700; border:none; cursor:pointer; font-family:inherit; transition:opacity 0.15s; }
+    .gen-btn.primary { background:var(--accent); color:#fff; }
+    .gen-btn.primary:disabled { opacity:0.4; cursor:not-allowed; }
+    .gen-btn.secondary { background:#f1f5f9; color:#555; }
+    .gen-empty { text-align:center; padding:40px; color:var(--text-muted); font-size:13px; }
+    .card.clickable { cursor:pointer; }
+    .card.clickable:hover { box-shadow:0 4px 16px rgba(0,0,0,0.1); border-color:#99f6e4; }
     .toast.show { opacity: 1; transform: translateY(0); }
     .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--text-secondary); line-height: 1; }
     .nav-hamburger:hover { color: var(--text); }
@@ -279,7 +312,7 @@
         Document Generators
       </div>
       <div class="grid">
-        <div class="card generator-card">
+        <div class="card generator-card clickable" onclick="openGenerator('packing-list')">
           <div class="card-icon-row">
             <div class="icon-tool">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
@@ -287,7 +320,7 @@
             <div><div class="card-name">PACKING LIST</div><div class="card-type">Document</div></div>
           </div>
         </div>
-        <div class="card generator-card">
+        <div class="card generator-card clickable" onclick="openGenerator('invoice')">
           <div class="card-icon-row">
             <div class="icon-tool">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
@@ -295,7 +328,7 @@
             <div><div class="card-name">INVOICE</div><div class="card-type">Document</div></div>
           </div>
         </div>
-        <div class="card generator-card">
+        <div class="card generator-card clickable" onclick="openGenerator('fedex')" style="border-top-color:#4D148C;">
           <div class="card-icon-row">
             <div class="icon-tool" style="background:#4D148C;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
@@ -344,8 +377,126 @@
   </div>
 </div>
 
+<div class="gen-overlay" id="gen-overlay">
+  <div class="gen-modal">
+    <div class="gen-header">
+      <div>
+        <div class="gen-title" id="gen-title"></div>
+        <div class="gen-subtitle" id="gen-subtitle"></div>
+      </div>
+      <button class="gen-close" onclick="closeGenerator()">&#x2715;</button>
+    </div>
+    <div class="gen-body" id="gen-body">
+      <div class="gen-loading">Loading POs…</div>
+    </div>
+    <div class="gen-footer">
+      <div class="gen-count" id="gen-count"></div>
+      <div style="display:flex;gap:8px;">
+        <button class="gen-btn secondary" onclick="closeGenerator()">Cancel</button>
+        <button class="gen-btn primary" id="gen-action-btn" disabled>Generate</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <script>
+const GEN_CONFIG = {
+  'invoice':      { title: 'Invoice Generator',      subtitle: 'SHIPPED POs with no URBN Invoice Date' },
+  'packing-list': { title: 'Packing List Generator', subtitle: 'In Transit / Warehouse / Delayed POs with no Packing List' },
+  'fedex':        { title: 'FedEx Label Generator',  subtitle: 'In Transit / Warehouse / Delayed POs with no FedEx Label' },
+};
+
+let _genType = null;
+let _genRows = [];
+
+function statusClass(s) {
+  const v = (s||'').toLowerCase();
+  if (v.includes('transit') || v.includes('route'))                       return 'tr';
+  if (v.includes('warehouse') || v.includes('received') || v.includes('arrived')) return 'wh';
+  if (v.includes('delay') || v.includes('late') || v.includes('hold'))   return 'dl';
+  if (v.includes('shipped'))                                               return 'sh';
+  return 'oth';
+}
+
+async function openGenerator(type) {
+  _genType = type;
+  const cfg = GEN_CONFIG[type];
+  document.getElementById('gen-title').textContent    = cfg.title;
+  document.getElementById('gen-subtitle').textContent = cfg.subtitle;
+  document.getElementById('gen-body').innerHTML       = '<div class="gen-loading">Loading POs…</div>';
+  document.getElementById('gen-count').textContent    = '';
+  document.getElementById('gen-action-btn').disabled  = true;
+  document.getElementById('gen-overlay').classList.add('open');
+
+  try {
+    const r = await fetch(`/api/jhonny/po-list?type=${type}`);
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    _genRows = data;
+    renderGenTable(data);
+  } catch(e) {
+    document.getElementById('gen-body').innerHTML = `<div class="gen-empty">⚠️ Could not load POs: ${e.message}</div>`;
+  }
+}
+
+function renderGenTable(rows) {
+  if (!rows.length) {
+    document.getElementById('gen-body').innerHTML = '<div class="gen-empty">✅ No POs need processing for this generator.</div>';
+    document.getElementById('gen-count').textContent = '0 POs';
+    return;
+  }
+  document.getElementById('gen-body').innerHTML = `
+    <table class="gen-table">
+      <thead>
+        <tr>
+          <th><input type="checkbox" class="gen-cb" id="gen-select-all" onchange="toggleSelectAll(this)"></th>
+          <th>Style #</th>
+          <th>PO#</th>
+          <th>Status</th>
+          <th>Ship Date</th>
+          <th>Cancel Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((row, i) => `
+          <tr>
+            <td><input type="checkbox" class="gen-cb gen-row-cb" data-i="${i}" onchange="updateGenCount()"></td>
+            <td>${row.style || '—'}</td>
+            <td><strong>${row.po}</strong></td>
+            <td><span class="gen-status ${statusClass(row.status)}">${row.status || '—'}</span></td>
+            <td>${row.shipDate || '—'}</td>
+            <td>${row.cancelDate || '—'}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+  updateGenCount();
+}
+
+function toggleSelectAll(cb) {
+  document.querySelectorAll('.gen-row-cb').forEach(c => c.checked = cb.checked);
+  updateGenCount();
+}
+
+function updateGenCount() {
+  const selected = document.querySelectorAll('.gen-row-cb:checked').length;
+  const total    = _genRows.length;
+  document.getElementById('gen-count').innerHTML = `<strong>${selected}</strong> of ${total} selected`;
+  document.getElementById('gen-action-btn').disabled = selected === 0;
+  const all = document.getElementById('gen-select-all');
+  if (all) all.checked = selected === total && total > 0;
+}
+
+function closeGenerator() {
+  document.getElementById('gen-overlay').classList.remove('open');
+  _genType = null; _genRows = [];
+}
+
+function getSelectedPOs() {
+  return [...document.querySelectorAll('.gen-row-cb:checked')]
+    .map(cb => _genRows[+cb.dataset.i].po);
+}
+
 function toggleNav() { document.getElementById('nav-panel').classList.toggle('open'); }
 document.addEventListener('click', function(e) {
   if (!document.getElementById('nav-dropdown').contains(e.target)) {

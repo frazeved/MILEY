@@ -1286,6 +1286,74 @@ app.post('/api/samantha/run-invoice-for-po', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ─── Jhonny: PO list for generators ──────────────────────────────────────────
+app.get('/api/jhonny/po-list', async (req, res) => {
+  const type = req.query.type; // invoice | packing-list | fedex
+  if (!['invoice','packing-list','fedex'].includes(type))
+    return res.status(400).json({ error: 'type must be invoice, packing-list, or fedex' });
+
+  try {
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+    const r      = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Warehouse Now Database' });
+    const rows   = r.data.values || [];
+    if (rows.length < 2) return res.json([]);
+
+    const H   = rows[0].map(h => (h || '').trim().toLowerCase());
+    const idx = (...keys) => H.findIndex(h => keys.some(k => h.includes(k.toLowerCase())));
+
+    const C = {
+      style:    idx('style#', 'style #', 'style'),
+      po:       idx('po#', 'po number'),
+      status:   idx('status'),
+      shipDate: idx('ship date', 'shipped date', 'ex-factory', 'exfactory'),
+      cancel:   idx('cancel date', 'cancel by', 'cancel'),
+      invDate:  idx('urbn invoice date'),
+      pl:       idx('packing list', 'pack list'),
+      fx:       idx('fedex label'),
+    };
+
+    const get = (row, i) => i >= 0 ? (row[i] || '').trim() : '';
+
+    const inTransitWarehouseDelayed = s => {
+      const v = s.toLowerCase();
+      return v.includes('transit') || v.includes('route') ||
+             v.includes('warehouse') || v.includes('received') || v.includes('arrived') ||
+             v.includes('delay') || v.includes('late') || v.includes('hold');
+    };
+
+    const result = [];
+    // carry forward style# for merged cells
+    let lastStyle = '';
+    for (let i = 1; i < rows.length; i++) {
+      const row    = rows[i];
+      const style  = get(row, C.style) || lastStyle;
+      if (get(row, C.style)) lastStyle = style;
+      const po      = get(row, C.po);
+      const status  = get(row, C.status);
+      const invDate = get(row, C.invDate);
+      const pl      = get(row, C.pl);
+      const fx      = get(row, C.fx);
+      if (!po) continue;
+
+      let match = false;
+      if (type === 'invoice')      match = status.toUpperCase() === 'SHIPPED' && !invDate;
+      if (type === 'packing-list') match = inTransitWarehouseDelayed(status) && !pl;
+      if (type === 'fedex')        match = inTransitWarehouseDelayed(status) && !fx;
+
+      if (match) result.push({
+        style,
+        po,
+        status,
+        shipDate: get(row, C.shipDate),
+        cancelDate: get(row, C.cancel),
+      });
+    }
+    res.json(result);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ─── Gabriel: MAP DATA SYNC ───────────────────────────────────────────────────
 app.post('/api/gabriel/map-sync', async (req, res) => {
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
