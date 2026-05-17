@@ -328,6 +328,15 @@
 const SHEET_ID = '1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q';
 const CSV_URL  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=99866922`;
 
+const DRIVE_FOLDERS = {
+  inv:  '1r1qElg8MpRatZQ-kBBFSYJQUhIl1V1mQ',
+  alpl: '1k4k8EpLdhw4EyUvQMn35ZwiRgvqsniJq',
+  fdex: '1ufkdrO23m2C-MrmhR1iKN3QFSJFwuQPY',
+};
+function driveSearch(folder, poNumber) {
+  return `https://drive.google.com/drive/folders/${folder}?q=${encodeURIComponent(poNumber)}`;
+}
+
 let activeFilter = 'all';
 let activeMonth  = null; // 'YYYY-MM' or null
 
@@ -605,12 +614,12 @@ function build(rows) {
         <div class="bottom-row">
           <div class="label-row">
             ${invDate
-              ? `<a class="lbl done" ${invLink ? `href="${esc(invLink)}" target="_blank" rel="noopener" title="Open invoice PDF"` : ''} style="${invLink ? 'cursor:pointer;text-decoration:none' : ''}">INV</a>`
+              ? `<a class="lbl done" href="${invLink || `https://drive.google.com/drive/folders/${DRIVE_FOLDERS.inv}?q=${encodeURIComponent(po)}`}" target="_blank" rel="noopener" title="Open invoice PDF" style="cursor:pointer;text-decoration:none">INV</a>`
               : `<button class="lbl pending" onclick="runInvoice(this,'${esc(po)}')" title="Generate invoice + PDF for this PO">INV</button>`
             }
-            ${al ? `<a class="lbl done" href="${esc(al)}" target="_blank" rel="noopener" title="Open Anthro Label" style="cursor:pointer;text-decoration:none">AL</a>` : `<div class="lbl pending">AL</div>`}
-            ${pl ? `<a class="lbl done" href="${esc(pl)}" target="_blank" rel="noopener" title="Open Packing List" style="cursor:pointer;text-decoration:none">PL</a>` : `<div class="lbl pending">PL</div>`}
-            ${fx ? `<a class="lbl done" href="${esc(fx)}" target="_blank" rel="noopener" title="Open FedEx Label" style="cursor:pointer;text-decoration:none">FDEX</a>` : `<div class="lbl pending">FDEX</div>`}
+            ${al ? `<a class="lbl done" href="https://drive.google.com/drive/folders/${DRIVE_FOLDERS.alpl}?q=${encodeURIComponent(po)}" target="_blank" rel="noopener" title="Open Anthro Label" style="cursor:pointer;text-decoration:none">AL</a>` : `<div class="lbl pending">AL</div>`}
+            ${pl ? `<a class="lbl done" href="https://drive.google.com/drive/folders/${DRIVE_FOLDERS.alpl}?q=${encodeURIComponent(po)}" target="_blank" rel="noopener" title="Open Packing List" style="cursor:pointer;text-decoration:none">PL</a>` : `<div class="lbl pending">PL</div>`}
+            ${fx ? `<a class="lbl done" href="https://drive.google.com/drive/folders/${DRIVE_FOLDERS.fdex}?q=${encodeURIComponent(po)}" target="_blank" rel="noopener" title="Open FedEx Label" style="cursor:pointer;text-decoration:none">FDEX</a>` : `<div class="lbl pending">FDEX</div>`}
           </div>
           ${awb && cls !== 'sh' ? `<div class="awb-row">
             <a class="awb-link" id="awb-${ri}" href="https://www.google.com/search?q=${encodeURIComponent(awb)}+airway+bill+cargo+tracking" target="_blank" rel="noopener">${esc(awb)}</a>
