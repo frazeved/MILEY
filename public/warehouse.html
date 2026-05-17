@@ -393,7 +393,7 @@
       <div class="gen-count" id="gen-count"></div>
       <div style="display:flex;gap:8px;">
         <button class="gen-btn secondary" onclick="closeGenerator()">Cancel</button>
-        <button class="gen-btn primary" id="gen-action-btn" disabled>Generate</button>
+        <button class="gen-btn primary" id="gen-action-btn" disabled onclick="runGenerator()">Generate</button>
       </div>
     </div>
   </div>
@@ -490,6 +490,43 @@ function updateGenCount() {
 function closeGenerator() {
   document.getElementById('gen-overlay').classList.remove('open');
   _genType = null; _genRows = [];
+}
+
+async function runGenerator() {
+  const pos = getSelectedPOs();
+  if (!pos.length) return;
+
+  const btn = document.getElementById('gen-action-btn');
+  btn.disabled = true;
+  btn.textContent = 'Queuing…';
+
+  try {
+    let endpoint, body;
+    if (_genType === 'fedex') {
+      endpoint = '/api/jhonny/run-fedex-labels';
+      body = { pos };
+    } else if (_genType === 'invoice') {
+      endpoint = '/api/samantha/run-invoices';
+      body = { pos };
+    } else {
+      btn.textContent = 'Coming Soon';
+      setTimeout(() => { btn.textContent = 'Generate'; btn.disabled = false; }, 2000);
+      return;
+    }
+
+    const r = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'Failed');
+    btn.textContent = '✓ Queued!';
+    setTimeout(() => { closeGenerator(); }, 1500);
+  } catch (e) {
+    btn.textContent = 'Error';
+    setTimeout(() => { btn.textContent = 'Generate'; btn.disabled = false; }, 2500);
+  }
 }
 
 function getSelectedPOs() {
