@@ -644,7 +644,7 @@ function build(rows) {
     <div class="pill wh"  data-f="wh"   onclick="activeFilter='wh';filterCards()"><div class="dot"></div><span>In Warehouse <span class="cnt">(${counts.wh})</span></span></div>
     <div class="pill tr"  data-f="tr"   onclick="activeFilter='tr';filterCards()"><div class="dot"></div><span>In Transit <span class="cnt">(${counts.tr})</span></span></div>
     <div class="pill sh"  data-f="sh"   onclick="activeFilter='sh';filterCards()"><div class="dot"></div><span>Shipped <span class="cnt">(${counts.sh})</span></span></div>
-    ${counts.sl ? `<div class="pill sl" data-f="shipped-last" onclick="activeFilter='shipped-last';filterCards()"><div class="dot" style="background:var(--orange)"></div><span>Shipped Last <span class="cnt">(${counts.sl})</span></span></div>` : ''}
+    <div class="pill sl" data-f="shipped-last" onclick="activeFilter='shipped-last';filterCards()"><div class="dot" style="background:var(--orange)"></div><span>Shipped Last <span class="cnt">(${counts.sl})</span></span></div>
     ${counts.an ? `<div class="pill an" data-f="arriving-next" onclick="activeFilter='arriving-next';filterCards()"><div class="dot" style="background:var(--blue)"></div><span>Arriving Next <span class="cnt">(${counts.an})</span></span></div>` : ''}
     ${counts.prod ? `<div class="pill prod" data-f="prod" onclick="activeFilter='prod';filterCards()"><div class="dot"></div><span>Production <span class="cnt">(${counts.prod})</span></span></div>` : ''}
     <div class="pill dl"  data-f="dl"   onclick="activeFilter='dl';filterCards()"><div class="dot"></div><span>Delayed <span class="cnt">(${counts.dl})</span></span></div>
