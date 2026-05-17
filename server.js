@@ -1286,12 +1286,26 @@ app.post('/api/samantha/run-invoice-for-po', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ─── Jhonny: trigger FedEx label creation ────────────────────────────────────
+// ─── Jhonny: trigger FedEx label creation (API) ──────────────────────────────
 app.post('/api/jhonny/run-fedex-labels', async (req, res) => {
   try {
     const { pos } = req.body || {};
     if (!Array.isArray(pos) || !pos.length) return res.status(400).json({ error: 'pos array required' });
     const r = await ghFetch(`https://api.github.com/repos/frazeved/JHONNY/actions/workflows/create-labels.yml/dispatches`, {
+      method: 'POST',
+      body: JSON.stringify({ ref: 'main', inputs: { po_numbers: pos.join(',') } }),
+    });
+    if (r.status !== 204) { const b = await r.text(); return res.status(500).json({ error: `GitHub: ${b}` }); }
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── Jhonny: trigger FedEx label creation (Web) ──────────────────────────────
+app.post('/api/jhonny/run-fedex-labels-web', async (req, res) => {
+  try {
+    const { pos } = req.body || {};
+    if (!Array.isArray(pos) || !pos.length) return res.status(400).json({ error: 'pos array required' });
+    const r = await ghFetch(`https://api.github.com/repos/frazeved/JHONNY/actions/workflows/create-labels-web.yml/dispatches`, {
       method: 'POST',
       body: JSON.stringify({ ref: 'main', inputs: { po_numbers: pos.join(',') } }),
     });

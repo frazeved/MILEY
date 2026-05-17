@@ -525,7 +525,7 @@ async function runGenerator() {
     btn.textContent = 'Queuing…';
     let endpoint, body;
     if (_genType === 'fedex') {
-      endpoint = '/api/jhonny/run-fedex-labels';
+      endpoint = '/api/jhonny/run-fedex-labels-web';
       body = { pos };
     } else if (_genType === 'invoice') {
       endpoint = '/api/samantha/run-invoices';
