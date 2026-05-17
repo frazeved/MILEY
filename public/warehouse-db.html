@@ -657,6 +657,7 @@ function build(rows) {
 }
 
 async function runInvoice(btn, poNumber) {
+  if (!confirm(`Generate invoice + PDF for PO ${poNumber}?`)) return;
   btn.disabled = true;
   const orig = btn.textContent;
   btn.textContent = '...';
