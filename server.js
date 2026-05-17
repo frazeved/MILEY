@@ -1302,9 +1302,10 @@ app.post('/api/jhonny/run-fedex-labels', async (req, res) => {
 
 // ─── Jhonny: PO list for generators ──────────────────────────────────────────
 app.get('/api/jhonny/po-list', async (req, res) => {
-  const type = req.query.type; // invoice | packing-list | fedex
-  if (!['invoice','packing-list','fedex'].includes(type))
-    return res.status(400).json({ error: 'type must be invoice, packing-list, or fedex' });
+  const type = req.query.type;
+  const validTypes = ['invoice','packing-list','fedex','al-print','pl-print','fedex-print'];
+  if (!validTypes.includes(type))
+    return res.status(400).json({ error: 'invalid type' });
 
   try {
     const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
@@ -1318,14 +1319,20 @@ app.get('/api/jhonny/po-list', async (req, res) => {
     const idx = (...keys) => H.findIndex(h => keys.some(k => h.includes(k.toLowerCase())));
 
     const C = {
-      style:    idx('style#', 'style #', 'style'),
-      po:       idx('po#', 'po number'),
-      status:   idx('status'),
-      shipDate: idx('ship date', 'shipped date', 'ex-factory', 'exfactory'),
-      cancel:   idx('cancel date', 'cancel by', 'cancel'),
-      invDate:  idx('urbn invoice date'),
-      pl:       idx('packing list', 'pack list'),
-      fx:       idx('fedex label'),
+      style:      idx('style#', 'style #', 'style'),
+      po:         idx('po#', 'po number'),
+      status:     idx('status'),
+      shipDate:   idx('ship date', 'shipped date', 'ex-factory', 'exfactory'),
+      cancel:     idx('cancel date', 'cancel by', 'cancel'),
+      invDate:    idx('urbn invoice date'),
+      pl:         idx('packing list', 'pack list'),
+      fx:         idx('fedex label'),
+      alLink:     idx('al link', 'anthro label link'),
+      plLink:     idx('pl link', 'packing list link'),
+      fxLink:     idx('fedex label link', 'fedex link'),
+      alPrinted:  idx('al printed'),
+      plPrinted:  idx('pl printed'),
+      fxPrinted:  idx('fedex printed'),
     };
 
     const get = (row, i) => i >= 0 ? (row[i] || '').trim() : '';
@@ -1338,33 +1345,62 @@ app.get('/api/jhonny/po-list', async (req, res) => {
     };
 
     const result = [];
-    // carry forward style# for merged cells
     let lastStyle = '';
     for (let i = 1; i < rows.length; i++) {
-      const row    = rows[i];
-      const style  = get(row, C.style) || lastStyle;
+      const row   = rows[i];
+      const style = get(row, C.style) || lastStyle;
       if (get(row, C.style)) lastStyle = style;
-      const po      = get(row, C.po);
-      const status  = get(row, C.status);
-      const invDate = get(row, C.invDate);
-      const pl      = get(row, C.pl);
-      const fx      = get(row, C.fx);
+      const po     = get(row, C.po);
+      const status = get(row, C.status);
       if (!po) continue;
 
       let match = false;
-      if (type === 'invoice')      match = status.toUpperCase() === 'SHIPPED' && !invDate;
-      if (type === 'packing-list') match = inTransitWarehouseDelayed(status) && !pl;
-      if (type === 'fedex')        match = inTransitWarehouseDelayed(status) && !fx;
+      let link  = '';
+      if (type === 'invoice')      { match = status.toUpperCase() === 'SHIPPED' && !get(row, C.invDate); }
+      if (type === 'packing-list') { match = inTransitWarehouseDelayed(status) && !get(row, C.pl); }
+      if (type === 'fedex')        { match = inTransitWarehouseDelayed(status) && !get(row, C.fx); }
+      if (type === 'al-print')     { link = get(row, C.alLink);  match = !!link && !get(row, C.alPrinted); }
+      if (type === 'pl-print')     { link = get(row, C.plLink);  match = !!link && !get(row, C.plPrinted); }
+      if (type === 'fedex-print')  { link = get(row, C.fxLink);  match = !!link && !get(row, C.fxPrinted); }
 
-      if (match) result.push({
-        style,
-        po,
-        status,
-        shipDate: get(row, C.shipDate),
-        cancelDate: get(row, C.cancel),
-      });
+      if (match) {
+        const entry = { style, po, status, shipDate: get(row, C.shipDate), cancelDate: get(row, C.cancel) };
+        if (link) entry.link = link;
+        result.push(entry);
+      }
     }
     res.json(result);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/jhonny/mark-printed', async (req, res) => {
+  const { type, pos } = req.body || {};
+  const colKeys = { 'al-print': ['al printed'], 'pl-print': ['pl printed'], 'fedex-print': ['fedex printed'] };
+  if (!colKeys[type] || !Array.isArray(pos) || !pos.length)
+    return res.status(400).json({ error: 'type and pos required' });
+
+  try {
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+    const r      = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Warehouse Now Database' });
+    const rows   = r.data.values || [];
+
+    const H          = rows[0].map(h => (h || '').trim().toLowerCase());
+    const idx        = (...keys) => H.findIndex(h => keys.some(k => h.includes(k.toLowerCase())));
+    const poIdx      = idx('po#', 'po number');
+    const printedIdx = idx(...colKeys[type]);
+    if (printedIdx < 0) return res.status(400).json({ error: 'PRINTED column not found in sheet' });
+
+    const colLetter = i => { let col = '', n = i; while (n >= 0) { col = String.fromCharCode(65 + (n % 26)) + col; n = Math.floor(n / 26) - 1; } return col; };
+    const posSet = new Set(pos);
+    const data = [];
+    for (let i = 1; i < rows.length; i++) {
+      const po = (rows[i][poIdx] || '').trim();
+      if (posSet.has(po)) data.push({ range: `Warehouse Now Database!${colLetter(printedIdx)}${i+1}`, values: [['✅']] });
+    }
+    if (data.length) await sheets.spreadsheets.values.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { valueInputOption: 'RAW', data } });
+    res.json({ ok: true, updated: data.length });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
