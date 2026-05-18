@@ -642,6 +642,10 @@ function build(rows) {
             ${al ? `<a class="lbl done" href="${esc(alLink)}" target="_blank" rel="noopener" title="Open Anthro Label" style="cursor:pointer;text-decoration:none">AL</a>` : `<div class="lbl pending">AL</div>`}
             ${pl ? `<a class="lbl done" href="${esc(plLink)}" target="_blank" rel="noopener" title="Open Packing List" style="cursor:pointer;text-decoration:none">PL</a>` : `<div class="lbl pending">PL</div>`}
             ${fx ? `<a class="lbl done" href="${esc(fxLink)}" target="_blank" rel="noopener" title="Open FedEx Label" style="cursor:pointer;text-decoration:none">FDEX</a>` : `<div class="lbl pending">FDEX</div>`}
+            ${notes ? `<button class="note-flag" data-po="${esc(po)}" data-note="${esc(notes).replace(/"/g,'&quot;')}" onclick="showNote(event)">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M3 1v14M3 2h9l-3 4 3 4H3V2z"/></svg>
+              NOTE
+            </button>` : ''}
           </div>
           ${awb && cls !== 'sh' ? `<div class="awb-row">
             <a class="awb-link" id="awb-${ri}" href="https://www.google.com/search?q=${encodeURIComponent(awb)}+airway+bill+cargo+tracking" target="_blank" rel="noopener">${esc(awb)}</a>
@@ -650,12 +654,6 @@ function build(rows) {
             </button>
           </div>` : ''}
         </div>
-        ${notes ? `<div style="display:flex;justify-content:flex-end;margin-top:2px;">
-          <button class="note-flag" data-po="${esc(po)}" data-note="${esc(notes).replace(/"/g,'&quot;')}" onclick="showNote(event)">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M3 1v14M3 2h9l-3 4 3 4H3V2z"/></svg>
-            NOTE
-          </button>
-        </div>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -765,7 +763,7 @@ function showNote(e) {
   const pw = 260;
   let left = rect.left;
   if (left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
-  popup.style.top  = (rect.bottom + 6 + window.scrollY) + 'px';
+  popup.style.top  = (rect.bottom + 6) + 'px';
   popup.style.left = Math.max(8, left) + 'px';
 }
 document.addEventListener('click', () => document.getElementById('note-popup')?.classList.remove('open'));
