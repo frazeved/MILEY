@@ -23,6 +23,7 @@ app.use(session({
 }));
 
 // ─── Auth users & password store (Google Sheets persistence) ─────────────────
+const SHEET_ID       = '1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q';
 const AUTH_SHEET_TAB = 'WORKSPACE AUTH';
 let passwordMap = {}; // email → changed password (overrides env var default)
 
@@ -141,7 +142,6 @@ app.use(express.static(path.join(__dirname, 'public'), {
 // ─── Constants ────────────────────────────────────────────────────────────────
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const REPO         = 'frazeved/SAMANTHA';
-const SHEET_ID     = '1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q';
 const MAP_SHEET_ID = '1W88MKYr-q9g3F2fLFu2jjxvXzigK12PWohSVMsOQst4';
 const SHEET_BASE   = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`;
 const csvUrl       = (gid) => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
