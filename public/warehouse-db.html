@@ -101,9 +101,9 @@
     .card.rts { border-left-color: var(--accent); }
     .badge.rts { background: var(--accent-lt); color: #0e7490; }
     .pill.rts  { color: var(--accent); }
-    .shipped-btn { font-size: 9px; font-weight: 700; padding: 4px 10px; border-radius: 20px; border: none; cursor: pointer; background: var(--purple); color: #fff; font-family: inherit; letter-spacing: 0.3px; transition: background 0.15s, opacity 0.15s; white-space: nowrap; }
-    .shipped-btn:hover { background: #6d28d9; }
-    .shipped-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .ship-btn { display: flex; align-items: center; gap: 3px; font-size: 9px; font-weight: 700; padding: 3px 8px; border-radius: 20px; border: 1.5px solid #a5f3fc; cursor: pointer; background: #ecfeff; color: #0e7490; font-family: inherit; letter-spacing: 0.3px; transition: background 0.15s, border-color 0.15s; white-space: nowrap; }
+    .ship-btn:hover { background: #cffafe; border-color: #67e8f9; }
+    .ship-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
     /* STATUS VISUAL */
     .vis { border-radius: 6px; padding: 7px 10px; }
@@ -666,7 +666,7 @@ function build(rows) {
             ${style ? `<div class="card-style">${esc(style)}</div>` : ''}
           </div>
           ${cls === 'rts'
-            ? `<button class="shipped-btn" onclick="markShipped(this,'${esc(po)}')">SHIPPED</button>`
+            ? `<button class="ship-btn" onclick="markShipped(this,'${esc(po)}')">SHIP <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>`
             : `<span class="badge ${cls}">${esc(statusRaw || cls.toUpperCase())}</span>`
           }
         </div>
@@ -794,7 +794,7 @@ async function markShipped(btn, po) {
     loadData();
   } catch(e) {
     btn.disabled = false;
-    btn.textContent = 'SHIPPED';
+    btn.innerHTML = 'SHIP <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
     alert('Could not update: ' + e.message);
   }
 }
