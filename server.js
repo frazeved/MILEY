@@ -1341,7 +1341,7 @@ app.get('/api/jhonny/po-list', async (req, res) => {
       invDate:    idx('urbn invoice date'),
       pl:         idx('packing list', 'pack list'),
       fx:         idx('fedex label'),
-      alLink:     idx('al link', 'anthro label link'),
+      alLink:     idx('po link', 'al link', 'anthro label link'),
       plLink:     idx('pl link', 'packing list link'),
       fxLink:     idx('fedex label link', 'fedex link'),
       alPrinted:  idx('al printed'),
