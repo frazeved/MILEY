@@ -1373,10 +1373,11 @@ app.get('/api/jhonny/po-list', async (req, res) => {
       if (type === 'invoice')      { match = status.toUpperCase() === 'SHIPPED' && !get(row, C.invDate); }
       if (type === 'packing-list') { match = inTransitWarehouseDelayed(status) && !get(row, C.pl); }
       if (type === 'fedex')        { match = inTransitWarehouseDelayed(status) && !get(row, C.fx); }
-      const excludedStatus = ['shipped','cancelled','production'].some(s => status.toLowerCase().includes(s));
-      if (type === 'al-print')     { link = get(row, C.alLink);  match = !get(row, C.alPrinted)  && !excludedStatus; }
-      if (type === 'pl-print')     { link = get(row, C.plLink);  match = !get(row, C.plPrinted)  && !excludedStatus; }
-      if (type === 'fedex-print')  { link = get(row, C.fxLink);  match = !get(row, C.fxPrinted)  && !excludedStatus; }
+      const s = status.toLowerCase();
+      const printable = s.includes('transit') || s.includes('warehouse');
+      if (type === 'al-print')    { link = get(row, C.alLink);  match = !!link && printable && !get(row, C.alPrinted); }
+      if (type === 'pl-print')    { link = get(row, C.plLink);  match = !!link && printable && !get(row, C.plPrinted); }
+      if (type === 'fedex-print') { link = get(row, C.fxLink);  match = !!link && printable && !get(row, C.fxPrinted); }
 
       if (match) {
         const entry = { style, po, status, shipDate: get(row, C.shipDate), cancelDate: get(row, C.cancel) };
