@@ -101,6 +101,9 @@
     .card.rts { border-left-color: var(--accent); }
     .badge.rts { background: var(--accent-lt); color: #0e7490; }
     .pill.rts  { color: var(--accent); }
+    .shipped-btn { font-size: 9px; font-weight: 700; padding: 4px 10px; border-radius: 20px; border: none; cursor: pointer; background: var(--purple); color: #fff; font-family: inherit; letter-spacing: 0.3px; transition: background 0.15s, opacity 0.15s; white-space: nowrap; }
+    .shipped-btn:hover { background: #6d28d9; }
+    .shipped-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
     /* STATUS VISUAL */
     .vis { border-radius: 6px; padding: 7px 10px; }
@@ -662,7 +665,10 @@ function build(rows) {
             <div class="card-po">${esc(po)}</div>
             ${style ? `<div class="card-style">${esc(style)}</div>` : ''}
           </div>
-          <span class="badge ${cls}">${cls === 'rts' ? 'READY TO SHIP' : esc(statusRaw || cls.toUpperCase())}</span>
+          ${cls === 'rts'
+            ? `<button class="shipped-btn" onclick="markShipped(this,'${esc(po)}')">SHIPPED</button>`
+            : `<span class="badge ${cls}">${esc(statusRaw || cls.toUpperCase())}</span>`
+          }
         </div>
         ${vis}
         <div class="dates">
@@ -771,6 +777,25 @@ async function confirmInvoice(poNumber) {
   } catch (e) {
     btn.textContent = 'ERR';
     setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 3000);
+  }
+}
+
+async function markShipped(btn, po) {
+  btn.disabled = true;
+  btn.textContent = '...';
+  try {
+    const r = await fetch('/api/jhonny/mark-shipped', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ po }),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'Failed');
+    loadData();
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = 'SHIPPED';
+    alert('Could not update: ' + e.message);
   }
 }
 
