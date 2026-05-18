@@ -165,6 +165,14 @@
     .msg-box { padding: 60px 24px; text-align: center; color: var(--muted); font-size: 13px; grid-column: 1/-1; }
     .spinner { width: 34px; height: 34px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px; }
 
+    /* NOTE FLAG */
+    .note-flag { background: none; border: none; cursor: pointer; padding: 2px 3px; color: var(--red); display: flex; align-items: center; flex-shrink: 0; opacity: 0.8; transition: opacity 0.15s, transform 0.15s; }
+    .note-flag:hover { opacity: 1; transform: scale(1.15); }
+    .note-popup { display: none; position: fixed; background: #fff; border: 1px solid var(--border); border-left: 3px solid var(--red); border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 11px 14px; max-width: 260px; width: max-content; z-index: 500; }
+    .note-popup.open { display: block; }
+    .note-popup-po { font-size: 10px; font-weight: 700; color: var(--red); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+    .note-popup-text { font-size: 12px; color: var(--text); line-height: 1.55; }
+
     @media (max-width: 768px) {
       /* NAV */
       nav { padding: 0 16px; height: auto; min-height: 52px; position: relative; }
@@ -478,6 +486,7 @@ function build(rows) {
     plLink:       col(H,'pl link','packing list link'),
     fx:           col(H,'fedex label','fedex lbl','fed ex label'),
     fxLink:       col(H,'fedex label link','fedex link'),
+    poNotes:      col(H,'po notes','notes'),
   };
 
   console.log('[DEBUG] Headers:', H);
@@ -514,6 +523,7 @@ function build(rows) {
     const plLink = get(r, C.plLink);
     const fx     = get(r, C.fx);
     const fxLink = get(r, C.fxLink);
+    const notes  = get(r, C.poNotes);
 
     const now     = new Date();
     const exDate  = parseDate(exfac);
@@ -610,7 +620,12 @@ function build(rows) {
             <div class="card-po">${esc(po)}</div>
             ${style ? `<div class="card-style">${esc(style)}</div>` : ''}
           </div>
-          <span class="badge ${cls}">${esc(statusRaw || cls.toUpperCase())}</span>
+          <div style="display:flex;align-items:center;gap:5px;">
+            ${notes ? `<button class="note-flag" data-po="${esc(po)}" data-note="${esc(notes).replace(/"/g,'&quot;')}" onclick="showNote(event)" title="View note">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M3 1v14M3 2h9l-3 4 3 4H3V2z"/></svg>
+            </button>` : ''}
+            <span class="badge ${cls}">${esc(statusRaw || cls.toUpperCase())}</span>
+          </div>
         </div>
         ${vis}
         <div class="dates">
@@ -738,8 +753,28 @@ async function loadData() {
   document.getElementById('reload-btn').classList.remove('loading');
 }
 
+function showNote(e) {
+  e.stopPropagation();
+  const btn = e.currentTarget;
+  const popup = document.getElementById('note-popup');
+  popup.querySelector('.note-popup-po').textContent = 'PO ' + btn.dataset.po;
+  popup.querySelector('.note-popup-text').textContent = btn.dataset.note;
+  popup.classList.add('open');
+  const rect = btn.getBoundingClientRect();
+  const pw = 260;
+  let left = rect.left;
+  if (left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+  popup.style.top  = (rect.bottom + 6 + window.scrollY) + 'px';
+  popup.style.left = Math.max(8, left) + 'px';
+}
+document.addEventListener('click', () => document.getElementById('note-popup')?.classList.remove('open'));
+
 loadData();
 </script>
+<div id="note-popup" class="note-popup">
+  <div class="note-popup-po"></div>
+  <div class="note-popup-text"></div>
+</div>
 <div class="modal-overlay" id="inv-modal">
   <div class="modal-box">
     <div class="modal-icon">⚠️</div>
