@@ -166,8 +166,8 @@
     .spinner { width: 34px; height: 34px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px; }
 
     /* NOTE FLAG */
-    .note-flag { background: none; border: none; cursor: pointer; padding: 2px 3px; color: var(--red); display: flex; align-items: center; flex-shrink: 0; opacity: 0.8; transition: opacity 0.15s, transform 0.15s; }
-    .note-flag:hover { opacity: 1; transform: scale(1.15); }
+    .note-flag { background: none; border: none; cursor: pointer; padding: 4px 6px; color: var(--red); display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; letter-spacing: 0.2px; border-radius: 6px; transition: background 0.15s, opacity 0.15s; opacity: 0.85; }
+    .note-flag:hover { background: var(--red-lt); opacity: 1; }
     .note-popup { display: none; position: fixed; background: #fff; border: 1px solid var(--border); border-left: 3px solid var(--red); border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 11px 14px; max-width: 260px; width: max-content; z-index: 500; }
     .note-popup.open { display: block; }
     .note-popup-po { font-size: 10px; font-weight: 700; color: var(--red); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
@@ -620,12 +620,7 @@ function build(rows) {
             <div class="card-po">${esc(po)}</div>
             ${style ? `<div class="card-style">${esc(style)}</div>` : ''}
           </div>
-          <div style="display:flex;align-items:center;gap:5px;">
-            ${notes ? `<button class="note-flag" data-po="${esc(po)}" data-note="${esc(notes).replace(/"/g,'&quot;')}" onclick="showNote(event)" title="View note">
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M3 1v14M3 2h9l-3 4 3 4H3V2z"/></svg>
-            </button>` : ''}
-            <span class="badge ${cls}">${esc(statusRaw || cls.toUpperCase())}</span>
-          </div>
+          <span class="badge ${cls}">${esc(statusRaw || cls.toUpperCase())}</span>
         </div>
         ${vis}
         <div class="dates">
@@ -655,6 +650,12 @@ function build(rows) {
             </button>
           </div>` : ''}
         </div>
+        ${notes ? `<div style="display:flex;justify-content:flex-end;margin-top:2px;">
+          <button class="note-flag" data-po="${esc(po)}" data-note="${esc(notes).replace(/"/g,'&quot;')}" onclick="showNote(event)">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M3 1v14M3 2h9l-3 4 3 4H3V2z"/></svg>
+            NOTE
+          </button>
+        </div>` : ''}
       </div>
     </div>`;
   }).join('');
