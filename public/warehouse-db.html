@@ -782,25 +782,43 @@ function initSwipes() {
     const po      = handle.dataset.po;
 
     handle.addEventListener('pointerdown', e => {
-      active  = true;
-      startX  = e.clientX;
+      active = true;
+      startX = e.clientX;
+      iconBox.style.transition = 'none';
       handle.setPointerCapture(e.pointerId);
     });
 
     handle.addEventListener('pointermove', e => {
       if (!active) return;
-      const dx = e.clientX - startX;
-      const clamped = isRts ? Math.min(0, Math.max(-80, dx)) : Math.max(0, Math.min(80, dx));
+      const dx    = e.clientX - startX;
+      const vis   = handle.closest('.swipe-vis');
+      const maxDx = vis ? vis.offsetWidth - handle.offsetWidth - 8 : 200;
+      const clamped = isRts
+        ? Math.min(0, Math.max(-maxDx, dx))
+        : Math.max(0, Math.min(maxDx, dx));
       iconBox.style.transform = `translateX(${clamped}px)`;
     });
 
     handle.addEventListener('lostpointercapture', e => {
       if (!active) return;
       active = false;
-      const dx = e.clientX - startX;
-      iconBox.style.transform = '';
-      if (!isRts && dx >= 60) setReadyToShip(po, true);
-      else if (isRts && dx <= -60) setReadyToShip(po, false);
+      const dx    = e.clientX - startX;
+      const vis   = handle.closest('.swipe-vis');
+      const maxDx = vis ? vis.offsetWidth - handle.offsetWidth - 8 : 200;
+
+      if (!isRts && dx >= 60) {
+        iconBox.style.transition = 'transform 0.18s';
+        iconBox.style.transform  = `translateX(${maxDx}px)`;
+        setTimeout(() => { iconBox.style.transition = ''; iconBox.style.transform = ''; setReadyToShip(po, true); }, 220);
+      } else if (isRts && dx <= -60) {
+        iconBox.style.transition = 'transform 0.18s';
+        iconBox.style.transform  = `translateX(-${maxDx}px)`;
+        setTimeout(() => { iconBox.style.transition = ''; iconBox.style.transform = ''; setReadyToShip(po, false); }, 220);
+      } else {
+        iconBox.style.transition = 'transform 0.2s';
+        iconBox.style.transform  = '';
+        setTimeout(() => { iconBox.style.transition = ''; }, 220);
+      }
     });
   });
 }
@@ -825,8 +843,6 @@ async function loadData() {
   document.getElementById('pills').innerHTML = '';
   document.getElementById('status-text').textContent = 'Loadingâ€¦';
   document.getElementById('reload-btn').classList.add('loading');
-  activeFilter = 'all';
-  activeMonth  = null;
 
   try {
     const res = await fetch(CSV_URL);
@@ -835,6 +851,7 @@ async function loadData() {
     if (rows.length < 2) throw new Error('No data');
     build(rows);
     initSwipes();
+    filterCards();
   } catch(e) {
     document.getElementById('grid').innerHTML = `<div class="msg-box">âš ï¸ Could not load data.<br><small style="color:#9ca3af">${esc(e.message)}</small></div>`;
     document.getElementById('status-text').textContent = 'Error';
