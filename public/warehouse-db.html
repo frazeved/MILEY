@@ -809,11 +809,11 @@ function initSwipes() {
       if (!isRts && dx >= 60) {
         iconBox.style.transition = 'transform 0.18s';
         iconBox.style.transform  = `translateX(${maxDx}px)`;
-        setTimeout(() => { iconBox.style.transition = ''; iconBox.style.transform = ''; setReadyToShip(po, true); }, 220);
+        setTimeout(() => setReadyToShip(po, true), 220);
       } else if (isRts && dx <= -60) {
         iconBox.style.transition = 'transform 0.18s';
         iconBox.style.transform  = `translateX(-${maxDx}px)`;
-        setTimeout(() => { iconBox.style.transition = ''; iconBox.style.transform = ''; setReadyToShip(po, false); }, 220);
+        setTimeout(() => setReadyToShip(po, false), 220);
       } else {
         iconBox.style.transition = 'transform 0.2s';
         iconBox.style.transform  = '';
