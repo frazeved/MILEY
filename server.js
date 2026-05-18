@@ -1431,6 +1431,50 @@ app.post('/api/jhonny/run-fill-links', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ─── Jhonny: mark all Ready-to-Ship POs as SHIPPED ───────────────────────────
+app.post('/api/jhonny/ship-all', async (req, res) => {
+  const { pos } = req.body || {};
+  if (!Array.isArray(pos) || !pos.length) return res.status(400).json({ error: 'pos array required' });
+  try {
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+    const TAB    = 'Warehouse Now Database';
+    const r      = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: TAB });
+    const rows   = r.data.values || [];
+    if (rows.length < 2) return res.status(404).json({ error: 'No data' });
+
+    const H         = rows[0].map(h => (h || '').trim());
+    const colLetter = i => { let col = '', n = i; while (n >= 0) { col = String.fromCharCode(65 + (n % 26)) + col; n = Math.floor(n / 26) - 1; } return col; };
+    const idx       = (...keys) => H.findIndex(h => keys.some(k => h.toLowerCase().includes(k.toLowerCase())));
+
+    const statusIdx   = idx('warehouse status', 'wh status', 'status');
+    const rtsIdx      = idx('ready to ship');
+    const shipDateIdx = idx('shipped date', 'ship date', 'ex-factory', 'exfactory');
+    const poIdx       = idx('po#', 'po number');
+    if (statusIdx < 0) return res.status(400).json({ error: 'STATUS column not found' });
+
+    const posSet = new Set(pos.map(p => p.trim()));
+    const today  = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+    const updates = [];
+    for (let i = 1; i < rows.length; i++) {
+      const po = (rows[i][poIdx] || '').trim();
+      if (!posSet.has(po)) continue;
+      const rowNum = i + 1;
+      updates.push({ range: `'${TAB}'!${colLetter(statusIdx)}${rowNum}`, values: [['SHIPPED']] });
+      if (rtsIdx >= 0)      updates.push({ range: `'${TAB}'!${colLetter(rtsIdx)}${rowNum}`,      values: [['']] });
+      if (shipDateIdx >= 0) updates.push({ range: `'${TAB}'!${colLetter(shipDateIdx)}${rowNum}`, values: [[today]] });
+    }
+    if (updates.length) {
+      await sheets.spreadsheets.values.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { valueInputOption: 'RAW', data: updates } });
+    }
+    res.json({ ok: true, updated: posSet.size });
+  } catch (e) {
+    console.error('[ship-all]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── Jhonny: mark PO as SHIPPED ──────────────────────────────────────────────
 app.post('/api/jhonny/mark-shipped', async (req, res) => {
   const { po } = req.body || {};
