@@ -339,6 +339,27 @@
       </div>
     </div>
 
+    <!-- DOCUMENT TOOLS -->
+    <div class="task-group">
+      <div class="task-group-label">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2H3v16h5l3 3 3-3h7V2z"/><path d="M7 8h10M7 12h6"/></svg>
+        Document Tools
+      </div>
+      <div class="grid">
+        <div class="card generator-card clickable" id="refresh-links-card" onclick="runRefreshLinks()" style="cursor:pointer;">
+          <div class="card-icon-row">
+            <div class="icon-tool">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
+            </div>
+            <div>
+              <div class="card-name">REFRESH DOCS LINK</div>
+              <div class="card-type" id="refresh-links-status">Scan folders · Fill PO / PL / FedEx links</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- DOCUMENT PRINT -->
     <div class="task-group">
       <div class="task-group-label">
@@ -571,6 +592,23 @@ async function runGenerator() {
 function getSelectedPOs() {
   return [...document.querySelectorAll('.gen-row-cb:checked')]
     .map(cb => _genRows[+cb.dataset.i].po);
+}
+
+async function runRefreshLinks() {
+  const card   = document.getElementById('refresh-links-card');
+  const status = document.getElementById('refresh-links-status');
+  card.style.pointerEvents = 'none';
+  status.textContent = 'Running…';
+  try {
+    const r = await fetch('/api/jhonny/run-fill-links', { method: 'POST' });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'Failed');
+    status.textContent = '✓ Queued — links fill in ~30s';
+    setTimeout(() => { status.textContent = 'Scan folders · Fill PO / PL / FedEx links'; card.style.pointerEvents = ''; }, 6000);
+  } catch (e) {
+    status.textContent = '⚠ ' + e.message;
+    setTimeout(() => { status.textContent = 'Scan folders · Fill PO / PL / FedEx links'; card.style.pointerEvents = ''; }, 3000);
+  }
 }
 
 function toggleNav() { document.getElementById('nav-panel').classList.toggle('open'); }

@@ -1420,6 +1420,17 @@ app.post('/api/jhonny/mark-printed', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ─── Jhonny: trigger fill-links (scan Drive, fill link + check columns) ──────
+app.post('/api/jhonny/run-fill-links', async (req, res) => {
+  try {
+    const r = await ghFetch(`https://api.github.com/repos/frazeved/JHONNY/actions/workflows/fill-links.yml/dispatches`, {
+      method: 'POST', body: JSON.stringify({ ref: 'main' }),
+    });
+    if (r.status !== 204) { const b = await r.text(); return res.status(500).json({ error: `GitHub: ${b}` }); }
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ─── Print queue (local agent polls this) ────────────────────────────────────
 const printQueue = []; // in-memory; jobs are short-lived
 
