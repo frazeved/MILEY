@@ -98,6 +98,9 @@
     .badge.sh   { background: var(--purple-lt); color: #5b21b6; }
     .badge.prod { background: var(--orange-lt); color: #92400e; }
     .badge.oth  { background: #f3f4f6;          color: var(--muted); }
+    .card.rts { border-left-color: var(--accent); }
+    .badge.rts { background: var(--accent-lt); color: #0e7490; }
+    .pill.rts  { color: var(--accent); }
 
     /* STATUS VISUAL */
     .vis { border-radius: 6px; padding: 7px 10px; }
@@ -130,6 +133,22 @@
     @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,0.4)} 50%{box-shadow:0 0 0 5px rgba(220,38,38,0)} }
     .vis-dl-text { font-size: 11px; font-weight: 600; color: #991b1b; }
     .vis-dl-sub  { font-size: 10px; color: #b91c1c; }
+
+    /* SWIPE VIS — In Warehouse / Ready to Ship */
+    .swipe-vis { border-radius: 6px; padding: 7px 10px; display: flex; align-items: center; gap: 8px; user-select: none; overflow: hidden; }
+    .swipe-vis.wh-swipe  { background: var(--green-lt); }
+    .swipe-vis.rts-swipe { background: var(--accent-lt); }
+    .swipe-thumb-wrap { touch-action: none; cursor: grab; flex-shrink: 0; -webkit-user-select: none; }
+    .swipe-thumb-wrap:active { cursor: grabbing; }
+    .swipe-icon-box { width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: transform 0.05s; will-change: transform; }
+    .swipe-icon-box.wh  { background: var(--green); }
+    .swipe-icon-box.rts { background: var(--accent); }
+    .swipe-vis-text { flex: 1; }
+    .swipe-vis.wh-swipe  .swipe-vis-label { font-size: 11px; font-weight: 600; color: #166534; }
+    .swipe-vis.wh-swipe  .swipe-vis-sub   { font-size: 10px; color: #15803d; }
+    .swipe-vis.rts-swipe .swipe-vis-label { font-size: 11px; font-weight: 600; color: #0e7490; }
+    .swipe-vis.rts-swipe .swipe-vis-sub   { font-size: 10px; color: #0891b2; }
+    .swipe-arrow { font-size: 18px; font-weight: 700; opacity: 0.35; flex-shrink: 0; line-height: 1; }
 
     /* DATES â€" inline strip */
     .dates { display: flex; gap: 0; background: var(--bg); border-radius: 6px; overflow: hidden; }
@@ -212,6 +231,9 @@
       .vis-tr-top { font-size: 11px; }
       .vis-tr-dates { font-size: 10px; }
       .vis-dl-text { font-size: 12px; }
+      .swipe-vis { padding: 8px 11px; }
+      .swipe-vis-label { font-size: 12px; }
+      .swipe-icon-box { width: 28px; height: 28px; }
 
       /* DATES â€" slightly bigger text for readability */
       .date-lbl { font-size: 9px; }
@@ -487,6 +509,7 @@ function build(rows) {
     fx:           col(H,'fedex label','fedex lbl','fed ex label'),
     fxLink:       col(H,'fedex label link','fedex link'),
     poNotes:      col(H,'po notes','notes'),
+    rtsCol:       col(H,'ready to ship'),
   };
 
   console.log('[DEBUG] Headers:', H);
@@ -496,10 +519,12 @@ function build(rows) {
   const g = v => (v !== null && v >= 0 ? (data[0]?.[v]??'') : ''); // just for ref
   const get = (r, ci) => ci >= 0 ? (r[ci]||'').trim() : '';
 
-  const counts = { wh:0, tr:0, sh:0, prod:0, dl:0, oth:0, sl:0, an:0 };
+  const counts = { wh:0, tr:0, sh:0, prod:0, dl:0, oth:0, sl:0, an:0, rts:0 };
   const cards = data.map((r, ri) => {
     const statusRaw = get(r, C.status);
-    const cls = classify(statusRaw);
+    let cls = classify(statusRaw);
+    const rtsFlag = C.rtsCol >= 0 ? (r[C.rtsCol] || '').trim() : '';
+    if (cls === 'wh' && rtsFlag) cls = 'rts';
     counts[cls]++;
 
     const po     = get(r, C.po) || `#${ri+1}`;
@@ -551,9 +576,26 @@ function build(rows) {
     // Status visual
     let vis = '';
     if (cls === 'wh') {
-      vis = `<div class="vis vis-wh">
-        <div class="vis-wh-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 4l9 5.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><polyline points="9 21 9 13 15 13 15 21"/></svg></div>
-        <div><div class="vis-wh-text">In Warehouse</div><div class="vis-wh-sub">Ready for processing</div></div>
+      vis = `<div class="swipe-vis wh-swipe">
+        <div class="swipe-thumb-wrap" data-po="${esc(po)}" data-rts="0">
+          <div class="swipe-icon-box wh"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 4l9 5.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><polyline points="9 21 9 13 15 13 15 21"/></svg></div>
+        </div>
+        <div class="swipe-vis-text">
+          <div class="swipe-vis-label">Processing Inspection</div>
+          <div class="swipe-vis-sub">Slide &#8594; to mark ready to ship</div>
+        </div>
+        <div class="swipe-arrow">&#8250;</div>
+      </div>`;
+    } else if (cls === 'rts') {
+      vis = `<div class="swipe-vis rts-swipe">
+        <div class="swipe-arrow">&#8249;</div>
+        <div class="swipe-vis-text">
+          <div class="swipe-vis-label">Ready to Ship</div>
+          <div class="swipe-vis-sub">Slide &#8592; to return to warehouse</div>
+        </div>
+        <div class="swipe-thumb-wrap" data-po="${esc(po)}" data-rts="1">
+          <div class="swipe-icon-box rts"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 4l9 5.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><polyline points="9 21 9 13 15 13 15 21"/></svg></div>
+        </div>
       </div>`;
     } else if (cls === 'tr') {
       vis = `<div class="vis vis-tr">
@@ -620,7 +662,7 @@ function build(rows) {
             <div class="card-po">${esc(po)}</div>
             ${style ? `<div class="card-style">${esc(style)}</div>` : ''}
           </div>
-          <span class="badge ${cls}">${esc(statusRaw || cls.toUpperCase())}</span>
+          <span class="badge ${cls}">${cls === 'rts' ? 'READY TO SHIP' : esc(statusRaw || cls.toUpperCase())}</span>
         </div>
         ${vis}
         <div class="dates">
@@ -684,6 +726,7 @@ function build(rows) {
   document.getElementById('pills').innerHTML = `
     <div class="pill all active" data-f="all"  onclick="activeFilter='all';filterCards()"><div class="dot" style="background:#6b7280"></div><span>All <span class="cnt">(${total})</span></span></div>
     <div class="pill wh"  data-f="wh"   onclick="activeFilter='wh';filterCards()"><div class="dot"></div><span>In Warehouse <span class="cnt">(${counts.wh})</span></span></div>
+    ${counts.rts ? `<div class="pill rts" data-f="rts" onclick="activeFilter='rts';filterCards()"><div class="dot"></div><span>Ready to Ship <span class="cnt">(${counts.rts})</span></span></div>` : ''}
     <div class="pill tr"  data-f="tr"   onclick="activeFilter='tr';filterCards()"><div class="dot"></div><span>In Transit <span class="cnt">(${counts.tr})</span></span></div>
     <div class="pill sh"  data-f="sh"   onclick="activeFilter='sh';filterCards()"><div class="dot"></div><span>Shipped <span class="cnt">(${counts.sh})</span></span></div>
     <div class="pill sl" data-f="shipped-last" onclick="activeFilter='shipped-last';filterCards()"><div class="dot" style="background:var(--orange)"></div><span>Shipped Last <span class="cnt">(${counts.sl})</span></span></div>
@@ -731,6 +774,52 @@ async function confirmInvoice(poNumber) {
   }
 }
 
+function initSwipes() {
+  document.querySelectorAll('.swipe-thumb-wrap').forEach(handle => {
+    let startX, active = false;
+    const iconBox = handle.querySelector('.swipe-icon-box');
+    const isRts   = handle.dataset.rts === '1';
+    const po      = handle.dataset.po;
+
+    handle.addEventListener('pointerdown', e => {
+      active  = true;
+      startX  = e.clientX;
+      handle.setPointerCapture(e.pointerId);
+    });
+
+    handle.addEventListener('pointermove', e => {
+      if (!active) return;
+      const dx = e.clientX - startX;
+      const clamped = isRts ? Math.min(0, Math.max(-80, dx)) : Math.max(0, Math.min(80, dx));
+      iconBox.style.transform = `translateX(${clamped}px)`;
+    });
+
+    handle.addEventListener('lostpointercapture', e => {
+      if (!active) return;
+      active = false;
+      const dx = e.clientX - startX;
+      iconBox.style.transform = '';
+      if (!isRts && dx >= 60) setReadyToShip(po, true);
+      else if (isRts && dx <= -60) setReadyToShip(po, false);
+    });
+  });
+}
+
+async function setReadyToShip(po, ready) {
+  try {
+    const r = await fetch('/api/jhonny/ready-to-ship', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ po, ready }),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'Failed');
+    loadData();
+  } catch(e) {
+    alert('Could not update: ' + e.message);
+  }
+}
+
 async function loadData() {
   document.getElementById('grid').innerHTML = '<div class="msg-box"><div class="spinner"></div>Fetching dataâ€¦</div>';
   document.getElementById('pills').innerHTML = '';
@@ -745,6 +834,7 @@ async function loadData() {
     const rows = parseCSV(await res.text());
     if (rows.length < 2) throw new Error('No data');
     build(rows);
+    initSwipes();
   } catch(e) {
     document.getElementById('grid').innerHTML = `<div class="msg-box">âš ï¸ Could not load data.<br><small style="color:#9ca3af">${esc(e.message)}</small></div>`;
     document.getElementById('status-text').textContent = 'Error';

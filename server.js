@@ -1431,6 +1431,50 @@ app.post('/api/jhonny/run-fill-links', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ─── Jhonny: set / clear Ready to Ship flag ──────────────────────────────────
+app.post('/api/jhonny/ready-to-ship', async (req, res) => {
+  const { po, ready } = req.body || {};
+  if (!po) return res.status(400).json({ error: 'po required' });
+  try {
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+    const TAB    = 'Warehouse Now Database';
+    const r      = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: TAB });
+    const rows   = r.data.values || [];
+    if (rows.length < 2) return res.status(404).json({ error: 'No data' });
+
+    const H   = rows[0].map(h => (h || '').trim());
+    const colLetter = i => { let col = '', n = i; while (n >= 0) { col = String.fromCharCode(65 + (n % 26)) + col; n = Math.floor(n / 26) - 1; } return col; };
+
+    let rtsIdx = H.findIndex(h => h.toLowerCase().includes('ready to ship'));
+    if (rtsIdx < 0) {
+      rtsIdx = H.length;
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SHEET_ID,
+        range: `'${TAB}'!${colLetter(rtsIdx)}1`,
+        valueInputOption: 'RAW',
+        requestBody: { values: [['READY TO SHIP']] },
+      });
+    }
+
+    const poIdx  = H.findIndex(h => h.toLowerCase().includes('po#') || h.toLowerCase().includes('po number'));
+    const rowIdx = rows.slice(1).findIndex(row => (row[poIdx] || '').trim() === po.trim());
+    if (rowIdx < 0) return res.status(404).json({ error: 'PO not found' });
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SHEET_ID,
+      range: `'${TAB}'!${colLetter(rtsIdx)}${rowIdx + 2}`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [[ready ? 'YES' : '']] },
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[ready-to-ship]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── Print queue (local agent polls this) ────────────────────────────────────
 const printQueue = []; // in-memory; jobs are short-lived
 
