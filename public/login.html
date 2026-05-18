@@ -141,6 +141,20 @@
       margin-bottom: 24px;
       line-height: 1.5;
     }
+    .modal-cancel {
+      display: block;
+      text-align: center;
+      margin-top: 14px;
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+      text-decoration: underline;
+      background: none;
+      border: none;
+      font-family: inherit;
+      width: 100%;
+    }
+    .modal-cancel:hover { color: var(--text); }
 
     @media (max-width: 480px) {
       .card  { padding: 32px 24px; border-radius: 16px; }
@@ -189,10 +203,21 @@
         <input id="confirm-pass" type="password" placeholder="Repeat new password" autocomplete="new-password" />
       </div>
       <button class="btn" id="cp-btn" onclick="handleChangePassword()">Save &amp; Continue</button>
+      <button class="modal-cancel" onclick="cancelChangePassword()">Cancel — go back to sign in</button>
     </div>
   </div>
 
   <script>
+    let _loginPassword = '';
+
+    function cancelChangePassword() {
+      document.getElementById('change-overlay').classList.remove('show');
+      document.getElementById('cp-msg').className = 'msg';
+      document.getElementById('new-pass').value = '';
+      document.getElementById('confirm-pass').value = '';
+      _loginPassword = '';
+    }
+
     async function handleLogin(e) {
       e.preventDefault();
       const btn   = document.getElementById('submit-btn');
@@ -214,6 +239,7 @@
         if (!res.ok) throw new Error(json.error || 'Login failed');
 
         if (json.mustChangePassword) {
+          _loginPassword = pass;
           document.getElementById('change-overlay').classList.add('show');
           btn.disabled = false;
           btn.textContent = 'Sign In';
@@ -251,11 +277,10 @@
       btn.textContent = 'Saving…';
 
       try {
-        const currentPass = document.getElementById('password').value;
         const res  = await fetch('/api/change-password', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ currentPassword: currentPass, newPassword: newPass }),
+          body: JSON.stringify({ currentPassword: _loginPassword, newPassword: newPass }),
         });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || 'Failed to save password');
