@@ -1731,7 +1731,7 @@ app.post('/api/jhonny/save-adjustment', async (req, res) => {
       requestBody: { values: [[today, po, style||'', brand||'', category||'', subCategory||'', supplier||'', JSON.stringify(origSizes||{}), JSON.stringify(suppSizes||{}), 'PENDING', '', '']] }
     });
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { console.error('save-adjustment error:', e.message); res.status(500).json({ error: e.message }); }
 });
 
 // ─── Jhonny: list pending adjustments ────────────────────────────────────────
