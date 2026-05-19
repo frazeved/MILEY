@@ -939,8 +939,8 @@ async function loadCadImages() {
     if (!style) continue;
     try {
       const d = await fetch(`/api/jhonny/cad-image/${encodeURIComponent(style)}`).then(r => r.json());
-      if (d.base64) {
-        img.src = `data:image/jpeg;base64,${d.base64}`;
+      if (d.imageData) {
+        img.src = `data:${d.mimeType || 'image/jpeg'};base64,${d.imageData}`;
         img.classList.add('loaded');
       }
     } catch {}
