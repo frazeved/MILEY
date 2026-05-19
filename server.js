@@ -1585,9 +1585,9 @@ app.get('/api/jhonny/po-detail/:po', async (req, res) => {
     const idxH = (...keys) => H.findIndex(h => keys.some(k => h.toLowerCase().includes(k.toLowerCase())));
     const get  = (row, i) => i >= 0 ? (row[i] || '').trim() : '';
 
-    const poCol       = idxH('po#', 'po number', 'po');
-    const sizeCol     = idxH('size desc', 'brand/size', '/size', 'size');
-    const shipPackCol = idxH('ship pack');
+    const poCol       = idxH('purchase order', 'po#', 'po number', 'purch');
+    const sizeCol     = idxH('size desc', 'size description', 'brand/size', 'size');
+    const shipPackCol = idxH('ship pack', 'shippack');
     const totalQtyCol = idxH('total qty', 'total');
 
     if (poCol < 0) return res.json([]);
