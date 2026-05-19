@@ -357,6 +357,17 @@
             </div>
           </div>
         </div>
+        <div class="card generator-card clickable" onclick="openGenerator('send-invoices')" style="cursor:pointer;">
+          <div class="card-icon-row">
+            <div class="icon-tool">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            </div>
+            <div>
+              <div class="card-name">SEND INVOICES</div>
+              <div class="card-type">Draft to Gmail · SHIPPED POs</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -428,6 +439,7 @@ const GEN_CONFIG = {
   'al-print':     { title: 'Anthro Label Print',     subtitle: 'POs with Anthro Label ready to print (AL PRINTED empty)',        btnLabel: 'Send to Printer' },
   'pl-print':     { title: 'Packing List Print',     subtitle: 'POs with Packing List ready to print (PL PRINTED empty)',        btnLabel: 'Send to Printer' },
   'fedex-print':  { title: 'FedEx Label Print',      subtitle: 'POs with FedEx Label ready to print (FEDEX PRINTED empty)',      btnLabel: 'Send to Printer' },
+  'send-invoices':{ title: 'Send Invoices',          subtitle: 'SHIPPED POs with no Invoice Email Sent',                          btnLabel: 'Create Draft' },
 };
 
 let _genType = null;
@@ -567,6 +579,9 @@ async function runGenerator() {
       return;
     } else if (_genType === 'invoice') {
       endpoint = '/api/samantha/run-invoices';
+      body = { pos };
+    } else if (_genType === 'send-invoices') {
+      endpoint = '/api/jhonny/send-invoices';
       body = { pos };
     } else {
       btn.textContent = 'Coming Soon';

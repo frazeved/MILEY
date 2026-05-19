@@ -1317,7 +1317,7 @@ app.post('/api/jhonny/run-fedex-labels-web', async (req, res) => {
 // ─── Jhonny: PO list for generators ──────────────────────────────────────────
 app.get('/api/jhonny/po-list', async (req, res) => {
   const type = req.query.type;
-  const validTypes = ['invoice','packing-list','fedex','al-print','pl-print','fedex-print'];
+  const validTypes = ['invoice','packing-list','fedex','al-print','pl-print','fedex-print','send-invoices'];
   if (!validTypes.includes(type))
     return res.status(400).json({ error: 'invalid type' });
 
@@ -1339,6 +1339,7 @@ app.get('/api/jhonny/po-list', async (req, res) => {
       shipDate:   idx('ship date', 'shipped date', 'ex-factory', 'exfactory'),
       cancel:     idx('cancel date', 'cancel by', 'cancel'),
       invDate:    idx('urbn invoice date'),
+      invEmailSent: idx('invoice email sent'),
       pl:         idx('packing list', 'pack list'),
       fx:         idx('fedex label'),
       alLink:     idx('po link', 'al link', 'anthro label link'),
@@ -1370,8 +1371,9 @@ app.get('/api/jhonny/po-list', async (req, res) => {
 
       let match = false;
       let link  = '';
-      if (type === 'invoice')      { match = status.toUpperCase() === 'SHIPPED' && !get(row, C.invDate); }
-      if (type === 'packing-list') { match = inTransitWarehouseDelayed(status) && !get(row, C.pl); }
+      if (type === 'invoice')       { match = status.toUpperCase() === 'SHIPPED' && !get(row, C.invDate); }
+      if (type === 'send-invoices') { match = status.toUpperCase() === 'SHIPPED' && !get(row, C.invEmailSent); }
+      if (type === 'packing-list')  { match = inTransitWarehouseDelayed(status) && !get(row, C.pl); }
       if (type === 'fedex')        { match = inTransitWarehouseDelayed(status) && !get(row, C.fx); }
       const s = status.toLowerCase();
       const printable = s.includes('transit') || s.includes('warehouse');
@@ -1425,6 +1427,20 @@ app.post('/api/jhonny/run-fill-links', async (req, res) => {
   try {
     const r = await ghFetch(`https://api.github.com/repos/frazeved/JHONNY/actions/workflows/fill-links.yml/dispatches`, {
       method: 'POST', body: JSON.stringify({ ref: 'main' }),
+    });
+    if (r.status !== 204) { const b = await r.text(); return res.status(500).json({ error: `GitHub: ${b}` }); }
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── Jhonny: trigger invoice email sender ─────────────────────────────────────
+app.post('/api/jhonny/send-invoices', async (req, res) => {
+  try {
+    const { pos } = req.body || {};
+    if (!Array.isArray(pos) || !pos.length) return res.status(400).json({ error: 'pos array required' });
+    const r = await ghFetch(`https://api.github.com/repos/frazeved/JHONNY/actions/workflows/send-invoices.yml/dispatches`, {
+      method: 'POST',
+      body: JSON.stringify({ ref: 'main', inputs: { po_numbers: pos.join(',') } }),
     });
     if (r.status !== 204) { const b = await r.text(); return res.status(500).json({ error: `GitHub: ${b}` }); }
     res.json({ ok: true });
