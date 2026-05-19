@@ -581,8 +581,18 @@ async function runGenerator() {
       endpoint = '/api/samantha/run-invoices';
       body = { pos };
     } else if (_genType === 'send-invoices') {
-      endpoint = '/api/jhonny/send-invoices';
-      body = { pos };
+      btn.textContent = 'Creating Draft…';
+      const r = await fetch('/api/jhonny/send-invoices', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pos }) });
+      const d = await r.json();
+      if (d.error === 'gmail_not_connected') {
+        btn.textContent = origLabel; btn.disabled = false;
+        if (confirm(`Your Gmail is not connected yet. Go to Setup to connect it?`)) window.location.href = '/setup';
+        return;
+      }
+      if (!d.ok) throw new Error(d.error || 'Failed');
+      btn.textContent = '✓ Draft saved to Gmail!';
+      setTimeout(() => closeGenerator(), 2000);
+      return;
     } else {
       btn.textContent = 'Coming Soon';
       setTimeout(() => { btn.textContent = origLabel; btn.disabled = false; }, 2000);

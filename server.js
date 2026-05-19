@@ -1433,18 +1433,75 @@ app.post('/api/jhonny/run-fill-links', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ─── Jhonny: trigger invoice email sender ─────────────────────────────────────
+// ─── Jhonny: create invoice email draft in sender's Gmail ────────────────────
 app.post('/api/jhonny/send-invoices', async (req, res) => {
   try {
     const { pos } = req.body || {};
     if (!Array.isArray(pos) || !pos.length) return res.status(400).json({ error: 'pos array required' });
-    const r = await ghFetch(`https://api.github.com/repos/frazeved/JHONNY/actions/workflows/send-invoices.yml/dispatches`, {
-      method: 'POST',
-      body: JSON.stringify({ ref: 'main', inputs: { po_numbers: pos.join(',') } }),
-    });
-    if (r.status !== 204) { const b = await r.text(); return res.status(500).json({ error: `GitHub: ${b}` }); }
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+
+    // Find the logged-in user's token
+    const sessionEmail = req.session?.user?.email?.toLowerCase();
+    const teamUser = TEAM_USERS.find(u => u.email.toLowerCase() === sessionEmail);
+    if (!teamUser) return res.status(401).json({ error: 'User not found in team list' });
+    const token = userTokens[teamUser.id];
+    if (!token?.refreshToken) return res.status(401).json({ error: 'gmail_not_connected', name: teamUser.name });
+
+    // Read sheet for selected POs
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly', 'https://www.googleapis.com/auth/drive.readonly'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+    const drive  = google.drive({ version: 'v3', auth });
+
+    const sheetRes = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Warehouse Now Database' });
+    const rows = sheetRes.data.values || [];
+    const H    = rows[0].map(h => (h || '').trim().toLowerCase());
+    const idxH = (...keys) => H.findIndex(h => keys.some(k => h.includes(k.toLowerCase())));
+    const poCol  = idxH('po#', 'po number');
+    const trkCol = idxH('tracking number', 'tracking');
+    const lnkCol = idxH('invoice link');
+    const get    = (row, i) => i >= 0 ? (row[i] || '').trim() : '';
+
+    const posSet = new Set(pos);
+    const poData = [];
+    for (let i = 1; i < rows.length; i++) {
+      const po = get(rows[i], poCol);
+      if (posSet.has(po)) poData.push({ po, tracking: get(rows[i], trkCol), link: get(rows[i], lnkCol) });
+    }
+    poData.sort((a, b) => pos.indexOf(a.po) - pos.indexOf(b.po));
+
+    // Download PDFs from Drive
+    const attachments = [];
+    for (const { po, link } of poData) {
+      if (!link) continue;
+      const m = link.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (!m) continue;
+      try {
+        const r = await drive.files.get({ fileId: m[1], alt: 'media', supportsAllDrives: true }, { responseType: 'arraybuffer' });
+        attachments.push({ filename: `INV ${po}.pdf`, content: Buffer.from(r.data), contentType: 'application/pdf' });
+      } catch (_) { console.warn(`Could not download PDF for PO ${po}`); }
+    }
+
+    // Build email
+    const subject = `Invoices POs ${pos.map(p => `#${p}`).join(' ')}`;
+    const tracking = poData.map(({ po, tracking }) => `PO ${po}: Tracking Number ${tracking || '(not found)'}`).join('\n');
+    const body = `Invoices are attached to this email for your records. Below are the tracking details for the respective PO numbers:\n\n${tracking}\n\nBest regards,\n${teamUser.name}\nLogistics Team\n305 CONSULTING AND PRODUCTION\n1800 NW 15TH Avenue, Suite 110\nPompano Beach, Florida 33069`;
+
+    const TO = 'invoices@urbanout.com';
+    const CC = ['support@creativetwotwelve.com','logistics@creativetwotwelve.com','inspection@creativetwotwelve.com','paula@creativetwotwelve.com','rafaela.neves@farmrio.com','ozan.guruscu@creativetwotwelve.com'].join(', ');
+
+    const rawMime = await buildRawMime({ from: `"${teamUser.name}" <${teamUser.email}>`, to: TO, cc: CC, subject, text: body, attachments });
+    const encoded = rawMime.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+    const authClient = makeOAuth2Client();
+    authClient.setCredentials({ refresh_token: token.refreshToken });
+    const gmail = google.gmail({ version: 'v1', auth: authClient });
+    await gmail.users.drafts.create({ userId: 'me', requestBody: { message: { raw: encoded } } });
+
+    res.json({ ok: true, message: 'Draft created in your Gmail Drafts folder' });
+  } catch (e) {
+    console.error('[send-invoices]', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ─── Jhonny: mark all Ready-to-Ship POs as SHIPPED ───────────────────────────
