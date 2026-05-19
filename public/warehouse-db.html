@@ -86,9 +86,16 @@
     .card.dl   { border-left-color: var(--red); }
     .card-body { padding: 11px 13px; display: flex; flex-direction: column; gap: 8px; }
 
+    .card-cad { width: 100%; height: 120px; object-fit: contain; background: #f8f8f8; border-radius: 6px 6px 0 0; display: none; cursor: zoom-in; }
+    .card-cad.loaded { display: block; }
     .card-top { display: flex; justify-content: space-between; align-items: center; }
+    .card-po-style-row { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
     .card-po { font-size: 12px; font-weight: 700; }
-    .card-style { font-size: 10px; color: var(--muted); margin-top: 1px; }
+    .card-style { font-size: 10px; color: var(--muted); }
+    /* CAD lightbox */
+    .cad-lb { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 9999; align-items: center; justify-content: center; cursor: zoom-out; }
+    .cad-lb.open { display: flex; }
+    .cad-lb img { max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: 8px; background: #fff; padding: 8px; }
     .badge { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 20px; white-space: nowrap; }
     .badge.wh  { background: var(--green-lt); color: #166534; }
     .badge.tr  { background: var(--blue-lt);  color: #155e75; }
@@ -405,7 +412,7 @@ function parseFedExStatusDate(str) {
 }
 function fmt(s) {
   const d = parseDate(s);
-  return d ? d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}) : (s||'â€"');
+  return d ? d.toLocaleDateString('en-US',{month:'short',day:'numeric'}) : (s||'—');
 }
 function isPast(s)       { const d = parseDate(s); return d && d < new Date(); }
 function withinDays(s,n) { const d = parseDate(s); if(!d) return false; return (d - new Date()) / 86400000 <= n; }
@@ -548,7 +555,7 @@ function build(rows) {
     const shipDateISO = exDate ? exDate.toISOString().split('T')[0] : '';
     const arrDate = exDate ? new Date(+exDate + 3*86400000) : null;
     const arrDateISO  = arrDate ? arrDate.toISOString().split('T')[0] : '';
-    const arrStr  = arrDate ? arrDate.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}) : 'â€"';
+    const arrStr  = arrDate ? arrDate.toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '—';
     const in3Days = new Date(+now + 3*86400000);
     if (cls === 'tr' && arrDate && arrDate >= now && arrDate <= in3Days) counts.an++;
 
@@ -649,11 +656,14 @@ function build(rows) {
     }
 
     return `<div class="card ${cls}" data-cls="${cls}" data-po="${esc(po)}" data-inv-date="${invDateISO}" data-has-inv="${invDate ? '1' : ''}" data-ship-date="${shipDateISO}" data-arr-date="${arrDateISO}" data-delivery-date="${deliveryDate}" data-ri="${ri}">
+      ${style ? `<img class="card-cad" data-style="${esc(style)}" src="" alt="" onclick="openCadLightbox(this)" title="Click to expand">` : ''}
       <div class="card-body">
         <div class="card-top">
           <div>
-            <div class="card-po">${esc(po)}</div>
-            ${style ? `<div class="card-style">${esc(style)}</div>` : ''}
+            <div class="card-po-style-row">
+              <span class="card-po">${esc(po)}</span>
+              ${style ? `<span class="card-style">${esc(style)}</span>` : ''}
+            </div>
           </div>
           ${cls === 'rts'
             ? `<button class="ship-btn" onclick="markShipped(this,'${esc(po)}')">SHIP <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>`
@@ -666,10 +676,9 @@ function build(rows) {
           ${cancel ? `<div class="date-item"><div class="date-lbl">NDC${ndcRed?' âš ':''}</div><div class="date-val${ndcRed?' red':''}">${fmt(cancel)}</div></div>` : ''}
           ${arrDate? `<div class="date-item"><div class="date-lbl">Arrival</div><div class="date-val${arrRed?' red':''}">${arrStr}</div></div>` : ''}
         </div>
-        ${(boxes||units||ws) ? `<div class="metrics">
+        ${(boxes||units) ? `<div class="metrics">
           ${boxes ? `<div class="metric"><div class="metric-lbl">Boxes</div><div class="metric-val">${esc(boxes)}</div></div>` : ''}
           ${units ? `<div class="metric"><div class="metric-lbl">Units</div><div class="metric-val">${esc(units)}</div></div>` : ''}
-          ${ws    ? `<div class="metric"><div class="metric-lbl">Wholesale</div><div class="metric-val">${esc(ws)}</div></div>` : ''}
         </div>` : ''}
         <div class="bottom-row">
           <div class="label-row">
@@ -867,6 +876,7 @@ async function loadData() {
     build(rows);
     initSwipes();
     filterCards();
+    loadCadImages();
   } catch(e) {
     document.getElementById('grid').innerHTML = `<div class="msg-box">âš ï¸ Could not load data.<br><small style="color:#9ca3af">${esc(e.message)}</small></div>`;
     document.getElementById('status-text').textContent = 'Error';
@@ -908,5 +918,32 @@ loadData();
   </div>
 </div>
 <script src="/auth.js"></script>
+
+<!-- CAD Lightbox -->
+<div class="cad-lb" id="cad-lb" onclick="document.getElementById('cad-lb').classList.remove('open')">
+  <img id="cad-lb-img" src="" alt="">
+</div>
+
+<script>
+function openCadLightbox(img) {
+  document.getElementById('cad-lb-img').src = img.src;
+  document.getElementById('cad-lb').classList.add('open');
+}
+
+async function loadCadImages() {
+  const imgs = document.querySelectorAll('.card-cad[data-style]');
+  for (const img of imgs) {
+    const style = img.dataset.style;
+    if (!style) continue;
+    try {
+      const d = await fetch(`/api/jhonny/cad-image/${encodeURIComponent(style)}`).then(r => r.json());
+      if (d.base64) {
+        img.src = `data:image/jpeg;base64,${d.base64}`;
+        img.classList.add('loaded');
+      }
+    } catch {}
+  }
+}
+</script>
 </body>
 </html>
