@@ -1592,18 +1592,22 @@ app.get('/api/jhonny/po-detail/:po', async (req, res) => {
 
     if (poCol < 0) return res.json([]);
 
-    const items = [];
+    // Group by display label and sum qty.
+    // PREPACK rows use their Ship Pack value (e.g. "PPK") as the label.
+    const sizeMap = new Map(); // label → total qty
+    const sizeOrder = [];     // preserve first-seen order
     for (let i = 1; i < rows.length; i++) {
       if (get(rows[i], poCol) !== po) continue;
-      const sizeDesc = get(rows[i], sizeCol);
-      if (!sizeDesc) continue;
-      items.push({
-        sizeDesc,
-        shipPack: get(rows[i], shipPackCol),
-        totalQty: get(rows[i], totalQtyCol),
-      });
+      const rawSize  = get(rows[i], sizeCol);
+      const shipPack = get(rows[i], shipPackCol);
+      const qty      = parseInt(get(rows[i], totalQtyCol)) || 0;
+      if (!rawSize) continue;
+      const label = rawSize.toLowerCase().includes('prepack') ? (shipPack || rawSize) : rawSize;
+      if (!sizeMap.has(label)) { sizeMap.set(label, 0); sizeOrder.push(label); }
+      sizeMap.set(label, sizeMap.get(label) + qty);
     }
 
+    const items = sizeOrder.map(label => ({ sizeDesc: label, totalQty: String(sizeMap.get(label)) }));
     res.json(items);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
