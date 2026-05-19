@@ -852,8 +852,7 @@ async function sendAdjustmentEmails() {
     } else {
       showToast(`✓ ${d.sent} draft${d.sent!==1?'s':''} created in Gmail`, 5000);
     }
-    if (d.sent > 0) closeGenerator();
-    else { btn.textContent = 'Send Emails'; btn.disabled = false; }
+    btn.textContent = 'Send Emails'; btn.disabled = false;
   } catch (e) {
     btn.textContent = '⚠ Error — try again';
     showToast(e.message || 'Error sending emails', 6000);
