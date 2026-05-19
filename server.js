@@ -1872,7 +1872,7 @@ app.post('/api/jhonny/send-invoices', async (req, res) => {
     const authClient = makeOAuth2Client();
     authClient.setCredentials({ refresh_token: token.refreshToken });
     const gmail = google.gmail({ version: 'v1', auth: authClient });
-    await gmail.users.drafts.create({ userId: 'me', requestBody: { message: { raw: encoded } } });
+    await gmail.users.messages.send({ userId: 'me', requestBody: { raw: encoded } });
 
     // Mark INVOICE EMAIL SENT in the sheet
     try {

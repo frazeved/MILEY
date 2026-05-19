@@ -415,7 +415,7 @@
             </div>
             <div>
               <div class="card-name">SEND INVOICES</div>
-              <div class="card-type">Draft to Gmail · SHIPPED POs</div>
+              <div class="card-type">Send via Gmail · SHIPPED POs</div>
             </div>
           </div>
         </div>
@@ -526,7 +526,7 @@ const GEN_CONFIG = {
   'al-print':     { title: 'Anthro Label Print',     subtitle: 'POs with Anthro Label ready to print (AL PRINTED empty)',        btnLabel: 'Send to Printer' },
   'pl-print':     { title: 'Packing List Print',     subtitle: 'POs with Packing List ready to print (PL PRINTED empty)',        btnLabel: 'Send to Printer' },
   'fedex-print':  { title: 'FedEx Label Print',      subtitle: 'POs with FedEx Label ready to print (FEDEX PRINTED empty)',      btnLabel: 'Send to Printer' },
-  'send-invoices':    { title: 'Send Invoices',        subtitle: 'SHIPPED POs with no Invoice Email Sent',         btnLabel: 'Create Draft' },
+  'send-invoices':    { title: 'Send Invoices',        subtitle: 'SHIPPED POs with no Invoice Email Sent',         btnLabel: 'Send Emails' },
   'adjustments-email':{ title: 'Adjustments E-mail',  subtitle: 'Qty mismatches queued — select POs and send to buyers', btnLabel: 'Send Emails' },
 };
 
@@ -680,7 +680,7 @@ async function runGenerator() {
       endpoint = '/api/samantha/run-invoices';
       body = { pos };
     } else if (_genType === 'send-invoices') {
-      btn.textContent = 'Creating Draft…';
+      btn.textContent = 'Sending…';
       const r = await fetch('/api/jhonny/send-invoices', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pos }) });
       const d = await r.json();
       if (d.error === 'gmail_not_connected') {
@@ -696,7 +696,7 @@ async function runGenerator() {
       }
       if (!d.ok) throw new Error(d.error || 'Failed');
       closeGenerator();
-      showToast('✓ Draft created — check your Gmail Drafts folder');
+      showToast('✓ Emails sent successfully');
       return;
     } else {
       btn.textContent = 'Coming Soon';
