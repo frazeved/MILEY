@@ -176,11 +176,9 @@
     .lbl.pending { background: var(--red-lt);  color: var(--red); border: 1px solid #fca5a5; }
 
     /* AWB */
-    .awb-row { display: flex; align-items: center; gap: 4px; margin-left: auto; }
-    .awb-link { font-size: 10px; font-weight: 600; color: var(--accent); text-decoration: none; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .awb-link:hover { text-decoration: underline; }
-    .awb-copy { background: none; border: none; cursor: pointer; color: var(--muted); padding: 1px; display: flex; border-radius: 3px; }
-    .awb-copy:hover { color: var(--accent); }
+    .awb-row { display: flex; align-items: center; margin-left: auto; }
+    .awb-link { font-size: 16px; color: var(--accent); text-decoration: none; line-height: 1; }
+    .awb-link:hover { opacity: 0.75; }
 
     .msg-box { padding: 60px 24px; text-align: center; color: var(--muted); font-size: 13px; grid-column: 1/-1; }
     .spinner { width: 34px; height: 34px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px; }
@@ -246,7 +244,7 @@
 
       /* LABELS + AWB */
       .lbl { font-size: 10px; padding: 3px 7px; }
-      .awb-link { font-size: 11px; max-width: 120px; }
+      .awb-link { font-size: 18px; }
     }
   
     /* == SHARED NAV DROPDOWN == */
@@ -688,10 +686,7 @@ function build(rows) {
             </button>` : ''}
           </div>
           ${awb && cls !== 'sh' ? `<div class="awb-row">
-            <a class="awb-link" id="awb-${ri}" href="https://www.google.com/search?q=${encodeURIComponent(awb)}+airway+bill+cargo+tracking" target="_blank" rel="noopener">${esc(awb)}</a>
-            <button class="awb-copy" title="Copy" onclick="navigator.clipboard?.writeText(document.getElementById('awb-${ri}').textContent)">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-            </button>
+            <a class="awb-link" title="${esc(awb)}" href="https://www.google.com/search?q=${encodeURIComponent(awb)}+airway+bill+cargo+tracking" target="_blank" rel="noopener">✈</a>
           </div>` : ''}
         </div>
       </div>
