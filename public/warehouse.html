@@ -419,6 +419,17 @@
             </div>
           </div>
         </div>
+        <div class="card generator-card clickable" onclick="openGenerator('adjustments-email')" style="border-top-color:#dc2626;">
+          <div class="card-icon-row">
+            <div class="icon-tool" style="background:#dc2626;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/><line x1="12" y1="17" x2="12" y2="17"/><line x1="12" y1="13" x2="12" y2="13"/></svg>
+            </div>
+            <div>
+              <div class="card-name">ADJUSTMENTS E-MAIL</div>
+              <div class="card-type">Qty mismatches · Send to buyers</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -492,7 +503,9 @@
     </div>
     <div class="pl-form-body" id="pl-form-body"></div>
     <div class="gen-footer">
-      <div></div>
+      <div>
+        <button class="gen-btn secondary" id="pl-adj-btn" style="display:none" onclick="saveAdjustment()">✉ Adjustment E-mail</button>
+      </div>
       <div style="display:flex;gap:8px;">
         <button class="gen-btn secondary" onclick="closePLForm()">Cancel</button>
         <button class="gen-btn primary" id="pl-save-btn" onclick="savePLForm()">Save &amp; Upload</button>
@@ -510,7 +523,8 @@ const GEN_CONFIG = {
   'al-print':     { title: 'Anthro Label Print',     subtitle: 'POs with Anthro Label ready to print (AL PRINTED empty)',        btnLabel: 'Send to Printer' },
   'pl-print':     { title: 'Packing List Print',     subtitle: 'POs with Packing List ready to print (PL PRINTED empty)',        btnLabel: 'Send to Printer' },
   'fedex-print':  { title: 'FedEx Label Print',      subtitle: 'POs with FedEx Label ready to print (FEDEX PRINTED empty)',      btnLabel: 'Send to Printer' },
-  'send-invoices':{ title: 'Send Invoices',          subtitle: 'SHIPPED POs with no Invoice Email Sent',                          btnLabel: 'Create Draft' },
+  'send-invoices':    { title: 'Send Invoices',        subtitle: 'SHIPPED POs with no Invoice Email Sent',         btnLabel: 'Create Draft' },
+  'adjustments-email':{ title: 'Adjustments E-mail',  subtitle: 'Qty mismatches queued — select POs and send to buyers', btnLabel: 'Send Emails' },
 };
 
 let _genType = null;
@@ -538,7 +552,8 @@ async function openGenerator(type) {
   document.getElementById('gen-overlay').classList.add('open');
 
   try {
-    const r = await fetch(`/api/jhonny/po-list?type=${type}`);
+    const url  = type === 'adjustments-email' ? '/api/jhonny/adjustments' : `/api/jhonny/po-list?type=${type}`;
+    const r    = await fetch(url);
     const data = await r.json();
     if (data.error) throw new Error(data.error);
     _genRows = data;
@@ -552,7 +567,8 @@ function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quo
 
 function renderGenTable(rows) {
   document.getElementById('gen-action-btn').style.display = '';
-  if (_genType === 'packing-list') { renderPLList(rows); return; }
+  if (_genType === 'packing-list')     { renderPLList(rows); return; }
+  if (_genType === 'adjustments-email') { renderAdjustmentsList(rows); return; }
   if (!rows.length) {
     document.getElementById('gen-body').innerHTML = '<div class="gen-empty">✅ No POs need processing for this generator.</div>';
     document.getElementById('gen-count').textContent = '0 POs';
@@ -605,6 +621,7 @@ function closeGenerator() {
 }
 
 async function runGenerator() {
+  if (_genType === 'adjustments-email') { sendAdjustmentEmails(); return; }
   const pos = getSelectedPOs();
   if (!pos.length) return;
 
@@ -741,6 +758,88 @@ function renderPLList(rows) {
         </tr>`).join('')}
       </tbody>
     </table>`;
+}
+
+function renderAdjustmentsList(rows) {
+  const btn = document.getElementById('gen-action-btn');
+  btn.style.display = '';
+  btn.disabled = true;
+  btn.textContent = 'Send Emails';
+
+  if (!rows.length) {
+    document.getElementById('gen-body').innerHTML = '<div class="gen-empty">✅ No adjustment emails queued.</div>';
+    document.getElementById('gen-count').textContent = '0 POs';
+    return;
+  }
+
+  document.getElementById('gen-count').textContent = `${rows.length} pending`;
+
+  const sizeSummary = (sizes) => Object.entries(sizes).map(([s,q])=>`${s}:${q}`).join(' · ') || '—';
+  const diffSummary = (orig, supp) => {
+    const sizes = [...new Set([...Object.keys(orig),...Object.keys(supp)])];
+    return sizes.map(s => {
+      const d = (parseInt(supp[s])||0) - (parseInt(orig[s])||0);
+      if (d === 0) return null;
+      return `<span style="color:${d<0?'#dc2626':'#16a34a'};font-weight:700">${s}: ${d>0?'+':''}${d}</span>`;
+    }).filter(Boolean).join(' ');
+  };
+
+  document.getElementById('gen-body').innerHTML = `
+    <table class="gen-table">
+      <thead><tr>
+        <th><input type="checkbox" id="adj-check-all" onchange="toggleAllAdj(this)"></th>
+        <th>Date</th><th>PO#</th><th>Style</th><th>Category</th><th>Differences</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map((row, i) => `<tr>
+          <td><input type="checkbox" class="adj-check" data-i="${i}" onchange="toggleAdjBtn()"></td>
+          <td>${escH(row.date)}</td>
+          <td><strong>${escH(row.po)}</strong></td>
+          <td>${escH(row.style)}</td>
+          <td>${escH(row.category)}${row.subCategory?' / '+escH(row.subCategory):''}</td>
+          <td>${diffSummary(row.origSizes, row.suppSizes)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function toggleAllAdj(master) {
+  document.querySelectorAll('.adj-check').forEach(c => c.checked = master.checked);
+  toggleAdjBtn();
+}
+
+function toggleAdjBtn() {
+  const any = document.querySelectorAll('.adj-check:checked').length > 0;
+  document.getElementById('gen-action-btn').disabled = !any;
+}
+
+async function sendAdjustmentEmails() {
+  const checked = [...document.querySelectorAll('.adj-check:checked')];
+  if (!checked.length) return;
+  const btn = document.getElementById('gen-action-btn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+
+  const rowIndexes = checked.map(c => _genRows[parseInt(c.dataset.i)].rowIndex);
+
+  try {
+    const r = await fetch('/api/jhonny/send-adjustment-emails', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rowIndexes }),
+    });
+    const d = await r.json();
+    if (d.gmail_not_connected) {
+      localStorage.setItem('pendingAdjReturn', window.location.pathname);
+      window.location.href = `/setup?return=${encodeURIComponent(window.location.pathname)}`;
+      return;
+    }
+    if (!d.ok) throw new Error(d.error || 'Failed');
+    const msg = `✓ ${d.sent} draft${d.sent!==1?'s':''} created${d.errors?.length?' · '+d.errors.length+' failed':''}`;
+    showToast(msg, 6000);
+    closeGenerator();
+  } catch (e) {
+    btn.textContent = '⚠ Error — try again';
+    setTimeout(() => { btn.textContent = 'Send Emails'; btn.disabled = false; }, 2500);
+  }
 }
 
 const PL_SIZES = ['XXS','XS','S','M','L','XL','1X','2X','3X'];
@@ -903,6 +1002,13 @@ function checkSizeCell(inp) {
   const val  = inp.value.trim();
   inp.classList.toggle('size-diff', val !== '' && orig !== '' && val !== orig);
   updateSizeTotals();
+  updateAdjustmentButton();
+}
+
+function updateAdjustmentButton() {
+  const hasDiff = document.querySelectorAll('.pl-size-input.size-diff').length > 0;
+  const btn = document.getElementById('pl-adj-btn');
+  if (btn) btn.style.display = hasDiff ? '' : 'none';
 }
 
 function updateOrigRow() {
@@ -965,6 +1071,42 @@ function showToast(msg, duration = 4000) {
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), duration);
+}
+
+async function saveAdjustment() {
+  const btn = document.getElementById('pl-adj-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  const origSizes = {}, suppSizes = {};
+  document.querySelectorAll('#pl-size-orig-row input[type="hidden"]').forEach(inp => {
+    if (inp.value) origSizes[inp.dataset.size] = parseInt(inp.value) || 0;
+  });
+  document.querySelectorAll('.pl-size-sup .pl-size-input').forEach(inp => {
+    if (inp.value) suppSizes[inp.dataset.size] = parseInt(inp.value) || 0;
+  });
+
+  try {
+    const r = await fetch('/api/jhonny/save-adjustment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        po:          _plRow.po,
+        style:       _plRow.style,
+        brand:       _plRow.brand || '',
+        category:    _plRow.category || '',
+        subCategory: _plRow.subCategory || '',
+        supplier:    _plRow.supplier || '',
+        origSizes, suppSizes,
+      }),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'Failed');
+    showToast(`✓ PO ${_plRow.po} added to Adjustment E-mail queue`);
+    btn.textContent = '✓ Queued';
+  } catch (e) {
+    btn.textContent = '⚠ Error';
+    setTimeout(() => { btn.textContent = '✉ Adjustment E-mail'; btn.disabled = false; }, 2500);
+  }
 }
 
 // After Gmail OAuth, re-open send-invoices with the saved POs

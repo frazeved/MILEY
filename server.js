@@ -1361,6 +1361,7 @@ app.get('/api/jhonny/po-list', async (req, res) => {
       mawb:       idx('mawb', 'hawb'),
       poQty:      idx('po qty', 'po quantity'),
       awbFolder:  idx('awb folder'),
+      brand:      idx('brand'),
     };
     // category/sub-category: find carefully to avoid cross-matching
     C.subCategory = H.findIndex(h => h.includes('sub') && h.includes('categor'));
@@ -1411,6 +1412,7 @@ app.get('/api/jhonny/po-list', async (req, res) => {
           subCategory: get(row, C.subCategory),
           poQty:       get(row, C.poQty),
           awbFolder:   get(row, C.awbFolder),
+          brand:       get(row, C.brand),
         });
         result.push(entry);
       }
@@ -1543,20 +1545,26 @@ app.post('/api/jhonny/save-pl-form', async (req, res) => {
     if (files?.al?.base64) {
       const ext  = (files.al.name.split('.').pop() || 'pdf').toLowerCase();
       const file = await uploadToDrive(drive, alPlMonthId, `AL ${po}.${ext}`, files.al.base64, files.al.mimeType);
-      if (alLinkIdx  >= 0 && file.webViewLink) data.push({ range: `${TAB}!${colL(alLinkIdx)}${rowIndex}`,  values: [[file.webViewLink]] });
-      if (alCheckIdx >= 0) data.push({ range: `${TAB}!${colL(alCheckIdx)}${rowIndex}`, values: [['✅']] });
+      if (file.webViewLink) {
+        if (alLinkIdx  >= 0) data.push({ range: `${TAB}!${colL(alLinkIdx)}${rowIndex}`,  values: [[file.webViewLink]] });
+        if (alCheckIdx >= 0) data.push({ range: `${TAB}!${colL(alCheckIdx)}${rowIndex}`, values: [['✅']] });
+      }
     }
     if (files?.pl?.base64) {
       const ext  = (files.pl.name.split('.').pop() || 'pdf').toLowerCase();
       const file = await uploadToDrive(drive, alPlMonthId, `PL ${po}.${ext}`, files.pl.base64, files.pl.mimeType);
-      if (plLinkIdx  >= 0 && file.webViewLink) data.push({ range: `${TAB}!${colL(plLinkIdx)}${rowIndex}`,  values: [[file.webViewLink]] });
-      if (plCheckIdx >= 0) data.push({ range: `${TAB}!${colL(plCheckIdx)}${rowIndex}`, values: [['✅']] });
+      if (file.webViewLink) {
+        if (plLinkIdx  >= 0) data.push({ range: `${TAB}!${colL(plLinkIdx)}${rowIndex}`,  values: [[file.webViewLink]] });
+        if (plCheckIdx >= 0) data.push({ range: `${TAB}!${colL(plCheckIdx)}${rowIndex}`, values: [['✅']] });
+      }
     }
     if (files?.fedex?.base64) {
       const ext  = (files.fedex.name.split('.').pop() || 'pdf').toLowerCase();
       const file = await uploadToDrive(drive, fedexMonthId, `FEDEX ${po}.${ext}`, files.fedex.base64, files.fedex.mimeType);
-      if (fxLinkIdx  >= 0 && file.webViewLink) data.push({ range: `${TAB}!${colL(fxLinkIdx)}${rowIndex}`,  values: [[file.webViewLink]] });
-      if (fxCheckIdx >= 0) data.push({ range: `${TAB}!${colL(fxCheckIdx)}${rowIndex}`, values: [['✅']] });
+      if (file.webViewLink) {
+        if (fxLinkIdx  >= 0) data.push({ range: `${TAB}!${colL(fxLinkIdx)}${rowIndex}`,  values: [[file.webViewLink]] });
+        if (fxCheckIdx >= 0) data.push({ range: `${TAB}!${colL(fxCheckIdx)}${rowIndex}`, values: [['✅']] });
+      }
     }
 
     if (data.length) await sheets.spreadsheets.values.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { valueInputOption: 'RAW', data } });
@@ -1660,6 +1668,169 @@ app.get('/api/jhonny/cad-image/:style', async (req, res) => {
     const imageData = Buffer.from(fileRes.data).toString('base64');
 
     res.json({ found: true, cadUrl: driveUrl, imageData, mimeType });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── Jhonny: Adjustments Email — buyer lookup helper ─────────────────────────
+function findBuyersForCategory(brand, category) {
+  const isNuuly = (brand || '').toLowerCase().includes('nuuly');
+  const book    = isNuuly ? buyers.nuuly : buyers.anthropologie;
+  const cat     = (category || '').toLowerCase();
+
+  // Direct word-match pass
+  for (const [key, contacts] of Object.entries(book)) {
+    if (cat.split(/\s+/).some(w => w.length > 2 && key.toLowerCase().includes(w)))
+      return { key, contacts };
+  }
+  // Semantic fallback
+  if (cat.includes('dress') || cat.includes('romper'))
+    return isNuuly ? { key:'DRESS, ROMPER & SWIMWEAR', contacts: book['DRESS, ROMPER & SWIMWEAR']||[] }
+                   : { key:'DRESS & ROMPER',           contacts: book['DRESS & ROMPER']||[] };
+  if (cat.includes('shirt') || cat.includes('blouse') || cat.includes('top'))
+    return { key:'BLOUSES & SHIRTS', contacts: book['BLOUSES & SHIRTS']||[] };
+  if (cat.includes('pant') || cat.includes('jump'))
+    return isNuuly ? { key:'PANTS, JUMPSUIT, SKIRTS & SHORTS', contacts: book['PANTS, JUMPSUIT, SKIRTS & SHORTS']||[] }
+                   : { key:'PANTS & JUMPSUIT', contacts: book['PANTS & JUMPSUIT']||[] };
+  if (cat.includes('skirt') || cat.includes('short'))
+    return isNuuly ? { key:'PANTS, JUMPSUIT, SKIRTS & SHORTS', contacts: book['PANTS, JUMPSUIT, SKIRTS & SHORTS']||[] }
+                   : { key:'SKIRTS & SHORTS', contacts: book['SKIRTS & SHORTS']||[] };
+  if (cat.includes('lounge'))  return { key:'LOUNGE',   contacts: book['LOUNGE']||[] };
+  if (cat.includes('swim'))
+    return isNuuly ? { key:'DRESS, ROMPER & SWIMWEAR', contacts: book['DRESS, ROMPER & SWIMWEAR']||[] }
+                   : { key:'SWIMWEAR', contacts: book['SWIMWEAR']||[] };
+
+  return { key:'UNKNOWN', contacts: [] };
+}
+
+const ADJ_TAB = 'ADJUSTMENTS EMAIL';
+const ADJ_HEADERS = ['DATE','PO#','STYLE#','BRAND','CATEGORY','SUB-CATEGORY','SUPPLIER','ORIGINAL ORDER','SUPPLIER PRODUCTION','STATUS','SENT DATE','SENT BY'];
+
+async function ensureAdjTab(sheets) {
+  const info = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
+  if (!info.data.sheets?.some(s => s.properties?.title === ADJ_TAB)) {
+    await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { requests: [{ addSheet: { properties: { title: ADJ_TAB } } }] } });
+    await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID, range: `'${ADJ_TAB}'!A1`, valueInputOption: 'RAW', requestBody: { values: [ADJ_HEADERS] } });
+  }
+}
+
+// ─── Jhonny: save one PO adjustment to queue ─────────────────────────────────
+app.post('/api/jhonny/save-adjustment', async (req, res) => {
+  try {
+    const { po, style, brand, category, subCategory, supplier, origSizes, suppSizes } = req.body || {};
+    if (!po) return res.status(400).json({ error: 'po required' });
+
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    await ensureAdjTab(sheets);
+    const today = new Date().toLocaleDateString('en-US');
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SHEET_ID, range: `'${ADJ_TAB}'!A:L`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [[today, po, style||'', brand||'', category||'', subCategory||'', supplier||'', JSON.stringify(origSizes||{}), JSON.stringify(suppSizes||{}), 'PENDING', '', '']] }
+    });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── Jhonny: list pending adjustments ────────────────────────────────────────
+app.get('/api/jhonny/adjustments', async (req, res) => {
+  try {
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    const result = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${ADJ_TAB}'!A:L` });
+    const rows   = result.data.values || [];
+    if (rows.length < 2) return res.json([]);
+
+    const items = [];
+    for (let i = 1; i < rows.length; i++) {
+      const r = rows[i];
+      if ((r[9]||'').toUpperCase() === 'SENT') continue;
+      items.push({
+        rowIndex:    i + 1,
+        date:        r[0]||'', po: r[1]||'', style: r[2]||'',
+        brand:       r[3]||'', category: r[4]||'', subCategory: r[5]||'',
+        supplier:    r[6]||'',
+        origSizes:   JSON.parse(r[7]||'{}'),
+        suppSizes:   JSON.parse(r[8]||'{}'),
+        status:      r[9]||'PENDING',
+      });
+    }
+    res.json(items);
+  } catch (e) {
+    if (e.message?.includes('Unable to parse range')) return res.json([]);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ─── Jhonny: send adjustment emails (drafts) and mark SENT ───────────────────
+app.post('/api/jhonny/send-adjustment-emails', async (req, res) => {
+  try {
+    const { rowIndexes } = req.body || {};
+    if (!Array.isArray(rowIndexes) || !rowIndexes.length) return res.status(400).json({ error: 'rowIndexes required' });
+
+    const userId = req.session?.userId;
+    const token  = userTokens[userId];
+    if (!token) return res.json({ gmail_not_connected: true });
+
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    const result = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${ADJ_TAB}'!A:L` });
+    const rows   = result.data.values || [];
+
+    const oAuth2 = makeOAuth2Client();
+    oAuth2.setCredentials(token);
+    const gmail  = google.gmail({ version: 'v1', auth: oAuth2 });
+
+    const TAB = ADJ_TAB;
+    const colL = i => { let col='',n=i; while(n>=0){col=String.fromCharCode(65+(n%26))+col;n=Math.floor(n/26)-1;} return col; };
+    const updates = [];
+    const errors  = [];
+
+    for (const ri of rowIndexes) {
+      const r = rows[ri - 1];
+      if (!r) continue;
+      const po = r[1]||'', style = r[2]||'', brand = r[3]||'', category = r[4]||'', subCat = r[5]||'', supplier = r[6]||'';
+      const orig = JSON.parse(r[7]||'{}');
+      const supp = JSON.parse(r[8]||'{}');
+
+      const { contacts } = findBuyersForCategory(brand, category);
+      if (!contacts.length) { errors.push(`PO ${po}: no buyers found for category "${category}"`); continue; }
+
+      const sizes = [...new Set([...Object.keys(orig), ...Object.keys(supp)])];
+      const origTotal = sizes.reduce((a,s)=>a+(parseInt(orig[s])||0),0);
+      const suppTotal = sizes.reduce((a,s)=>a+(parseInt(supp[s])||0),0);
+
+      const header = `         ${sizes.map(s=>s.padStart(6)).join('')}  ${'TOTAL'.padStart(7)}`;
+      const origRow= `Order:   ${sizes.map(s=>String(orig[s]||0).padStart(6)).join('')}  ${String(origTotal).padStart(7)}`;
+      const suppRow= `Prod:    ${sizes.map(s=>String(supp[s]||0).padStart(6)).join('')}  ${String(suppTotal).padStart(7)}`;
+      const diffRow= `Diff:    ${sizes.map(s=>{const d=(parseInt(supp[s])||0)-(parseInt(orig[s])||0);return (d>0?'+':'')+d;}).map(s=>s.padStart(6)).join('')}  ${String(suppTotal-origTotal).padStart(7)}`;
+
+      const to  = contacts.map(c=>c.email).join(', ');
+      const cc  = buyers.anthroBasePO_CC.join(', ');
+      const subj = `Production Adjustment Notice — PO #${po} | Style ${style}`;
+      const body = `Dear ${contacts.map(c=>c.name).join(', ')},\n\nPlease be advised of the following production quantity adjustment:\n\nPO#: ${po}\nStyle: ${style}\nCategory: ${category}${subCat?' / '+subCat:''}\nSupplier: ${supplier}\n\nSize Comparison:\n\n${header}\n${origRow}\n${suppRow}\n${diffRow}\n\nPlease confirm your acceptance of these changes or contact us with any concerns.\n\nBest regards,\n305 Consulting and Production\n1800 NW 15TH Avenue, Suite 110\nPompano Beach, Florida 33069`;
+
+      try {
+        const raw = await buildRawMime({ from: token.email || userId, to, cc, subject: subj, text: body });
+        await gmail.users.drafts.create({ userId: 'me', requestBody: { message: { raw } } });
+        updates.push({ range: `'${TAB}'!J${ri}:L${ri}`, values: [[new Date().toLocaleDateString('en-US'), 'SENT', token.email||userId]] });
+      } catch (e) { errors.push(`PO ${po}: ${e.message}`); }
+    }
+
+    if (updates.length) {
+      await sheets.spreadsheets.values.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { valueInputOption:'RAW', data: updates } });
+      // Also mark status column (col I = index 8)
+      const statusUpdates = rowIndexes.filter(ri=>!errors.find(e=>e.startsWith(`PO ${(rows[ri-1]||[])[1]||''}`))).map(ri=>({ range:`'${TAB}'!J${ri}`, values:[['SENT']] }));
+      if (statusUpdates.length) await sheets.spreadsheets.values.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { valueInputOption:'RAW', data: statusUpdates } });
+    }
+
+    res.json({ ok: true, sent: updates.length, errors });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
