@@ -840,14 +840,20 @@ async function sendAdjustmentEmails() {
     }
     if (!d.ok) throw new Error(d.error || 'Failed');
 
-    // Remove sent POs from localStorage
-    const remaining = JSON.parse(localStorage.getItem('305_adjustments') || '[]')
-      .filter(a => !selectedPos.includes(a.po));
-    localStorage.setItem('305_adjustments', JSON.stringify(remaining));
+    // Only remove from localStorage if at least one draft was created
+    if (d.sent > 0) {
+      const remaining = JSON.parse(localStorage.getItem('305_adjustments') || '[]')
+        .filter(a => !selectedPos.includes(a.po));
+      localStorage.setItem('305_adjustments', JSON.stringify(remaining));
+    }
 
-    const msg = `✓ ${d.sent} draft${d.sent!==1?'s':''} created${d.errors?.length?' · '+d.errors.length+' failed':''}`;
-    showToast(msg, 6000);
-    closeGenerator();
+    if (d.errors?.length) {
+      showToast(`⚠ ${d.sent} draft${d.sent!==1?'s':''} created · Errors: ${d.errors.join(' | ')}`, 10000);
+    } else {
+      showToast(`✓ ${d.sent} draft${d.sent!==1?'s':''} created in Gmail`, 5000);
+    }
+    if (d.sent > 0) closeGenerator();
+    else { btn.textContent = 'Send Emails'; btn.disabled = false; }
   } catch (e) {
     btn.textContent = '⚠ Error — try again';
     showToast(e.message || 'Error sending emails', 6000);

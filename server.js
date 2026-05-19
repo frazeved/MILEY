@@ -1752,7 +1752,7 @@ app.post('/api/jhonny/send-adjustment-emails', async (req, res) => {
     const errors = [];
 
     for (const { contacts, items } of groups.values()) {
-      if (!contacts.length) { errors.push(`No buyers found for category "${items[0].category}"`); continue; }
+      if (!contacts.length) { const msg = `No buyers found for category "${items[0].category}" brand "${items[0].brand}"`; console.error('[adj-email]', msg); errors.push(msg); continue; }
 
       const styles  = [...new Set(items.map(a => a.style))];
       const poNums  = items.map(a => `PO# ${a.po}`).join(' ');
