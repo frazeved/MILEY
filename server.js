@@ -1788,7 +1788,7 @@ ${poBlocks}
 Your prompt attention to this request is greatly appreciated.
 
 Best regards,
-Eduardo Moraes
+${teamUser.name}
 Logistics Team
 305 CONSULTING AND PRODUCTION
 1800 NW 15TH Avenue, Suite 110
@@ -1797,7 +1797,7 @@ Pompano Beach, Florida 33069`;
       const to  = contacts.map(c => c.email).join(', ');
       const cc  = 'support@creativetwotwelve.com, logistics@creativetwotwelve.com, inspection@creativetwotwelve.com';
       try {
-        const rawBuf = await buildRawMime({ from: `"Eduardo Moraes" <${teamUser.email}>`, to, cc, subject: subj, text: body });
+        const rawBuf = await buildRawMime({ from: `"${teamUser.name}" <${teamUser.email}>`, to, cc, subject: subj, text: body });
         const encoded = rawBuf.toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
         await gmail.users.drafts.create({ userId: 'me', requestBody: { message: { raw: encoded } } });
         sent++;
