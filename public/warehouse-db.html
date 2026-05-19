@@ -86,7 +86,8 @@
     .card.dl   { border-left-color: var(--red); }
     .card-body { padding: 11px 13px; display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
 
-    .card { display: flex; flex-direction: row; }
+    .card { display: flex; flex-direction: column; }
+    .card-main { display: flex; flex-direction: row; flex: 1; }
     .card-cad { width: 60px; min-width: 60px; align-self: stretch; object-fit: cover; background: #f1f5f9; display: none; cursor: zoom-in; flex-shrink: 0; }
     .card-cad.loaded { display: block; }
 
@@ -658,21 +659,22 @@ function build(rows) {
     }
 
     return `<div class="card ${cls}" data-cls="${cls}" data-po="${esc(po)}" data-inv-date="${invDateISO}" data-has-inv="${invDate ? '1' : ''}" data-ship-date="${shipDateISO}" data-arr-date="${arrDateISO}" data-delivery-date="${deliveryDate}" data-ri="${ri}">
-      ${style ? `<img class="card-cad" data-style="${esc(style)}" src="" alt="" onclick="openCadLightbox(this)" title="Click to expand">` : ''}
-      <div class="card-body">
-        <div class="card-top">
-          <div>
-            <div class="card-po-style-row">
-              <span class="card-po">${esc(po)}</span>
-              ${style ? `<span class="card-style">${esc(style)}</span>` : ''}
+      ${vis}
+      <div class="card-main">
+        ${style ? `<img class="card-cad" data-style="${esc(style)}" src="" alt="" onclick="openCadLightbox(this)" title="Click to expand">` : ''}
+        <div class="card-body">
+          <div class="card-top">
+            <div>
+              <div class="card-po-style-row">
+                <span class="card-po">${esc(po)}</span>
+                ${style ? `<span class="card-style">${esc(style)}</span>` : ''}
+              </div>
             </div>
+            ${cls === 'rts'
+              ? `<button class="ship-btn" onclick="markShipped(this,'${esc(po)}')">SHIP <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>`
+              : `<span class="badge ${cls}">${esc(statusRaw || cls.toUpperCase())}</span>`
+            }
           </div>
-          ${cls === 'rts'
-            ? `<button class="ship-btn" onclick="markShipped(this,'${esc(po)}')">SHIP <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>`
-            : `<span class="badge ${cls}">${esc(statusRaw || cls.toUpperCase())}</span>`
-          }
-        </div>
-        ${vis}
         <div class="dates">
           ${exfac  ? `<div class="date-item"><div class="date-lbl">Ship Date</div><div class="date-val${shipRed?' red':''}">${fmt(exfac)}</div></div>` : ''}
           ${cancel ? `<div class="date-item"><div class="date-lbl">NDC${ndcRed?' âš ':''}</div><div class="date-val${ndcRed?' red':''}">${fmt(cancel)}</div></div>` : ''}
@@ -699,6 +701,7 @@ function build(rows) {
           ${awb && cls !== 'sh' ? `<div class="awb-row">
             <a class="awb-link" title="${esc(awb)}" href="https://www.google.com/search?q=${encodeURIComponent(awb)}+airway+bill+cargo+tracking" target="_blank" rel="noopener">✈</a>
           </div>` : ''}
+        </div>
         </div>
       </div>
     </div>`;
