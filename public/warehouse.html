@@ -211,7 +211,10 @@
     .pl-field input.pl-empty { background:#fff5f5; border-color:#fca5a5; }
     /* ── PL CAD compact thumbnail ─────────────────────────────────────── */
     .pl-cad-thumb-wrap { display:flex; flex-direction:column; align-items:center; gap:5px; flex-shrink:0; width:100px; }
-    .pl-cad-thumb { width:100px; flex:1; min-height:0; object-fit:contain; border-radius:8px; border:1.5px solid var(--border); background:#f9fafb; display:block; }
+    .pl-cad-thumb { width:100px; flex:1; min-height:0; object-fit:contain; border-radius:8px; border:1.5px solid var(--border); background:#f9fafb; display:block; cursor:zoom-in; }
+    .cad-lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:10000; align-items:center; justify-content:center; cursor:zoom-out; }
+    .cad-lightbox.open { display:flex; }
+    .cad-lightbox img { max-width:90vw; max-height:90vh; border-radius:12px; object-fit:contain; box-shadow:0 8px 40px rgba(0,0,0,0.4); }
     /* ── PL Upload cards (compact 3-col) ─────────────────────────────── */
     .pl-uploads-section { margin-top:10px; }
     .pl-uploads-title { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
@@ -512,6 +515,9 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="cad-lightbox" id="cad-lightbox" onclick="document.getElementById('cad-lightbox').classList.remove('open')">
+  <img id="cad-lightbox-img" src="" alt="CAD">
+</div>
 <script>
 const GEN_CONFIG = {
   'invoice':      { title: 'Invoice Generator',      subtitle: 'SHIPPED POs with no URBN Invoice Date',                          btnLabel: 'Generate' },
@@ -967,7 +973,7 @@ async function loadCADImage(style) {
     const src = `data:${d.mimeType};base64,${d.imageData}`;
     section.innerHTML = `
       <div class="pl-cad-thumb-wrap">
-        <img class="pl-cad-thumb" src="${src}" alt="CAD">
+        <img class="pl-cad-thumb" src="${src}" alt="CAD" onclick="document.getElementById('cad-lightbox-img').src=this.src;document.getElementById('cad-lightbox').classList.add('open')">
       </div>`;
   } catch (e) { section.innerHTML = ''; }
 }
