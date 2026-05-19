@@ -1757,7 +1757,7 @@ app.post('/api/jhonny/send-adjustment-emails', async (req, res) => {
       const styles  = [...new Set(items.map(a => a.style))];
       const poNums  = items.map(a => `PO# ${a.po}`).join(' ');
       const catName = items[0].category || 'Team';
-      const buyerNames = contacts.map(c => c.name).join(' and ');
+      const buyerNames = contacts.map(c => c.name.split(' ')[0]).join(' and ');
 
       const poBlocks = items.map(adj => {
         const { po, origSizes: orig = {}, suppSizes: supp = {} } = adj;
