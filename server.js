@@ -1586,7 +1586,7 @@ app.get('/api/jhonny/po-detail/:po', async (req, res) => {
     const get  = (row, i) => i >= 0 ? (row[i] || '').trim() : '';
 
     const poCol       = idxH('purchase order', 'po#', 'po number', 'purch');
-    const sizeCol     = idxH('size desc desc', 'size desc', 'size description', 'brand/size');
+    const sizeCol     = idxH('size desc desc');
     const shipPackCol = idxH('ship pack', 'shippack');
     const totalQtyCol = idxH('total qty', 'total');
 
