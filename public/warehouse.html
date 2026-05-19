@@ -883,10 +883,9 @@ async function openPLForm(i) {
     const val   = _plRow[f.key] || '';
     const empty = !val && !f.ro;
     if (f.link) {
-      return `<div class="pl-field pl-field-full">
+      return `<div class="pl-field">
         <label>${escH(f.label)}</label>
-        ${val ? `<a href="${escH(val)}" target="_blank" rel="noopener" style="display:inline-block;padding:5px 10px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:7px;font-size:11px;font-weight:600;color:#166534;text-decoration:none;margin-bottom:4px">Open Folder →</a>` : ''}
-        <input type="text" id="plf-${f.key}" value="${escH(val)}" placeholder="Paste folder URL" class="${empty ? 'pl-empty' : ''}" style="${val ? 'font-size:10px;color:#9ca3af' : ''}">
+        ${val ? `<a href="${escH(val)}" target="_blank" rel="noopener" style="display:inline-block;padding:5px 10px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:7px;font-size:11px;font-weight:600;color:#166534;text-decoration:none">Open Folder →</a>` : `<input type="text" id="plf-${f.key}" value="" placeholder="Paste folder URL" class="pl-empty">`}
       </div>`;
     }
     return `<div class="pl-field">
