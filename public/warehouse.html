@@ -743,6 +743,8 @@ function renderPLList(rows) {
     </table>`;
 }
 
+const PL_SIZES = ['XXS','XS','S','M','L','XL','1X','2X','3X'];
+
 const PL_FIELDS = [
   { key:'style',       label:'STYLE #' },
   { key:'po',          label:'PO#',                    ro:true },
@@ -791,7 +793,28 @@ async function openPLForm(i) {
   document.getElementById('pl-form-body').innerHTML = `
     <div id="pl-cad-section" style="margin-bottom:20px"></div>
     <div class="pl-fields-grid">${fieldsHtml}</div>
-    <div class="pl-size-section" id="pl-size-section"><div style="font-size:12px;color:var(--muted)">Loading size breakdown…</div></div>
+    <div class="pl-size-section">
+      <div class="pl-size-title">Size Breakdown <span id="pl-size-loading" style="font-weight:400;color:var(--muted);font-size:10px;margin-left:6px">loading…</span></div>
+      <div class="pl-size-wrap">
+        <table class="pl-size-table" id="pl-size-table">
+          <thead><tr id="pl-size-head">
+            <th></th>${PL_SIZES.map(s=>`<th>${s}</th>`).join('')}<th>TOTAL</th>
+          </tr></thead>
+          <tbody>
+            <tr class="pl-size-orig" id="pl-size-orig-row">
+              <td>Original Order</td>
+              ${PL_SIZES.map(s=>`<td><input type="number" class="pl-size-input" id="plsz-orig-${s}" data-size="${s}" placeholder="0" oninput="updateOrigRow()"></td>`).join('')}
+              <td id="pl-size-orig-total">—</td>
+            </tr>
+            <tr class="pl-size-sup">
+              <td>Supplier Production</td>
+              ${PL_SIZES.map(s=>`<td><input type="number" class="pl-size-input" id="plsz-sup-${s}" data-size="${s}" placeholder="0" oninput="checkSizeCell(this)"></td>`).join('')}
+              <td id="pl-size-sup-total">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
     <div class="pl-uploads-section">
       <div class="pl-uploads-title">Upload Documents</div>
       <div class="pl-uploads-grid">
@@ -818,7 +841,7 @@ async function openPLForm(i) {
 
   document.getElementById('pl-overlay').classList.add('open');
   loadCADImage(_plRow.style);
-  loadPOSizeGrid(po);
+  fetchAndPopulateSizes(po);
 }
 
 function closePLForm() {
@@ -848,54 +871,61 @@ async function loadCADImage(style) {
   } catch (e) { section.innerHTML = ''; }
 }
 
-async function loadPOSizeGrid(po) {
-  const section = document.getElementById('pl-size-section');
-  if (!section) return;
+async function fetchAndPopulateSizes(po) {
+  const loadingEl = document.getElementById('pl-size-loading');
   try {
     const items = await fetch(`/api/jhonny/po-detail/${encodeURIComponent(po)}`).then(r => r.json());
-    if (!Array.isArray(items) || !items.length) { section.innerHTML = ''; return; }
+    if (loadingEl) loadingEl.remove();
+    if (!Array.isArray(items) || !items.length) return; // keep default columns, leave empty
 
     const sizes   = items.map(it => it.sizeDesc);
     const origQty = items.map(it => it.totalQty);
 
-    section.innerHTML = `
-      <div class="pl-size-title">Size Breakdown</div>
-      <div class="pl-size-wrap">
-        <table class="pl-size-table">
-          <thead><tr>
-            <th></th>
-            ${sizes.map(s => `<th>${escH(s)}</th>`).join('')}
-            <th>TOTAL</th>
-          </tr></thead>
-          <tbody>
-            <tr class="pl-size-orig">
-              <td>Original Order</td>
-              ${origQty.map(q => `<td>${escH(q)}</td>`).join('')}
-              <td><strong>${origQty.reduce((a,b) => a + (parseInt(b)||0), 0)}</strong></td>
-            </tr>
-            <tr class="pl-size-sup">
-              <td>Supplier Production</td>
-              ${sizes.map((s, idx) => `<td><input type="number" class="pl-size-input" data-orig="${escH(origQty[idx])}" data-idx="${idx}" oninput="checkSizeCell(this)" placeholder="${escH(origQty[idx])}"></td>`).join('')}
-              <td id="pl-size-sup-total">—</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>`;
+    // Rebuild header and rows with actual sizes from the sheet
+    const head = document.getElementById('pl-size-head');
+    if (head) head.innerHTML = `<th></th>${sizes.map(s=>`<th>${escH(s)}</th>`).join('')}<th>TOTAL</th>`;
+
+    const origRow = document.getElementById('pl-size-orig-row');
+    if (origRow) origRow.innerHTML = `
+      <td>Original Order</td>
+      ${sizes.map((s,i)=>`<td><input type="number" class="pl-size-input" id="plsz-orig-${escH(s)}" data-size="${escH(s)}" value="${escH(origQty[i])}" placeholder="0" oninput="updateOrigRow()"></td>`).join('')}
+      <td id="pl-size-orig-total"><strong>${origQty.reduce((a,b)=>a+(parseInt(b)||0),0)}</strong></td>`;
+
+    const supRow = document.querySelector('.pl-size-sup');
+    if (supRow) supRow.innerHTML = `
+      <td>Supplier Production</td>
+      ${sizes.map(s=>`<td><input type="number" class="pl-size-input" id="plsz-sup-${escH(s)}" data-size="${escH(s)}" placeholder="0" oninput="checkSizeCell(this)"></td>`).join('')}
+      <td id="pl-size-sup-total">—</td>`;
+
   } catch (e) {
-    section.innerHTML = `<div style="font-size:12px;color:#dc2626">Could not load size data</div>`;
+    if (loadingEl) loadingEl.remove(); // fail silently — grid still usable
   }
 }
 
-function checkSizeCell(input) {
-  const orig = String(input.dataset.orig).trim();
-  const val  = input.value.trim();
-  input.classList.toggle('size-diff', val !== '' && val !== orig);
+function checkSizeCell(inp) {
+  const size = inp.dataset.size;
+  const orig = (document.getElementById(`plsz-orig-${size}`)?.value || '').trim();
+  const val  = inp.value.trim();
+  inp.classList.toggle('size-diff', val !== '' && orig !== '' && val !== orig);
+  updateSizeTotals();
+}
 
-  // update supplier total
-  const allInputs = document.querySelectorAll('.pl-size-input');
-  const total = Array.from(allInputs).reduce((a, inp) => a + (parseInt(inp.value) || 0), 0);
-  const totalCell = document.getElementById('pl-size-sup-total');
-  if (totalCell) totalCell.innerHTML = `<strong>${total || '—'}</strong>`;
+function updateOrigRow() {
+  document.querySelectorAll('.pl-size-sup .pl-size-input').forEach(inp => {
+    if (inp.value) checkSizeCell(inp);
+  });
+  updateSizeTotals();
+}
+
+function updateSizeTotals() {
+  const origInputs = document.querySelectorAll('#pl-size-orig-row .pl-size-input');
+  const supInputs  = document.querySelectorAll('.pl-size-sup .pl-size-input');
+  const origTotal  = Array.from(origInputs).reduce((a,i)=>a+(parseInt(i.value)||0),0);
+  const supTotal   = Array.from(supInputs).reduce((a,i)=>a+(parseInt(i.value)||0),0);
+  const ot = document.getElementById('pl-size-orig-total');
+  const st = document.getElementById('pl-size-sup-total');
+  if (ot) ot.innerHTML = `<strong>${origTotal||'—'}</strong>`;
+  if (st) st.innerHTML = `<strong>${supTotal||'—'}</strong>`;
 }
 
 function handlePLFile(type, input) {
