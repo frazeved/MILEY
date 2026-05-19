@@ -590,6 +590,11 @@ async function runGenerator() {
         window.location.href = '/setup?return=/warehouse';
         return;
       }
+      if (d.error === 'missing_pdfs') {
+        btn.textContent = origLabel; btn.disabled = false;
+        alert(`Could not find invoice PDF${d.missing.length > 1 ? 's' : ''} for PO${d.missing.length > 1 ? 's' : ''}: ${d.missing.join(', ')}\n\nPlease make sure the Invoice Link is filled in the sheet before sending.`);
+        return;
+      }
       if (!d.ok) throw new Error(d.error || 'Failed');
       closeGenerator();
       showToast('✓ Draft created — check your Gmail Drafts folder');

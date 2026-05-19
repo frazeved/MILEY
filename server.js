@@ -1475,15 +1475,17 @@ app.post('/api/jhonny/send-invoices', async (req, res) => {
 
     // Download PDFs from Drive
     const attachments = [];
+    const missingPdfs = [];
     for (const { po, link } of poData) {
-      if (!link) continue;
+      if (!link) { missingPdfs.push(po); continue; }
       const m = link.match(/\/d\/([a-zA-Z0-9_-]+)/);
-      if (!m) continue;
+      if (!m) { missingPdfs.push(po); continue; }
       try {
         const r = await drive.files.get({ fileId: m[1], alt: 'media', supportsAllDrives: true }, { responseType: 'arraybuffer' });
         attachments.push({ filename: `INV ${po}.pdf`, content: Buffer.from(r.data), contentType: 'application/pdf' });
-      } catch (_) { console.warn(`Could not download PDF for PO ${po}`); }
+      } catch (_) { missingPdfs.push(po); }
     }
+    if (missingPdfs.length) return res.status(400).json({ error: 'missing_pdfs', missing: missingPdfs });
 
     // Build email
     const subject = `Invoices POs ${pos.map(p => `#${p}`).join(' ')}`;
