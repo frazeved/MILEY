@@ -587,7 +587,7 @@ async function runGenerator() {
       if (d.error === 'gmail_not_connected') {
         btn.textContent = origLabel; btn.disabled = false;
         localStorage.setItem('pendingInvoicePos', JSON.stringify(pos));
-        window.location.href = '/setup?return=/warehouse';
+        window.location.href = '/setup?return=/warehouse.html';
         return;
       }
       if (d.error === 'missing_pdfs') {
