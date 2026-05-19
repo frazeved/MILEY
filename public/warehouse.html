@@ -198,37 +198,37 @@
     /* ── PL Form ─────────────────────────────────────────────────────── */
     .pl-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:200; align-items:center; justify-content:center; padding:16px; }
     .pl-overlay.open { display:flex; }
-    .pl-modal { background:#fff; border-radius:16px; width:100%; max-width:780px; max-height:92vh; display:flex; flex-direction:column; box-shadow:0 8px 40px rgba(0,0,0,0.2); }
-    .pl-form-body { flex:1; overflow-y:auto; padding:20px 24px; }
-    .pl-fields-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:24px; }
-    .pl-field { display:flex; flex-direction:column; gap:4px; }
+    .pl-modal { background:#fff; border-radius:16px; width:100%; max-width:820px; max-height:92vh; display:flex; flex-direction:column; box-shadow:0 8px 40px rgba(0,0,0,0.2); }
+    .pl-form-body { flex:1; overflow-y:auto; padding:16px 20px; }
+    .pl-form-top { display:flex; gap:14px; align-items:flex-start; margin-bottom:16px; }
+    .pl-fields-grid { flex:1; min-width:0; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+    .pl-field-full { grid-column:1/-1; }
+    .pl-field { display:flex; flex-direction:column; gap:3px; }
     .pl-field label { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; }
-    .pl-field input { font-family:inherit; font-size:13px; padding:8px 10px; border:1.5px solid var(--border); border-radius:8px; outline:none; color:var(--text); background:#fff; transition:border-color 0.15s; }
+    .pl-field input { font-family:inherit; font-size:12px; padding:6px 8px; border:1.5px solid var(--border); border-radius:7px; outline:none; color:var(--text); background:#fff; transition:border-color 0.15s; }
     .pl-field input:focus { border-color:var(--accent); }
     .pl-field input[readonly] { background:#f9fafb; color:var(--muted); cursor:default; border-style:dashed; }
     .pl-field input.pl-empty { background:#fff5f5; border-color:#fca5a5; }
-    .pl-uploads-section { margin-top:4px; }
-    .pl-uploads-title { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px; }
-    .pl-uploads-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
-    .pl-upload-box { border:2px dashed var(--border); border-radius:10px; padding:18px 12px; text-align:center; cursor:pointer; transition:all 0.15s; user-select:none; }
-    .pl-upload-box:hover { border-color:var(--accent); background:var(--accent-light); }
-    .pl-upload-box.has-file { border-color:var(--green); background:var(--green-lt); border-style:solid; }
-    .pl-upload-icon { font-size:22px; margin-bottom:6px; }
-    .pl-upload-label { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
-    .pl-upload-name { font-size:11px; color:var(--muted); word-break:break-all; line-height:1.4; }
-    .pl-upload-box.has-file .pl-upload-name { color:var(--green); font-weight:600; }
+    /* ── PL CAD compact thumbnail ─────────────────────────────────────── */
+    .pl-cad-thumb-wrap { display:flex; flex-direction:column; align-items:center; gap:5px; flex-shrink:0; width:100px; }
+    .pl-cad-thumb { width:100px; height:120px; object-fit:contain; border-radius:8px; border:1.5px solid var(--border); background:#f9fafb; cursor:pointer; transition:opacity 0.15s; }
+    .pl-cad-thumb:hover { opacity:0.85; }
+    .pl-cad-open { font-size:10px; font-weight:600; color:var(--accent); text-decoration:none; text-align:center; }
+    .pl-cad-open:hover { text-decoration:underline; }
+    /* ── PL Upload rows (compact) ─────────────────────────────────────── */
+    .pl-uploads-section { margin-top:16px; }
+    .pl-uploads-title { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; }
+    .pl-upload-rows { display:flex; flex-direction:column; gap:6px; }
+    .pl-upload-row { display:flex; align-items:center; gap:10px; padding:8px 12px; border:1.5px dashed var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s; user-select:none; }
+    .pl-upload-row:hover { border-color:var(--accent); background:var(--accent-light); }
+    .pl-upload-row.has-file { border-style:solid; border-color:var(--green); background:var(--green-lt); }
+    .pl-upl-icon { font-size:16px; flex-shrink:0; }
+    .pl-upl-label { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.4px; flex-shrink:0; width:90px; }
+    .pl-upl-name { font-size:11px; color:var(--muted); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .pl-upload-row.has-file .pl-upl-name { color:#166534; font-weight:600; }
     .start-pl-btn { padding:5px 14px; background:var(--accent); color:#fff; border:none; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap; }
     .start-pl-btn:hover { background:var(--accent-hover); }
-    /* ── PL CAD Image ─────────────────────────────────────────────────── */
-    .pl-cad-wrap { display:flex; align-items:flex-start; gap:16px; background:#f9fafb; border:1.5px solid var(--border); border-radius:10px; padding:12px 16px; }
-    .pl-cad-img { width:140px; height:140px; object-fit:contain; border-radius:8px; border:1px solid var(--border); background:#fff; flex-shrink:0; cursor:pointer; transition:opacity 0.15s; }
-    .pl-cad-img:hover { opacity:0.85; }
-    .pl-cad-info { flex:1; }
-    .pl-cad-label { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
-    .pl-cad-style { font-size:14px; font-weight:700; color:var(--text); margin-bottom:8px; }
-    .pl-cad-link { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; background:#fff; border:1.5px solid var(--border); border-radius:7px; font-size:12px; font-weight:600; color:var(--text); text-decoration:none; transition:border-color 0.15s; }
-    .pl-cad-link:hover { border-color:var(--accent); color:var(--accent); }
-    @media(max-width:640px) { .pl-cad-wrap { flex-direction:column; } .pl-cad-img { width:100%; height:180px; } }
+    @media(max-width:640px) { .pl-form-top { flex-direction:column; } .pl-cad-thumb-wrap { width:100%; } .pl-cad-thumb { width:100%; height:160px; } .pl-fields-grid { grid-template-columns:1fr 1fr; } }
     /* ── PL Size Grid ─────────────────────────────────────────────────── */
     .pl-size-section { margin:20px 0; }
     .pl-size-title { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; }
@@ -777,9 +777,9 @@ async function openPLForm(i) {
     const val   = _plRow[f.key] || '';
     const empty = !val && !f.ro;
     if (f.link) {
-      return `<div class="pl-field">
+      return `<div class="pl-field pl-field-full">
         <label>${escH(f.label)}</label>
-        ${val ? `<a href="${escH(val)}" target="_blank" rel="noopener" style="display:inline-block;padding:6px 12px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;font-size:12px;font-weight:600;color:#166534;text-decoration:none;margin-bottom:4px">Open Folder →</a>` : ''}
+        ${val ? `<a href="${escH(val)}" target="_blank" rel="noopener" style="display:inline-block;padding:5px 10px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:7px;font-size:11px;font-weight:600;color:#166534;text-decoration:none;margin-bottom:4px">Open Folder →</a>` : ''}
         <input type="text" id="plf-${f.key}" value="${escH(val)}" placeholder="Paste folder URL" class="${empty ? 'pl-empty' : ''}" style="${val ? 'font-size:10px;color:#9ca3af' : ''}">
       </div>`;
     }
@@ -791,8 +791,10 @@ async function openPLForm(i) {
 
   const po = _plRow.po;
   document.getElementById('pl-form-body').innerHTML = `
-    <div id="pl-cad-section" style="margin-bottom:20px"></div>
-    <div class="pl-fields-grid">${fieldsHtml}</div>
+    <div class="pl-form-top">
+      <div id="pl-cad-section"></div>
+      <div class="pl-fields-grid">${fieldsHtml}</div>
+    </div>
     <div class="pl-size-section">
       <div class="pl-size-title">Size Breakdown <span id="pl-size-loading" style="font-weight:400;color:var(--muted);font-size:10px;margin-left:6px">loading…</span></div>
       <div class="pl-size-wrap">
@@ -817,24 +819,24 @@ async function openPLForm(i) {
     </div>
     <div class="pl-uploads-section">
       <div class="pl-uploads-title">Upload Documents</div>
-      <div class="pl-uploads-grid">
-        <div class="pl-upload-box" id="ubox-al" onclick="document.getElementById('upl-al').click()">
+      <div class="pl-upload-rows">
+        <div class="pl-upload-row" id="ubox-al" onclick="document.getElementById('upl-al').click()">
           <input type="file" id="upl-al" style="display:none" onchange="handlePLFile('al',this)">
-          <div class="pl-upload-icon">🏷️</div>
-          <div class="pl-upload-label">Anthro Label</div>
-          <div class="pl-upload-name" id="upl-al-name">AL ${escH(po)} — click to upload</div>
+          <span class="pl-upl-icon">🏷️</span>
+          <span class="pl-upl-label">Anthro Label</span>
+          <span class="pl-upl-name" id="upl-al-name">AL ${escH(po)} — click to upload</span>
         </div>
-        <div class="pl-upload-box" id="ubox-pl" onclick="document.getElementById('upl-pl').click()">
+        <div class="pl-upload-row" id="ubox-pl" onclick="document.getElementById('upl-pl').click()">
           <input type="file" id="upl-pl" style="display:none" onchange="handlePLFile('pl',this)">
-          <div class="pl-upload-icon">📄</div>
-          <div class="pl-upload-label">Packing List</div>
-          <div class="pl-upload-name" id="upl-pl-name">PL ${escH(po)} — click to upload</div>
+          <span class="pl-upl-icon">📄</span>
+          <span class="pl-upl-label">Packing List</span>
+          <span class="pl-upl-name" id="upl-pl-name">PL ${escH(po)} — click to upload</span>
         </div>
-        <div class="pl-upload-box" id="ubox-fedex" onclick="document.getElementById('upl-fedex').click()">
+        <div class="pl-upload-row" id="ubox-fedex" onclick="document.getElementById('upl-fedex').click()">
           <input type="file" id="upl-fedex" style="display:none" onchange="handlePLFile('fedex',this)">
-          <div class="pl-upload-icon">🚚</div>
-          <div class="pl-upload-label">FedEx Label</div>
-          <div class="pl-upload-name" id="upl-fedex-name">FEDEX ${escH(po)} — click to upload</div>
+          <span class="pl-upl-icon">🚚</span>
+          <span class="pl-upl-label">FedEx Label</span>
+          <span class="pl-upl-name" id="upl-fedex-name">FEDEX ${escH(po)} — click to upload</span>
         </div>
       </div>
     </div>`;
@@ -857,16 +859,9 @@ async function loadCADImage(style) {
     if (!d.found) { section.innerHTML = ''; return; }
     const src = `data:${d.mimeType};base64,${d.imageData}`;
     section.innerHTML = `
-      <div class="pl-cad-wrap">
-        <img class="pl-cad-img" src="${src}" alt="CAD" onclick="window.open('${escH(d.cadUrl)}','_blank')">
-        <div class="pl-cad-info">
-          <div class="pl-cad-label">CAD Image</div>
-          <div class="pl-cad-style">${escH(style)}</div>
-          <a class="pl-cad-link" href="${escH(d.cadUrl)}" target="_blank" rel="noopener">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-            Open Full CAD
-          </a>
-        </div>
+      <div class="pl-cad-thumb-wrap">
+        <img class="pl-cad-thumb" src="${src}" alt="CAD" onclick="window.open('${escH(d.cadUrl)}','_blank')" title="Open full CAD">
+        <a class="pl-cad-open" href="${escH(d.cadUrl)}" target="_blank" rel="noopener">Open CAD ↗</a>
       </div>`;
   } catch (e) { section.innerHTML = ''; }
 }
