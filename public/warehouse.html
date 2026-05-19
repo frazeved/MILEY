@@ -211,10 +211,7 @@
     .pl-field input.pl-empty { background:#fff5f5; border-color:#fca5a5; }
     /* ── PL CAD compact thumbnail ─────────────────────────────────────── */
     .pl-cad-thumb-wrap { display:flex; flex-direction:column; align-items:center; gap:5px; flex-shrink:0; width:100px; }
-    .pl-cad-thumb { width:100px; flex:1; min-height:0; object-fit:contain; border-radius:8px; border:1.5px solid var(--border); background:#f9fafb; cursor:pointer; transition:opacity 0.15s; display:block; }
-    .pl-cad-thumb:hover { opacity:0.85; }
-    .pl-cad-open { font-size:10px; font-weight:600; color:var(--accent); text-decoration:none; text-align:center; flex-shrink:0; }
-    .pl-cad-open:hover { text-decoration:underline; }
+    .pl-cad-thumb { width:100px; flex:1; min-height:0; object-fit:contain; border-radius:8px; border:1.5px solid var(--border); background:#f9fafb; display:block; }
     /* ── PL Upload cards (compact 3-col) ─────────────────────────────── */
     .pl-uploads-section { margin-top:16px; }
     .pl-uploads-title { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; }
@@ -959,8 +956,7 @@ async function loadCADImage(style) {
     const src = `data:${d.mimeType};base64,${d.imageData}`;
     section.innerHTML = `
       <div class="pl-cad-thumb-wrap">
-        <img class="pl-cad-thumb" src="${src}" alt="CAD" onclick="window.open('${escH(d.cadUrl)}','_blank')" title="Open full CAD">
-        <a class="pl-cad-open" href="${escH(d.cadUrl)}" target="_blank" rel="noopener">Open CAD ↗</a>
+        <img class="pl-cad-thumb" src="${src}" alt="CAD">
       </div>`;
   } catch (e) { section.innerHTML = ''; }
 }
@@ -1105,7 +1101,7 @@ async function saveAdjustment() {
     btn.textContent = '✓ Queued';
   } catch (e) {
     btn.textContent = '⚠ Error';
-    showToast(e.message || 'Error saving adjustment', 5000);
+    showToast(e.message || 'Error saving adjustment', 6000);
     setTimeout(() => { btn.textContent = '✉ Adjustment E-mail'; btn.disabled = false; }, 2500);
   }
 }
