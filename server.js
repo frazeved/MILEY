@@ -1795,7 +1795,7 @@ Logistics Team
 Pompano Beach, Florida 33069`;
 
       const to  = contacts.map(c => c.email).join(', ');
-      const cc  = buyers.anthroBasePO_CC.join(', ');
+      const cc  = 'support@creativetwotwelve.com, logistics@creativetwotwelve.com, inspection@creativetwotwelve.com';
       try {
         const rawBuf = await buildRawMime({ from: `"Eduardo Moraes" <${teamUser.email}>`, to, cc, subject: subj, text: body });
         const encoded = rawBuf.toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
