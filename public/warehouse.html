@@ -219,6 +219,16 @@
     .pl-upload-box.has-file .pl-upload-name { color:var(--green); font-weight:600; }
     .start-pl-btn { padding:5px 14px; background:var(--accent); color:#fff; border:none; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap; }
     .start-pl-btn:hover { background:var(--accent-hover); }
+    /* ── PL CAD Image ─────────────────────────────────────────────────── */
+    .pl-cad-wrap { display:flex; align-items:flex-start; gap:16px; background:#f9fafb; border:1.5px solid var(--border); border-radius:10px; padding:12px 16px; }
+    .pl-cad-img { width:140px; height:140px; object-fit:contain; border-radius:8px; border:1px solid var(--border); background:#fff; flex-shrink:0; cursor:pointer; transition:opacity 0.15s; }
+    .pl-cad-img:hover { opacity:0.85; }
+    .pl-cad-info { flex:1; }
+    .pl-cad-label { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
+    .pl-cad-style { font-size:14px; font-weight:700; color:var(--text); margin-bottom:8px; }
+    .pl-cad-link { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; background:#fff; border:1.5px solid var(--border); border-radius:7px; font-size:12px; font-weight:600; color:var(--text); text-decoration:none; transition:border-color 0.15s; }
+    .pl-cad-link:hover { border-color:var(--accent); color:var(--accent); }
+    @media(max-width:640px) { .pl-cad-wrap { flex-direction:column; } .pl-cad-img { width:100%; height:180px; } }
     /* ── PL Size Grid ─────────────────────────────────────────────────── */
     .pl-size-section { margin:20px 0; }
     .pl-size-title { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; }
@@ -779,6 +789,7 @@ async function openPLForm(i) {
 
   const po = _plRow.po;
   document.getElementById('pl-form-body').innerHTML = `
+    <div id="pl-cad-section" style="margin-bottom:20px"></div>
     <div class="pl-fields-grid">${fieldsHtml}</div>
     <div class="pl-size-section" id="pl-size-section"><div style="font-size:12px;color:var(--muted)">Loading size breakdown…</div></div>
     <div class="pl-uploads-section">
@@ -806,12 +817,35 @@ async function openPLForm(i) {
     </div>`;
 
   document.getElementById('pl-overlay').classList.add('open');
+  loadCADImage(_plRow.style);
   loadPOSizeGrid(po);
 }
 
 function closePLForm() {
   document.getElementById('pl-overlay').classList.remove('open');
   _plRow = null; _plFiles = { al: null, pl: null, fedex: null };
+}
+
+async function loadCADImage(style) {
+  const section = document.getElementById('pl-cad-section');
+  if (!section || !style) return;
+  try {
+    const d = await fetch(`/api/jhonny/cad-image/${encodeURIComponent(style)}`).then(r => r.json());
+    if (!d.found) { section.innerHTML = ''; return; }
+    const src = `data:${d.mimeType};base64,${d.imageData}`;
+    section.innerHTML = `
+      <div class="pl-cad-wrap">
+        <img class="pl-cad-img" src="${src}" alt="CAD" onclick="window.open('${escH(d.cadUrl)}','_blank')">
+        <div class="pl-cad-info">
+          <div class="pl-cad-label">CAD Image</div>
+          <div class="pl-cad-style">${escH(style)}</div>
+          <a class="pl-cad-link" href="${escH(d.cadUrl)}" target="_blank" rel="noopener">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            Open Full CAD
+          </a>
+        </div>
+      </div>`;
+  } catch (e) { section.innerHTML = ''; }
 }
 
 async function loadPOSizeGrid(po) {

@@ -1608,6 +1608,57 @@ app.get('/api/jhonny/po-detail/:po', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ─── Jhonny: CAD image for a style from Production & PO DataBase ─────────────
+app.get('/api/jhonny/cad-image/:style', async (req, res) => {
+  try {
+    const style = (req.params.style || '').trim();
+    if (!style) return res.json({ found: false });
+
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly', 'https://www.googleapis.com/auth/drive.readonly'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+    const drive  = google.drive({ version: 'v3', auth });
+
+    const result = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: "'Production & PO DataBase'" });
+    const rows   = result.data.values || [];
+    if (rows.length < 2) return res.json({ found: false });
+
+    const H    = rows[0].map(h => (h || '').trim());
+    const idxH = (...keys) => H.findIndex(h => keys.some(k => h.toLowerCase().includes(k.toLowerCase())));
+    const get  = (row, i) => i >= 0 ? (row[i] || '').trim() : '';
+
+    const styleCol    = idxH('original style#', 'original style');
+    const cadImageCol = idxH('cad image');
+    const cadUrlCol   = idxH('cad url');
+    if (styleCol < 0) return res.json({ found: false });
+
+    let cadImageVal = '', cadUrlVal = '';
+    for (let i = 1; i < rows.length; i++) {
+      if (get(rows[i], styleCol).toLowerCase() === style.toLowerCase()) {
+        cadImageVal = get(rows[i], cadImageCol);
+        cadUrlVal   = get(rows[i], cadUrlCol);
+        break;
+      }
+    }
+
+    const driveUrl = cadImageVal || cadUrlVal;
+    if (!driveUrl) return res.json({ found: false });
+
+    const m = driveUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (!m) return res.json({ found: false, cadUrl: driveUrl });
+
+    const fileId  = m[1];
+    const fileRes = await drive.files.get(
+      { fileId, alt: 'media', supportsAllDrives: true },
+      { responseType: 'arraybuffer' }
+    );
+    const mimeType  = fileRes.headers['content-type'] || 'image/jpeg';
+    const imageData = Buffer.from(fileRes.data).toString('base64');
+
+    res.json({ found: true, cadUrl: driveUrl, imageData, mimeType });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ─── Jhonny: create invoice email draft in sender's Gmail ────────────────────
 app.post('/api/jhonny/send-invoices', async (req, res) => {
   try {
