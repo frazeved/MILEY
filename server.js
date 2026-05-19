@@ -1728,42 +1728,79 @@ app.post('/api/jhonny/send-adjustment-emails', async (req, res) => {
     const { adjustments } = req.body || {};
     if (!Array.isArray(adjustments) || !adjustments.length) return res.status(400).json({ error: 'adjustments required' });
 
-    const userId = req.session?.userId;
-    const token  = userTokens[userId];
-    if (!token) return res.json({ gmail_not_connected: true });
+    // Same auth pattern as send-invoices
+    const sessionEmail = req.session?.user?.email?.toLowerCase();
+    const teamUser = TEAM_USERS.find(u => u.email.toLowerCase() === sessionEmail);
+    if (!teamUser) return res.json({ gmail_not_connected: true });
+    const token = userTokens[teamUser.id];
+    if (!token?.refreshToken) return res.json({ gmail_not_connected: true });
 
     const oAuth2 = makeOAuth2Client();
-    oAuth2.setCredentials(token);
-    const gmail  = google.gmail({ version: 'v1', auth: oAuth2 });
+    oAuth2.setCredentials({ refresh_token: token.refreshToken });
+    const gmail = google.gmail({ version: 'v1', auth: oAuth2 });
+
+    // Group by buyer contacts (category)
+    const groups = new Map();
+    for (const adj of adjustments) {
+      const { contacts } = findBuyersForCategory(adj.brand, adj.category);
+      const key = contacts.map(c => c.email).join(',') || 'unknown';
+      if (!groups.has(key)) groups.set(key, { contacts, items: [] });
+      groups.get(key).items.push(adj);
+    }
 
     let sent = 0;
     const errors = [];
 
-    for (const adj of adjustments) {
-      const { po, style, brand, category, subCategory: subCat, supplier, origSizes: orig = {}, suppSizes: supp = {} } = adj;
+    for (const { contacts, items } of groups.values()) {
+      if (!contacts.length) { errors.push(`No buyers found for category "${items[0].category}"`); continue; }
 
-      const { contacts } = findBuyersForCategory(brand, category);
-      if (!contacts.length) { errors.push(`PO ${po}: no buyers found for category "${category}"`); continue; }
+      const styles  = [...new Set(items.map(a => a.style))];
+      const poNums  = items.map(a => `PO# ${a.po}`).join(' ');
+      const catName = items[0].category || 'Team';
+      const buyerNames = contacts.map(c => c.name).join(' and ');
 
-      const sizes = [...new Set([...Object.keys(orig), ...Object.keys(supp)])];
-      const origTotal = sizes.reduce((a,s)=>a+(parseInt(orig[s])||0),0);
-      const suppTotal = sizes.reduce((a,s)=>a+(parseInt(supp[s])||0),0);
+      const poBlocks = items.map(adj => {
+        const { po, origSizes: orig = {}, suppSizes: supp = {} } = adj;
+        const sizes = [...new Set([...Object.keys(orig), ...Object.keys(supp)])];
+        const lines = sizes
+          .map(s => {
+            const o = parseInt(orig[s]) || 0;
+            const v = parseInt(supp[s]) || 0;
+            if (v === o) return null;
+            const dir = v > o ? 'Increase' : 'Decrease';
+            return `${dir} ${s} size from ${o} to ${v} units.`;
+          })
+          .filter(Boolean);
+        return `• ${po} -\n${lines.map(l => `${l}`).join('\n')}`;
+      }).join('\n\n');
 
-      const header  = `         ${sizes.map(s=>s.padStart(6)).join('')}  ${'TOTAL'.padStart(7)}`;
-      const origRow = `Order:   ${sizes.map(s=>String(orig[s]||0).padStart(6)).join('')}  ${String(origTotal).padStart(7)}`;
-      const suppRow = `Prod:    ${sizes.map(s=>String(supp[s]||0).padStart(6)).join('')}  ${String(suppTotal).padStart(7)}`;
-      const diffRow = `Diff:    ${sizes.map(s=>{const d=(parseInt(supp[s])||0)-(parseInt(orig[s])||0);return (d>0?'+':'')+d;}).map(s=>s.padStart(6)).join('')}  ${String(suppTotal-origTotal).padStart(7)}`;
+      const subj = `Adjustment Request — Style ${styles.join(', ')} — ${poNums}`;
+      const body =
+`Hi ${buyerNames} and ${catName} Team,
 
-      const to   = contacts.map(c=>c.email).join(', ');
-      const cc   = buyers.anthroBasePO_CC.join(', ');
-      const subj = `Production Adjustment Notice — PO #${po} | Style ${style}`;
-      const body = `Dear ${contacts.map(c=>c.name).join(', ')},\n\nPlease be advised of the following production quantity adjustment:\n\nPO#: ${po}\nStyle: ${style}\nCategory: ${category}${subCat?' / '+subCat:''}\nSupplier: ${supplier}\n\nSize Comparison:\n\n${header}\n${origRow}\n${suppRow}\n${diffRow}\n\nPlease confirm your acceptance of these changes or contact us with any concerns.\n\nBest regards,\n305 Consulting and Production\n1800 NW 15TH Avenue, Suite 110\nPompano Beach, Florida 33069`;
+I hope this message finds you well.
 
+We kindly request an adjustment for Style ${styles.join(', ')} under ${items.map(a=>`PO# ${a.po}`).join(', ')} to align with supplier production.
+We apologize for the discrepancies and appreciate your understanding.
+
+${poBlocks}
+
+Your prompt attention to this request is greatly appreciated.
+
+Best regards,
+Eduardo Moraes
+Logistics Team
+305 CONSULTING AND PRODUCTION
+1800 NW 15TH Avenue, Suite 110
+Pompano Beach, Florida 33069`;
+
+      const to  = contacts.map(c => c.email).join(', ');
+      const cc  = buyers.anthroBasePO_CC.join(', ');
       try {
-        const raw = await buildRawMime({ from: token.email || userId, to, cc, subject: subj, text: body });
+        const raw = await buildRawMime({ from: teamUser.email, to, cc, subject: subj, text: body });
         await gmail.users.drafts.create({ userId: 'me', requestBody: { message: { raw } } });
         sent++;
-      } catch (e) { errors.push(`PO ${po}: ${e.message}`); }
+      } catch (e) { errors.push(e.message); }
     }
 
     res.json({ ok: true, sent, errors });
