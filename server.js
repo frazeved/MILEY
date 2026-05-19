@@ -1492,15 +1492,34 @@ async function uploadToDrive(drive, folderId, fileName, base64, mimeType) {
   return r.data;
 }
 
+async function uploadViaAppsScript(base64, fileName, folderId, month) {
+  const scriptUrl    = process.env.GDRIVE_APPS_SCRIPT_URL;
+  const scriptSecret = process.env.GDRIVE_APPS_SCRIPT_SECRET || '';
+  if (!scriptUrl) throw new Error('GDRIVE_APPS_SCRIPT_URL not set');
+
+  const body = JSON.stringify({ secret: scriptSecret, pdf: base64, filename: fileName, folderId, month });
+  const opts = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, redirect: 'manual' };
+  let resp = await fetch(scriptUrl, opts);
+  let hops = 0;
+  while ([301,302,307,308].includes(resp.status) && hops++ < 5) {
+    resp = await fetch(resp.headers.get('location'), opts);
+  }
+  const text = await resp.text();
+  try {
+    const result = JSON.parse(text);
+    if (result.webViewLink) return result.webViewLink;
+  } catch (_) {}
+  throw new Error(`Apps Script upload failed for ${fileName}: ${text.slice(0, 200)}`);
+}
+
 app.post('/api/jhonny/save-pl-form', async (req, res) => {
   try {
     const { po, rowIndex, fields, files } = req.body || {};
     if (!po || !rowIndex) return res.status(400).json({ error: 'po and rowIndex required' });
 
     const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive'] });
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
     const sheets = google.sheets({ version: 'v4', auth });
-    const drive  = google.drive({ version: 'v3', auth });
     const TAB    = 'Warehouse Now Database';
 
     const hRes = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `${TAB}!1:1` });
@@ -1530,10 +1549,8 @@ app.post('/api/jhonny/save-pl-form', async (req, res) => {
       if (col >= 0 && val !== undefined) data.push({ range: `${TAB}!${colL(col)}${rowIndex}`, values: [[val]] });
     }
 
-    // Upload files to Drive
+    // Upload files via Apps Script (handles storage quota)
     const month = MONTH_NAMES[new Date().getMonth()];
-    const alPlMonthId  = await getOrCreateMonthFolder(drive, AL_PL_FOLDER_ID, month);
-    const fedexMonthId = await getOrCreateMonthFolder(drive, FEDEX_FOLDER_ID, month);
 
     const alLinkIdx  = idxH('al link', 'anthro label link');
     const plLinkIdx  = idxH('pl link', 'packing list link');
@@ -1544,25 +1561,25 @@ app.post('/api/jhonny/save-pl-form', async (req, res) => {
 
     if (files?.al?.base64) {
       const ext  = (files.al.name.split('.').pop() || 'pdf').toLowerCase();
-      const file = await uploadToDrive(drive, alPlMonthId, `AL ${po}.${ext}`, files.al.base64, files.al.mimeType);
-      if (file.webViewLink) {
-        if (alLinkIdx  >= 0) data.push({ range: `${TAB}!${colL(alLinkIdx)}${rowIndex}`,  values: [[file.webViewLink]] });
+      const link = await uploadViaAppsScript(files.al.base64, `AL ${po}.${ext}`, AL_PL_FOLDER_ID, month);
+      if (link) {
+        if (alLinkIdx  >= 0) data.push({ range: `${TAB}!${colL(alLinkIdx)}${rowIndex}`,  values: [[link]] });
         if (alCheckIdx >= 0) data.push({ range: `${TAB}!${colL(alCheckIdx)}${rowIndex}`, values: [['✅']] });
       }
     }
     if (files?.pl?.base64) {
       const ext  = (files.pl.name.split('.').pop() || 'pdf').toLowerCase();
-      const file = await uploadToDrive(drive, alPlMonthId, `PL ${po}.${ext}`, files.pl.base64, files.pl.mimeType);
-      if (file.webViewLink) {
-        if (plLinkIdx  >= 0) data.push({ range: `${TAB}!${colL(plLinkIdx)}${rowIndex}`,  values: [[file.webViewLink]] });
+      const link = await uploadViaAppsScript(files.pl.base64, `PL ${po}.${ext}`, AL_PL_FOLDER_ID, month);
+      if (link) {
+        if (plLinkIdx  >= 0) data.push({ range: `${TAB}!${colL(plLinkIdx)}${rowIndex}`,  values: [[link]] });
         if (plCheckIdx >= 0) data.push({ range: `${TAB}!${colL(plCheckIdx)}${rowIndex}`, values: [['✅']] });
       }
     }
     if (files?.fedex?.base64) {
       const ext  = (files.fedex.name.split('.').pop() || 'pdf').toLowerCase();
-      const file = await uploadToDrive(drive, fedexMonthId, `FEDEX ${po}.${ext}`, files.fedex.base64, files.fedex.mimeType);
-      if (file.webViewLink) {
-        if (fxLinkIdx  >= 0) data.push({ range: `${TAB}!${colL(fxLinkIdx)}${rowIndex}`,  values: [[file.webViewLink]] });
+      const link = await uploadViaAppsScript(files.fedex.base64, `FEDEX ${po}.${ext}`, FEDEX_FOLDER_ID, month);
+      if (link) {
+        if (fxLinkIdx  >= 0) data.push({ range: `${TAB}!${colL(fxLinkIdx)}${rowIndex}`,  values: [[link]] });
         if (fxCheckIdx >= 0) data.push({ range: `${TAB}!${colL(fxCheckIdx)}${rowIndex}`, values: [['✅']] });
       }
     }
