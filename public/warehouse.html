@@ -210,18 +210,18 @@
     .pl-field input[readonly] { background:#f9fafb; color:var(--muted); cursor:default; border-style:dashed; }
     .pl-field input.pl-empty { background:#fff5f5; border-color:#fca5a5; }
     /* ── PL CAD compact thumbnail ─────────────────────────────────────── */
-    .pl-cad-thumb-wrap { display:flex; flex-direction:column; align-items:center; gap:5px; flex-shrink:0; width:100px; }
-    .pl-cad-thumb { width:100px; flex:1; min-height:0; object-fit:contain; border-radius:8px; border:1.5px solid var(--border); background:#f9fafb; display:block; }
+    .pl-cad-thumb-wrap { display:flex; flex-direction:column; align-items:center; flex-shrink:0; width:90px; }
+    .pl-cad-thumb { width:90px; height:190px; object-fit:contain; border-radius:8px; border:1.5px solid var(--border); background:#f9fafb; display:block; }
     /* ── PL Upload cards (compact 3-col) ─────────────────────────────── */
-    .pl-uploads-section { margin-top:16px; }
-    .pl-uploads-title { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; }
-    .pl-upload-rows { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
-    .pl-upload-row { display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 8px; border:1.5px dashed var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s; user-select:none; text-align:center; }
+    .pl-uploads-section { margin-top:10px; }
+    .pl-uploads-title { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
+    .pl-upload-rows { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+    .pl-upload-row { display:flex; flex-direction:row; align-items:center; gap:6px; padding:6px 8px; border:1.5px dashed var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s; user-select:none; }
     .pl-upload-row:hover { border-color:var(--accent); background:var(--accent-light); }
     .pl-upload-row.has-file { border-style:solid; border-color:var(--green); background:var(--green-lt); }
-    .pl-upl-icon { font-size:18px; }
-    .pl-upl-label { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.4px; }
-    .pl-upl-name { font-size:10px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%; }
+    .pl-upl-icon { font-size:14px; flex-shrink:0; }
+    .pl-upl-label { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.4px; flex-shrink:0; }
+    .pl-upl-name { font-size:10px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; }
     .pl-upload-row.has-file .pl-upl-name { color:#166534; font-weight:600; }
     .start-pl-btn { padding:5px 14px; background:var(--accent); color:#fff; border:none; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap; }
     .start-pl-btn:hover { background:var(--accent-hover); }
