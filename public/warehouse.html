@@ -835,6 +835,7 @@ async function sendAdjustmentEmails() {
     });
     const d = await r.json();
     if (d.gmail_not_connected) {
+      localStorage.setItem('pendingAdjPos', JSON.stringify(selectedPos));
       window.location.href = `/setup?return=${encodeURIComponent(window.location.pathname)}`;
       return;
     }
@@ -1122,6 +1123,23 @@ function saveAdjustment() {
   btn.textContent = '✓ Queued';
   setTimeout(() => { btn.textContent = '✉ Adjustment E-mail'; }, 2000);
 }
+
+// After Gmail OAuth, re-open adjustments with saved POs pre-checked
+(function resumePendingAdj() {
+  const params = new URLSearchParams(window.location.search);
+  if (!params.get('gmailConnected')) return;
+  const saved = localStorage.getItem('pendingAdjPos');
+  if (!saved) return;
+  localStorage.removeItem('pendingAdjPos');
+  history.replaceState({}, '', window.location.pathname);
+  const pos = JSON.parse(saved);
+  openGenerator('adjustments-email').then(() => {
+    document.querySelectorAll('.adj-check').forEach(cb => {
+      if (pos.includes(_genRows[+cb.dataset.i]?.po)) cb.checked = true;
+    });
+    toggleAdjBtn();
+  });
+})();
 
 // After Gmail OAuth, re-open send-invoices with the saved POs
 (function resumePendingInvoice() {
