@@ -219,6 +219,18 @@
     .pl-upload-box.has-file .pl-upload-name { color:var(--green); font-weight:600; }
     .start-pl-btn { padding:5px 14px; background:var(--accent); color:#fff; border:none; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap; }
     .start-pl-btn:hover { background:var(--accent-hover); }
+    /* ── PL Size Grid ─────────────────────────────────────────────────── */
+    .pl-size-section { margin:20px 0; }
+    .pl-size-title { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; }
+    .pl-size-wrap { overflow-x:auto; }
+    .pl-size-table { border-collapse:collapse; width:100%; font-size:12px; }
+    .pl-size-table th { background:#f3f4f6; padding:6px 10px; font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.4px; border:1px solid var(--border); text-align:center; white-space:nowrap; }
+    .pl-size-table td { border:1px solid var(--border); padding:5px 8px; text-align:center; }
+    .pl-size-table td:first-child { text-align:left; font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; background:#f9fafb; white-space:nowrap; padding-left:10px; }
+    .pl-size-orig td { background:#f9fafb; font-weight:600; color:var(--text); }
+    .pl-size-input { width:56px; padding:4px 6px; border:1.5px solid var(--border); border-radius:6px; font-size:12px; font-family:inherit; text-align:center; background:#fff; outline:none; color:var(--text); }
+    .pl-size-input:focus { border-color:var(--accent); }
+    .pl-size-input.size-diff { color:#dc2626; font-weight:700; border-color:#fca5a5; background:#fff5f5; }
     @media(max-width:640px) {
       .pl-fields-grid { grid-template-columns:1fr; }
       .pl-uploads-grid { grid-template-columns:1fr; }
@@ -736,12 +748,13 @@ const PL_FIELDS = [
   { key:'category',    label:'CATEGORY' },
   { key:'subCategory', label:'SUB-CATEGORY' },
   { key:'poQty',       label:'PO QTY' },
+  { key:'awbFolder',   label:'AWB FOLDER', link:true },
 ];
 
 let _plRow  = null;
 let _plFiles = { al: null, pl: null, fedex: null };
 
-function openPLForm(i) {
+async function openPLForm(i) {
   _plRow  = _genRows[i];
   _plFiles = { al: null, pl: null, fedex: null };
   document.getElementById('pl-po-disp').textContent = _plRow.po;
@@ -751,6 +764,13 @@ function openPLForm(i) {
   const fieldsHtml = PL_FIELDS.map(f => {
     const val   = _plRow[f.key] || '';
     const empty = !val && !f.ro;
+    if (f.link) {
+      return `<div class="pl-field">
+        <label>${escH(f.label)}</label>
+        ${val ? `<a href="${escH(val)}" target="_blank" rel="noopener" style="display:inline-block;padding:6px 12px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;font-size:12px;font-weight:600;color:#166534;text-decoration:none;margin-bottom:4px">Open Folder →</a>` : ''}
+        <input type="text" id="plf-${f.key}" value="${escH(val)}" placeholder="Paste folder URL" class="${empty ? 'pl-empty' : ''}" style="${val ? 'font-size:10px;color:#9ca3af' : ''}">
+      </div>`;
+    }
     return `<div class="pl-field">
       <label>${escH(f.label)}</label>
       <input type="text" id="plf-${f.key}" value="${escH(val)}" ${f.ro ? 'readonly' : ''} class="${empty ? 'pl-empty' : ''}">
@@ -760,6 +780,7 @@ function openPLForm(i) {
   const po = _plRow.po;
   document.getElementById('pl-form-body').innerHTML = `
     <div class="pl-fields-grid">${fieldsHtml}</div>
+    <div class="pl-size-section" id="pl-size-section"><div style="font-size:12px;color:var(--muted)">Loading size breakdown…</div></div>
     <div class="pl-uploads-section">
       <div class="pl-uploads-title">Upload Documents</div>
       <div class="pl-uploads-grid">
@@ -785,11 +806,62 @@ function openPLForm(i) {
     </div>`;
 
   document.getElementById('pl-overlay').classList.add('open');
+  loadPOSizeGrid(po);
 }
 
 function closePLForm() {
   document.getElementById('pl-overlay').classList.remove('open');
   _plRow = null; _plFiles = { al: null, pl: null, fedex: null };
+}
+
+async function loadPOSizeGrid(po) {
+  const section = document.getElementById('pl-size-section');
+  if (!section) return;
+  try {
+    const items = await fetch(`/api/jhonny/po-detail/${encodeURIComponent(po)}`).then(r => r.json());
+    if (!Array.isArray(items) || !items.length) { section.innerHTML = ''; return; }
+
+    const sizes   = items.map(it => it.sizeDesc);
+    const origQty = items.map(it => it.totalQty);
+
+    section.innerHTML = `
+      <div class="pl-size-title">Size Breakdown</div>
+      <div class="pl-size-wrap">
+        <table class="pl-size-table">
+          <thead><tr>
+            <th></th>
+            ${sizes.map(s => `<th>${escH(s)}</th>`).join('')}
+            <th>TOTAL</th>
+          </tr></thead>
+          <tbody>
+            <tr class="pl-size-orig">
+              <td>Original Order</td>
+              ${origQty.map(q => `<td>${escH(q)}</td>`).join('')}
+              <td><strong>${origQty.reduce((a,b) => a + (parseInt(b)||0), 0)}</strong></td>
+            </tr>
+            <tr class="pl-size-sup">
+              <td>Supplier Production</td>
+              ${sizes.map((s, idx) => `<td><input type="number" class="pl-size-input" data-orig="${escH(origQty[idx])}" data-idx="${idx}" oninput="checkSizeCell(this)" placeholder="${escH(origQty[idx])}"></td>`).join('')}
+              <td id="pl-size-sup-total">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>`;
+  } catch (e) {
+    section.innerHTML = `<div style="font-size:12px;color:#dc2626">Could not load size data</div>`;
+  }
+}
+
+function checkSizeCell(input) {
+  const orig = String(input.dataset.orig).trim();
+  const val  = input.value.trim();
+  input.classList.toggle('size-diff', val !== '' && val !== orig);
+
+  // update supplier total
+  const allInputs = document.querySelectorAll('.pl-size-input');
+  const total = Array.from(allInputs).reduce((a, inp) => a + (parseInt(inp.value) || 0), 0);
+  const totalCell = document.getElementById('pl-size-sup-total');
+  if (totalCell) totalCell.innerHTML = `<strong>${total || '—'}</strong>`;
 }
 
 function handlePLFile(type, input) {

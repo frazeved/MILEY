@@ -1360,6 +1360,7 @@ app.get('/api/jhonny/po-list', async (req, res) => {
       supInvoice: idx('sup invoice', 'supplier invoice'),
       mawb:       idx('mawb', 'hawb'),
       poQty:      idx('po qty', 'po quantity'),
+      awbFolder:  idx('awb folder'),
     };
     // category/sub-category: find carefully to avoid cross-matching
     C.subCategory = H.findIndex(h => h.includes('sub') && h.includes('categor'));
@@ -1409,6 +1410,7 @@ app.get('/api/jhonny/po-list', async (req, res) => {
           category:    get(row, C.category),
           subCategory: get(row, C.subCategory),
           poQty:       get(row, C.poQty),
+          awbFolder:   get(row, C.awbFolder),
         });
         result.push(entry);
       }
@@ -1515,6 +1517,7 @@ app.post('/api/jhonny/save-pl-form', async (req, res) => {
       supInvoice:  idxH('sup invoice', 'supplier invoice'),
       mawb:        idxH('mawb', 'hawb'),
       poQty:       idxH('po qty', 'po quantity'),
+      awbFolder:   idxH('awb folder'),
     };
     fieldMap.subCategory = H.findIndex(h => h.toLowerCase().includes('sub') && h.toLowerCase().includes('categor'));
     fieldMap.category    = H.findIndex(h => h.toLowerCase().includes('categor') && !h.toLowerCase().includes('sub'));
@@ -1562,6 +1565,47 @@ app.post('/api/jhonny/save-pl-form', async (req, res) => {
     console.error('[save-pl-form]', e.message);
     res.status(500).json({ error: e.message });
   }
+});
+
+// ─── Jhonny: PO DETAIL — size breakdown for a single PO ─────────────────────
+app.get('/api/jhonny/po-detail/:po', async (req, res) => {
+  try {
+    const po  = (req.params.po || '').trim();
+    if (!po) return res.json([]);
+
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    const result = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'PO DETAIL' });
+    const rows   = result.data.values || [];
+    if (rows.length < 2) return res.json([]);
+
+    const H    = rows[0].map(h => (h || '').trim());
+    const idxH = (...keys) => H.findIndex(h => keys.some(k => h.toLowerCase().includes(k.toLowerCase())));
+    const get  = (row, i) => i >= 0 ? (row[i] || '').trim() : '';
+
+    const poCol       = idxH('po#', 'po number', 'po');
+    const sizeCol     = idxH('size desc', 'brand/size', '/size', 'size');
+    const shipPackCol = idxH('ship pack');
+    const totalQtyCol = idxH('total qty', 'total');
+
+    if (poCol < 0) return res.json([]);
+
+    const items = [];
+    for (let i = 1; i < rows.length; i++) {
+      if (get(rows[i], poCol) !== po) continue;
+      const sizeDesc = get(rows[i], sizeCol);
+      if (!sizeDesc) continue;
+      items.push({
+        sizeDesc,
+        shipPack: get(rows[i], shipPackCol),
+        totalQty: get(rows[i], totalQtyCol),
+      });
+    }
+
+    res.json(items);
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ─── Jhonny: create invoice email draft in sender's Gmail ────────────────────
