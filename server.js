@@ -1537,8 +1537,10 @@ app.post('/api/jhonny/save-pl-form', async (req, res) => {
       arrivalDate: idxH('arrival date', 'eta'),
       supInvoice:  idxH('sup invoice', 'supplier invoice'),
       mawb:        idxH('mawb', 'hawb'),
-      poQty:       idxH('po qty', 'po quantity'),
-      awbFolder:   idxH('awb folder'),
+      poQty:        idxH('po qty', 'po quantity'),
+      awbFolder:    idxH('awb folder'),
+      trackingNum:  idxH('tracking number', 'tracking'),
+      shippingCost: idxH('shipping cost'),
     };
     fieldMap.subCategory = H.findIndex(h => h.toLowerCase().includes('sub') && h.toLowerCase().includes('categor'));
     fieldMap.category    = H.findIndex(h => h.toLowerCase().includes('categor') && !h.toLowerCase().includes('sub'));
