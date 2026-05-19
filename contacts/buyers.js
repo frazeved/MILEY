@@ -14,6 +14,7 @@ const anthropologie = {
     { name: 'Julie Stampone',      email: 'jstampone@anthropologie.com' },
     { name: 'Dami Amato',          email: 'damato@anthropologie.com' },
     { name: 'Molly MacRae',        email: 'mmacrae@anthropologie.com' },
+    { name: 'Jami Brady',          email: 'jbrady1@anthropologie.com' },
   ],
   'PANTS & JUMPSUIT': [
     { name: 'Samantha Murphy',              email: 'smurphy@anthropologie.com' },
