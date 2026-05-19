@@ -1702,102 +1702,26 @@ function findBuyersForCategory(brand, category) {
   return { key:'UNKNOWN', contacts: [] };
 }
 
-const ADJ_TAB = 'ADJUSTMENTS EMAIL';
-const ADJ_HEADERS = ['DATE','PO#','STYLE#','BRAND','CATEGORY','SUB-CATEGORY','SUPPLIER','ORIGINAL ORDER','SUPPLIER PRODUCTION','STATUS','SENT DATE','SENT BY'];
 
-async function ensureAdjTab(sheets) {
-  const info = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
-  if (!info.data.sheets?.some(s => s.properties?.title === ADJ_TAB)) {
-    await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { requests: [{ addSheet: { properties: { title: ADJ_TAB } } }] } });
-    await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID, range: `'${ADJ_TAB}'!A1`, valueInputOption: 'RAW', requestBody: { values: [ADJ_HEADERS] } });
-  }
-}
-
-// ─── Jhonny: save one PO adjustment to queue ─────────────────────────────────
-app.post('/api/jhonny/save-adjustment', async (req, res) => {
-  try {
-    const { po, style, brand, category, subCategory, supplier, origSizes, suppSizes } = req.body || {};
-    if (!po) return res.status(400).json({ error: 'po required' });
-
-    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
-    const sheets = google.sheets({ version: 'v4', auth });
-
-    await ensureAdjTab(sheets);
-    const today = new Date().toLocaleDateString('en-US');
-    await sheets.spreadsheets.values.append({
-      spreadsheetId: SHEET_ID, range: `'${ADJ_TAB}'!A:L`,
-      valueInputOption: 'RAW',
-      requestBody: { values: [[today, po, style||'', brand||'', category||'', subCategory||'', supplier||'', JSON.stringify(origSizes||{}), JSON.stringify(suppSizes||{}), 'PENDING', '', '']] }
-    });
-    res.json({ ok: true });
-  } catch (e) { console.error('save-adjustment error:', e.message); res.status(500).json({ error: e.message }); }
-});
-
-// ─── Jhonny: list pending adjustments ────────────────────────────────────────
-app.get('/api/jhonny/adjustments', async (req, res) => {
-  try {
-    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'] });
-    const sheets = google.sheets({ version: 'v4', auth });
-
-    const result = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${ADJ_TAB}'!A:L` });
-    const rows   = result.data.values || [];
-    if (rows.length < 2) return res.json([]);
-
-    const items = [];
-    for (let i = 1; i < rows.length; i++) {
-      const r = rows[i];
-      if ((r[9]||'').toUpperCase() === 'SENT') continue;
-      items.push({
-        rowIndex:    i + 1,
-        date:        r[0]||'', po: r[1]||'', style: r[2]||'',
-        brand:       r[3]||'', category: r[4]||'', subCategory: r[5]||'',
-        supplier:    r[6]||'',
-        origSizes:   JSON.parse(r[7]||'{}'),
-        suppSizes:   JSON.parse(r[8]||'{}'),
-        status:      r[9]||'PENDING',
-      });
-    }
-    res.json(items);
-  } catch (e) {
-    if (e.message?.includes('Unable to parse range')) return res.json([]);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// ─── Jhonny: send adjustment emails (drafts) and mark SENT ───────────────────
+// ─── Jhonny: send adjustment emails (drafts) ─────────────────────────────────
 app.post('/api/jhonny/send-adjustment-emails', async (req, res) => {
   try {
-    const { rowIndexes } = req.body || {};
-    if (!Array.isArray(rowIndexes) || !rowIndexes.length) return res.status(400).json({ error: 'rowIndexes required' });
+    const { adjustments } = req.body || {};
+    if (!Array.isArray(adjustments) || !adjustments.length) return res.status(400).json({ error: 'adjustments required' });
 
     const userId = req.session?.userId;
     const token  = userTokens[userId];
     if (!token) return res.json({ gmail_not_connected: true });
 
-    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
-    const sheets = google.sheets({ version: 'v4', auth });
-
-    const result = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${ADJ_TAB}'!A:L` });
-    const rows   = result.data.values || [];
-
     const oAuth2 = makeOAuth2Client();
     oAuth2.setCredentials(token);
     const gmail  = google.gmail({ version: 'v1', auth: oAuth2 });
 
-    const TAB = ADJ_TAB;
-    const colL = i => { let col='',n=i; while(n>=0){col=String.fromCharCode(65+(n%26))+col;n=Math.floor(n/26)-1;} return col; };
-    const updates = [];
-    const errors  = [];
+    let sent = 0;
+    const errors = [];
 
-    for (const ri of rowIndexes) {
-      const r = rows[ri - 1];
-      if (!r) continue;
-      const po = r[1]||'', style = r[2]||'', brand = r[3]||'', category = r[4]||'', subCat = r[5]||'', supplier = r[6]||'';
-      const orig = JSON.parse(r[7]||'{}');
-      const supp = JSON.parse(r[8]||'{}');
+    for (const adj of adjustments) {
+      const { po, style, brand, category, subCategory: subCat, supplier, origSizes: orig = {}, suppSizes: supp = {} } = adj;
 
       const { contacts } = findBuyersForCategory(brand, category);
       if (!contacts.length) { errors.push(`PO ${po}: no buyers found for category "${category}"`); continue; }
@@ -1806,31 +1730,24 @@ app.post('/api/jhonny/send-adjustment-emails', async (req, res) => {
       const origTotal = sizes.reduce((a,s)=>a+(parseInt(orig[s])||0),0);
       const suppTotal = sizes.reduce((a,s)=>a+(parseInt(supp[s])||0),0);
 
-      const header = `         ${sizes.map(s=>s.padStart(6)).join('')}  ${'TOTAL'.padStart(7)}`;
-      const origRow= `Order:   ${sizes.map(s=>String(orig[s]||0).padStart(6)).join('')}  ${String(origTotal).padStart(7)}`;
-      const suppRow= `Prod:    ${sizes.map(s=>String(supp[s]||0).padStart(6)).join('')}  ${String(suppTotal).padStart(7)}`;
-      const diffRow= `Diff:    ${sizes.map(s=>{const d=(parseInt(supp[s])||0)-(parseInt(orig[s])||0);return (d>0?'+':'')+d;}).map(s=>s.padStart(6)).join('')}  ${String(suppTotal-origTotal).padStart(7)}`;
+      const header  = `         ${sizes.map(s=>s.padStart(6)).join('')}  ${'TOTAL'.padStart(7)}`;
+      const origRow = `Order:   ${sizes.map(s=>String(orig[s]||0).padStart(6)).join('')}  ${String(origTotal).padStart(7)}`;
+      const suppRow = `Prod:    ${sizes.map(s=>String(supp[s]||0).padStart(6)).join('')}  ${String(suppTotal).padStart(7)}`;
+      const diffRow = `Diff:    ${sizes.map(s=>{const d=(parseInt(supp[s])||0)-(parseInt(orig[s])||0);return (d>0?'+':'')+d;}).map(s=>s.padStart(6)).join('')}  ${String(suppTotal-origTotal).padStart(7)}`;
 
-      const to  = contacts.map(c=>c.email).join(', ');
-      const cc  = buyers.anthroBasePO_CC.join(', ');
+      const to   = contacts.map(c=>c.email).join(', ');
+      const cc   = buyers.anthroBasePO_CC.join(', ');
       const subj = `Production Adjustment Notice — PO #${po} | Style ${style}`;
       const body = `Dear ${contacts.map(c=>c.name).join(', ')},\n\nPlease be advised of the following production quantity adjustment:\n\nPO#: ${po}\nStyle: ${style}\nCategory: ${category}${subCat?' / '+subCat:''}\nSupplier: ${supplier}\n\nSize Comparison:\n\n${header}\n${origRow}\n${suppRow}\n${diffRow}\n\nPlease confirm your acceptance of these changes or contact us with any concerns.\n\nBest regards,\n305 Consulting and Production\n1800 NW 15TH Avenue, Suite 110\nPompano Beach, Florida 33069`;
 
       try {
         const raw = await buildRawMime({ from: token.email || userId, to, cc, subject: subj, text: body });
         await gmail.users.drafts.create({ userId: 'me', requestBody: { message: { raw } } });
-        updates.push({ range: `'${TAB}'!J${ri}:L${ri}`, values: [[new Date().toLocaleDateString('en-US'), 'SENT', token.email||userId]] });
+        sent++;
       } catch (e) { errors.push(`PO ${po}: ${e.message}`); }
     }
 
-    if (updates.length) {
-      await sheets.spreadsheets.values.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { valueInputOption:'RAW', data: updates } });
-      // Also mark status column (col I = index 8)
-      const statusUpdates = rowIndexes.filter(ri=>!errors.find(e=>e.startsWith(`PO ${(rows[ri-1]||[])[1]||''}`))).map(ri=>({ range:`'${TAB}'!J${ri}`, values:[['SENT']] }));
-      if (statusUpdates.length) await sheets.spreadsheets.values.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { valueInputOption:'RAW', data: statusUpdates } });
-    }
-
-    res.json({ ok: true, sent: updates.length, errors });
+    res.json({ ok: true, sent, errors });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

@@ -549,10 +549,14 @@ async function openGenerator(type) {
   document.getElementById('gen-overlay').classList.add('open');
 
   try {
-    const url  = type === 'adjustments-email' ? '/api/jhonny/adjustments' : `/api/jhonny/po-list?type=${type}`;
-    const r    = await fetch(url);
-    const data = await r.json();
-    if (data.error) throw new Error(data.error);
+    let data;
+    if (type === 'adjustments-email') {
+      data = JSON.parse(localStorage.getItem('305_adjustments') || '[]');
+    } else {
+      const r = await fetch(`/api/jhonny/po-list?type=${type}`);
+      data = await r.json();
+      if (data.error) throw new Error(data.error);
+    }
     _genRows = data;
     renderGenTable(data);
   } catch(e) {
@@ -816,25 +820,32 @@ async function sendAdjustmentEmails() {
   const btn = document.getElementById('gen-action-btn');
   btn.disabled = true; btn.textContent = 'Sending…';
 
-  const rowIndexes = checked.map(c => _genRows[parseInt(c.dataset.i)].rowIndex);
+  const selected = checked.map(c => _genRows[parseInt(c.dataset.i)]);
+  const selectedPos = selected.map(a => a.po);
 
   try {
     const r = await fetch('/api/jhonny/send-adjustment-emails', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rowIndexes }),
+      body: JSON.stringify({ adjustments: selected }),
     });
     const d = await r.json();
     if (d.gmail_not_connected) {
-      localStorage.setItem('pendingAdjReturn', window.location.pathname);
       window.location.href = `/setup?return=${encodeURIComponent(window.location.pathname)}`;
       return;
     }
     if (!d.ok) throw new Error(d.error || 'Failed');
+
+    // Remove sent POs from localStorage
+    const remaining = JSON.parse(localStorage.getItem('305_adjustments') || '[]')
+      .filter(a => !selectedPos.includes(a.po));
+    localStorage.setItem('305_adjustments', JSON.stringify(remaining));
+
     const msg = `✓ ${d.sent} draft${d.sent!==1?'s':''} created${d.errors?.length?' · '+d.errors.length+' failed':''}`;
     showToast(msg, 6000);
     closeGenerator();
   } catch (e) {
     btn.textContent = '⚠ Error — try again';
+    showToast(e.message || 'Error sending emails', 6000);
     setTimeout(() => { btn.textContent = 'Send Emails'; btn.disabled = false; }, 2500);
   }
 }
@@ -1060,6 +1071,7 @@ async function savePLForm() {
     openGenerator('packing-list');
   } catch (e) {
     btn.textContent = '⚠ Error — try again';
+    showToast(e.message || 'Error saving form', 6000);
     setTimeout(() => { btn.textContent = 'Save & Upload'; btn.disabled = false; }, 2500);
   }
 }
@@ -1071,9 +1083,8 @@ function showToast(msg, duration = 4000) {
   setTimeout(() => t.classList.remove('show'), duration);
 }
 
-async function saveAdjustment() {
+function saveAdjustment() {
   const btn = document.getElementById('pl-adj-btn');
-  btn.disabled = true; btn.textContent = 'Saving…';
 
   const origSizes = {}, suppSizes = {};
   document.querySelectorAll('#pl-size-orig-row input[type="hidden"]').forEach(inp => {
@@ -1083,29 +1094,22 @@ async function saveAdjustment() {
     if (inp.value) suppSizes[inp.dataset.size] = parseInt(inp.value) || 0;
   });
 
-  try {
-    const r = await fetch('/api/jhonny/save-adjustment', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        po:          _plRow.po,
-        style:       _plRow.style,
-        brand:       _plRow.brand || '',
-        category:    _plRow.category || '',
-        subCategory: _plRow.subCategory || '',
-        supplier:    _plRow.supplier || '',
-        origSizes, suppSizes,
-      }),
-    });
-    const d = await r.json();
-    if (!d.ok) throw new Error(d.error || 'Failed');
-    showToast(`✓ PO ${_plRow.po} added to Adjustment E-mail queue`);
-    btn.textContent = '✓ Queued';
-  } catch (e) {
-    btn.textContent = '⚠ Error';
-    showToast(e.message || 'Error saving adjustment', 6000);
-    setTimeout(() => { btn.textContent = '✉ Adjustment E-mail'; btn.disabled = false; }, 2500);
-  }
+  const list = JSON.parse(localStorage.getItem('305_adjustments') || '[]');
+  const filtered = list.filter(a => a.po !== _plRow.po);
+  filtered.push({
+    date:        new Date().toLocaleDateString('en-US'),
+    po:          _plRow.po,
+    style:       _plRow.style       || '',
+    brand:       _plRow.brand       || '',
+    category:    _plRow.category    || '',
+    subCategory: _plRow.subCategory || '',
+    supplier:    _plRow.supplier    || '',
+    origSizes, suppSizes,
+  });
+  localStorage.setItem('305_adjustments', JSON.stringify(filtered));
+  showToast(`✓ PO ${_plRow.po} added to Adjustment E-mail queue`);
+  btn.textContent = '✓ Queued';
+  setTimeout(() => { btn.textContent = '✉ Adjustment E-mail'; }, 2000);
 }
 
 // After Gmail OAuth, re-open send-invoices with the saved POs
