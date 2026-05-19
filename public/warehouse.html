@@ -501,7 +501,7 @@
     <div class="pl-form-body" id="pl-form-body"></div>
     <div class="gen-footer">
       <div>
-        <button class="gen-btn secondary" id="pl-adj-btn" style="display:none" onclick="saveAdjustment()">✉ Adjustment E-mail</button>
+        <button class="gen-btn secondary" id="pl-adj-btn" onclick="saveAdjustment()">✉ Adjustment E-mail</button>
       </div>
       <div style="display:flex;gap:8px;">
         <button class="gen-btn secondary" onclick="closePLForm()">Cancel</button>
@@ -1007,11 +1007,7 @@ function checkSizeCell(inp) {
   updateAdjustmentButton();
 }
 
-function updateAdjustmentButton() {
-  const hasDiff = document.querySelectorAll('.pl-size-input.size-diff').length > 0;
-  const btn = document.getElementById('pl-adj-btn');
-  if (btn) btn.style.display = hasDiff ? '' : 'none';
-}
+function updateAdjustmentButton() {}
 
 function updateOrigRow() {
   document.querySelectorAll('.pl-size-sup .pl-size-input').forEach(inp => {
