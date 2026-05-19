@@ -87,7 +87,8 @@
   }
 
   function connect(userId) {
-    window.location.href = `/auth/google?userId=${userId}`;
+    const ret = new URLSearchParams(window.location.search).get('return') || '';
+    window.location.href = `/auth/google?userId=${userId}${ret ? `&return=${encodeURIComponent(ret)}` : ''}`;
   }
 
   loadUsers();

@@ -287,10 +287,11 @@ app.get('/api/users', (req, res) => {
 });
 
 app.get('/auth/google', (req, res) => {
-  const { userId } = req.query;
+  const { userId, return: returnPath } = req.query;
   const user = TEAM_USERS.find(u => u.id === userId);
   if (!user) return res.status(400).send('Unknown user');
   req.session.pendingUserId = userId;
+  req.session.oauthReturn = returnPath || null;
   const url = makeOAuth2Client().generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
@@ -311,6 +312,9 @@ app.get('/auth/callback', async (req, res) => {
     if (!tokens.refresh_token) return res.redirect('/setup?error=norefresh');
     userTokens[userId] = { refreshToken: tokens.refresh_token };
     saveTokens();
+    const returnPath = req.session.oauthReturn;
+    req.session.oauthReturn = null;
+    if (returnPath) return res.redirect(`${returnPath}?gmailConnected=1`);
     res.redirect(`/setup?success=${userId}`);
   } catch (e) {
     console.error('auth callback error:', e.message);
@@ -1496,6 +1500,29 @@ app.post('/api/jhonny/send-invoices', async (req, res) => {
     authClient.setCredentials({ refresh_token: token.refreshToken });
     const gmail = google.gmail({ version: 'v1', auth: authClient });
     await gmail.users.drafts.create({ userId: 'me', requestBody: { message: { raw: encoded } } });
+
+    // Mark INVOICE EMAIL SENT in the sheet
+    try {
+      const saWrite  = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+      const authW    = new google.auth.GoogleAuth({ credentials: saWrite, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+      const sheetsW  = google.sheets({ version: 'v4', auth: authW });
+      const hRes     = await sheetsW.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Warehouse Now Database!1:1' });
+      const headers  = (hRes.data.values?.[0] || []).map(h => (h || '').trim().toLowerCase());
+      const sentIdx  = headers.findIndex(h => h.includes('invoice email sent'));
+      const poIdx2   = headers.findIndex(h => h.includes('po#') || h.includes('po number'));
+      if (sentIdx >= 0 && poIdx2 >= 0) {
+        const colLetter = i => { let col='',n=i; while(n>=0){col=String.fromCharCode(65+(n%26))+col;n=Math.floor(n/26)-1;} return col; };
+        const poRes  = await sheetsW.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `Warehouse Now Database!${colLetter(poIdx2)}:${colLetter(poIdx2)}` });
+        const poCells = (poRes.data.values || []).map(r => (r[0] || '').trim());
+        const today  = new Date().toLocaleDateString('en-US', { month:'2-digit', day:'2-digit', year:'numeric' });
+        const data   = [];
+        for (const po of pos) {
+          const row = poCells.findIndex((v, i) => i > 0 && v === po);
+          if (row >= 0) data.push({ range: `Warehouse Now Database!${colLetter(sentIdx)}${row + 1}`, values: [[today]] });
+        }
+        if (data.length) await sheetsW.spreadsheets.values.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { valueInputOption: 'RAW', data } });
+      }
+    } catch (e) { console.warn('[send-invoices] sheet mark failed:', e.message); }
 
     res.json({ ok: true, message: 'Draft created in your Gmail Drafts folder' });
   } catch (e) {

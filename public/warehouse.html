@@ -586,12 +586,13 @@ async function runGenerator() {
       const d = await r.json();
       if (d.error === 'gmail_not_connected') {
         btn.textContent = origLabel; btn.disabled = false;
-        if (confirm(`Your Gmail is not connected yet. Go to Setup to connect it?`)) window.location.href = '/setup';
+        localStorage.setItem('pendingInvoicePos', JSON.stringify(pos));
+        window.location.href = '/setup?return=/warehouse';
         return;
       }
       if (!d.ok) throw new Error(d.error || 'Failed');
-      btn.textContent = '✓ Draft saved to Gmail!';
-      setTimeout(() => closeGenerator(), 2000);
+      closeGenerator();
+      showToast('✓ Draft created — check your Gmail Drafts folder');
       return;
     } else {
       btn.textContent = 'Coming Soon';
@@ -635,6 +636,31 @@ async function runRefreshLinks() {
     setTimeout(() => { status.textContent = 'Scan folders · Fill PO / PL / FedEx links'; card.style.pointerEvents = ''; }, 3000);
   }
 }
+
+function showToast(msg, duration = 4000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// After Gmail OAuth, re-open send-invoices with the saved POs
+(function resumePendingInvoice() {
+  const params = new URLSearchParams(window.location.search);
+  if (!params.get('gmailConnected')) return;
+  const saved = localStorage.getItem('pendingInvoicePos');
+  if (!saved) return;
+  localStorage.removeItem('pendingInvoicePos');
+  history.replaceState({}, '', window.location.pathname);
+  const pos = JSON.parse(saved);
+  // Open modal, load POs, then pre-check the saved ones
+  openGenerator('send-invoices').then(() => {
+    document.querySelectorAll('.gen-row-cb').forEach(cb => {
+      if (pos.includes(_genRows[+cb.dataset.i]?.po)) cb.checked = true;
+    });
+    updateGenCount();
+  });
+})();
 
 function toggleNav() { document.getElementById('nav-panel').classList.toggle('open'); }
 document.addEventListener('click', function(e) {
