@@ -993,10 +993,16 @@ async function fetchAndPopulateSizes(po) {
 }
 
 function checkSizeCell(inp) {
-  const size = inp.dataset.size;
-  const orig = (document.getElementById(`plsz-orig-${size}`)?.value || '').trim();
-  const val  = inp.value.trim();
-  inp.classList.toggle('size-diff', val !== '' && orig !== '' && val !== orig);
+  const size  = inp.dataset.size;
+  const orig  = (document.getElementById(`plsz-orig-${size}`)?.value || '').trim();
+  const val   = inp.value.trim();
+  let isDiff  = false;
+  if (val !== '' && orig !== '') {
+    const o = parseInt(orig) || 0;
+    const v = parseInt(val)  || 0;
+    isDiff = o === 0 ? v !== 0 : Math.abs(v - o) / o > 0.10;
+  }
+  inp.classList.toggle('size-diff', isDiff);
   updateSizeTotals();
   updateAdjustmentButton();
 }
