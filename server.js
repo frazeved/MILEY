@@ -1639,54 +1639,78 @@ app.get('/api/jhonny/po-detail/:po', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ─── Jhonny: CAD image for a style from Production & PO DataBase ─────────────
+// ─── Jhonny: CAD image cache ──────────────────────────────────────────────────
+const _cadSheetCache  = { rows: null, ts: 0 };          // sheet rows, 10-min TTL
+const _cadImageCache  = new Map();                       // fileId → { imageData, mimeType }
+
+async function getCadSheetRows() {
+  if (_cadSheetCache.rows && Date.now() - _cadSheetCache.ts < 10 * 60 * 1000) return _cadSheetCache.rows;
+  const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+  const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly', 'https://www.googleapis.com/auth/drive.readonly'] });
+  const sheets = google.sheets({ version: 'v4', auth });
+  const result = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: "'Production & PO DataBase'" });
+  const rows   = result.data.values || [];
+  _cadSheetCache.rows = rows;
+  _cadSheetCache.ts   = Date.now();
+  _cadSheetCache.auth = auth;
+  return rows;
+}
+
+async function getCadImage(style) {
+  const rows = await getCadSheetRows();
+  if (rows.length < 2) return { found: false };
+
+  const H    = rows[0].map(h => (h || '').trim());
+  const idxH = (...keys) => H.findIndex(h => keys.some(k => h.toLowerCase().includes(k.toLowerCase())));
+  const get  = (row, i) => i >= 0 ? (row[i] || '').trim() : '';
+
+  const styleCol    = idxH('original style#', 'original style');
+  const cadImageCol = idxH('cad image');
+  const cadUrlCol   = idxH('cad url');
+  if (styleCol < 0) return { found: false };
+
+  let driveUrl = '';
+  for (let i = 1; i < rows.length; i++) {
+    if (get(rows[i], styleCol).toLowerCase() === style.toLowerCase()) {
+      driveUrl = get(rows[i], cadImageCol) || get(rows[i], cadUrlCol);
+      break;
+    }
+  }
+  if (!driveUrl) return { found: false };
+
+  const m = driveUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (!m) return { found: false };
+  const fileId = m[1];
+
+  if (_cadImageCache.has(fileId)) return { found: true, ..._cadImageCache.get(fileId) };
+
+  const sa    = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+  const auth  = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/drive.readonly'] });
+  const drive = google.drive({ version: 'v3', auth });
+  const fileRes = await drive.files.get({ fileId, alt: 'media', supportsAllDrives: true }, { responseType: 'arraybuffer' });
+  const mimeType  = fileRes.headers['content-type'] || 'image/jpeg';
+  const imageData = Buffer.from(fileRes.data).toString('base64');
+  _cadImageCache.set(fileId, { imageData, mimeType });
+
+  return { found: true, imageData, mimeType };
+}
+
+// Single style
 app.get('/api/jhonny/cad-image/:style', async (req, res) => {
   try {
     const style = (req.params.style || '').trim();
     if (!style) return res.json({ found: false });
+    res.json(await getCadImage(style));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
-    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly', 'https://www.googleapis.com/auth/drive.readonly'] });
-    const sheets = google.sheets({ version: 'v4', auth });
-    const drive  = google.drive({ version: 'v3', auth });
-
-    const result = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: "'Production & PO DataBase'" });
-    const rows   = result.data.values || [];
-    if (rows.length < 2) return res.json({ found: false });
-
-    const H    = rows[0].map(h => (h || '').trim());
-    const idxH = (...keys) => H.findIndex(h => keys.some(k => h.toLowerCase().includes(k.toLowerCase())));
-    const get  = (row, i) => i >= 0 ? (row[i] || '').trim() : '';
-
-    const styleCol    = idxH('original style#', 'original style');
-    const cadImageCol = idxH('cad image');
-    const cadUrlCol   = idxH('cad url');
-    if (styleCol < 0) return res.json({ found: false });
-
-    let cadImageVal = '', cadUrlVal = '';
-    for (let i = 1; i < rows.length; i++) {
-      if (get(rows[i], styleCol).toLowerCase() === style.toLowerCase()) {
-        cadImageVal = get(rows[i], cadImageCol);
-        cadUrlVal   = get(rows[i], cadUrlCol);
-        break;
-      }
-    }
-
-    const driveUrl = cadImageVal || cadUrlVal;
-    if (!driveUrl) return res.json({ found: false });
-
-    const m = driveUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-    if (!m) return res.json({ found: false, cadUrl: driveUrl });
-
-    const fileId  = m[1];
-    const fileRes = await drive.files.get(
-      { fileId, alt: 'media', supportsAllDrives: true },
-      { responseType: 'arraybuffer' }
-    );
-    const mimeType  = fileRes.headers['content-type'] || 'image/jpeg';
-    const imageData = Buffer.from(fileRes.data).toString('base64');
-
-    res.json({ found: true, cadUrl: driveUrl, imageData, mimeType });
+// Batch — POST { styles: ['A','B',...] } → { results: { style: { found, imageData, mimeType } } }
+app.post('/api/jhonny/cad-images-batch', async (req, res) => {
+  try {
+    const styles = [...new Set((req.body?.styles || []).map(s => s.trim()).filter(Boolean))];
+    if (!styles.length) return res.json({ results: {} });
+    const entries = await Promise.all(styles.map(async s => [s, await getCadImage(s)]));
+    res.json({ results: Object.fromEntries(entries) });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
