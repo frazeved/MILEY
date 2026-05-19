@@ -84,10 +84,12 @@
     .card.sh   { border-left-color: var(--purple); }
     .card.prod { border-left-color: var(--orange); }
     .card.dl   { border-left-color: var(--red); }
-    .card-body { padding: 11px 13px; display: flex; flex-direction: column; gap: 8px; }
+    .card-body { padding: 11px 13px; display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
 
-    .card-cad { width: 100%; height: 120px; object-fit: contain; background: #f8f8f8; border-radius: 6px 6px 0 0; display: none; cursor: zoom-in; }
+    .card { display: flex; flex-direction: row; }
+    .card-cad { width: 60px; min-width: 60px; align-self: stretch; object-fit: cover; background: #f1f5f9; display: none; cursor: zoom-in; flex-shrink: 0; }
     .card-cad.loaded { display: block; }
+
     .card-top { display: flex; justify-content: space-between; align-items: center; }
     .card-po-style-row { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
     .card-po { font-size: 12px; font-weight: 700; }
