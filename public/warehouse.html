@@ -1105,6 +1105,7 @@ async function saveAdjustment() {
     btn.textContent = '✓ Queued';
   } catch (e) {
     btn.textContent = '⚠ Error';
+    showToast(e.message || 'Error saving adjustment', 5000);
     setTimeout(() => { btn.textContent = '✉ Adjustment E-mail'; btn.disabled = false; }, 2500);
   }
 }
