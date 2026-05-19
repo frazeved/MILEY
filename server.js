@@ -1766,7 +1766,7 @@ app.post('/api/jhonny/send-adjustment-emails', async (req, res) => {
           .map(s => {
             const o = parseInt(orig[s]) || 0;
             const v = parseInt(supp[s]) || 0;
-            if (v === o) return null;
+            if (o === 0 || Math.abs(v - o) / o <= 0.10) return null;
             const dir = v > o ? 'Increase' : 'Decrease';
             return `${dir} ${s} size from ${o} to ${v} units.`;
           })
