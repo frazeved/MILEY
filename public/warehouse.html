@@ -789,14 +789,13 @@ function renderAdjustmentsList(rows) {
     <table class="gen-table">
       <thead><tr>
         <th><input type="checkbox" id="adj-check-all" onchange="toggleAllAdj(this)"></th>
-        <th>Date</th><th>PO#</th><th>Style</th><th>Category</th><th>Differences</th>
+        <th>Style</th><th>PO#</th><th>Category</th><th>Differences</th>
       </tr></thead>
       <tbody>
         ${rows.map((row, i) => `<tr>
           <td><input type="checkbox" class="adj-check" data-i="${i}" onchange="toggleAdjBtn()"></td>
-          <td>${escH(row.date)}</td>
-          <td><strong>${escH(row.po)}</strong></td>
           <td>${escH(row.style)}</td>
+          <td><strong>${escH(row.po)}</strong></td>
           <td>${escH(row.category)}${row.subCategory?' / '+escH(row.subCategory):''}</td>
           <td>${diffSummary(row.origSizes, row.suppSizes)}</td>
         </tr>`).join('')}
