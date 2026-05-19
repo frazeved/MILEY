@@ -194,6 +194,35 @@
     .nav-menu-item:hover { background: var(--bg); color: var(--text); }
     .nav-menu-item.active { background: var(--accent-light); color: var(--accent); font-weight: 600; }
     @media (max-width: 640px) { nav { padding: 0 16px; } .nav-brand { position: static; transform: none; left: auto; font-size: 14px; } }
+
+    /* ── PL Form ─────────────────────────────────────────────────────── */
+    .pl-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:200; align-items:center; justify-content:center; padding:16px; }
+    .pl-overlay.open { display:flex; }
+    .pl-modal { background:#fff; border-radius:16px; width:100%; max-width:780px; max-height:92vh; display:flex; flex-direction:column; box-shadow:0 8px 40px rgba(0,0,0,0.2); }
+    .pl-form-body { flex:1; overflow-y:auto; padding:20px 24px; }
+    .pl-fields-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:24px; }
+    .pl-field { display:flex; flex-direction:column; gap:4px; }
+    .pl-field label { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; }
+    .pl-field input { font-family:inherit; font-size:13px; padding:8px 10px; border:1.5px solid var(--border); border-radius:8px; outline:none; color:var(--text); background:#fff; transition:border-color 0.15s; }
+    .pl-field input:focus { border-color:var(--accent); }
+    .pl-field input[readonly] { background:#f9fafb; color:var(--muted); cursor:default; border-style:dashed; }
+    .pl-field input.pl-empty { background:#fff5f5; border-color:#fca5a5; }
+    .pl-uploads-section { margin-top:4px; }
+    .pl-uploads-title { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px; }
+    .pl-uploads-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+    .pl-upload-box { border:2px dashed var(--border); border-radius:10px; padding:18px 12px; text-align:center; cursor:pointer; transition:all 0.15s; user-select:none; }
+    .pl-upload-box:hover { border-color:var(--accent); background:var(--accent-light); }
+    .pl-upload-box.has-file { border-color:var(--green); background:var(--green-lt); border-style:solid; }
+    .pl-upload-icon { font-size:22px; margin-bottom:6px; }
+    .pl-upload-label { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
+    .pl-upload-name { font-size:11px; color:var(--muted); word-break:break-all; line-height:1.4; }
+    .pl-upload-box.has-file .pl-upload-name { color:var(--green); font-weight:600; }
+    .start-pl-btn { padding:5px 14px; background:var(--accent); color:#fff; border:none; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap; }
+    .start-pl-btn:hover { background:var(--accent-hover); }
+    @media(max-width:640px) {
+      .pl-fields-grid { grid-template-columns:1fr; }
+      .pl-uploads-grid { grid-template-columns:1fr; }
+    }
   </style>
 </head>
 <body>
@@ -430,6 +459,26 @@
   </div>
 </div>
 
+<div class="pl-overlay" id="pl-overlay">
+  <div class="pl-modal">
+    <div class="gen-header" style="padding:20px 24px 16px">
+      <div>
+        <div class="gen-title">Packing List — PO <span id="pl-po-disp"></span></div>
+        <div class="gen-subtitle">Fill missing fields and upload documents</div>
+      </div>
+      <button class="gen-close" onclick="closePLForm()">&#x2715;</button>
+    </div>
+    <div class="pl-form-body" id="pl-form-body"></div>
+    <div class="gen-footer">
+      <div></div>
+      <div style="display:flex;gap:8px;">
+        <button class="gen-btn secondary" onclick="closePLForm()">Cancel</button>
+        <button class="gen-btn primary" id="pl-save-btn" onclick="savePLForm()">Save &amp; Upload</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <script>
 const GEN_CONFIG = {
@@ -477,7 +526,11 @@ async function openGenerator(type) {
   }
 }
 
+function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
 function renderGenTable(rows) {
+  document.getElementById('gen-action-btn').style.display = '';
+  if (_genType === 'packing-list') { renderPLList(rows); return; }
   if (!rows.length) {
     document.getElementById('gen-body').innerHTML = '<div class="gen-empty">✅ No POs need processing for this generator.</div>';
     document.getElementById('gen-count').textContent = '0 POs';
@@ -639,6 +692,140 @@ async function runRefreshLinks() {
   } catch (e) {
     status.textContent = '⚠ ' + e.message;
     setTimeout(() => { status.textContent = 'Scan folders · Fill PO / PL / FedEx links'; card.style.pointerEvents = ''; }, 3000);
+  }
+}
+
+// ── Packing List form ────────────────────────────────────────────────────────
+
+function renderPLList(rows) {
+  document.getElementById('gen-action-btn').style.display = 'none';
+  if (!rows.length) {
+    document.getElementById('gen-body').innerHTML = '<div class="gen-empty">✅ No POs need a packing list right now.</div>';
+    document.getElementById('gen-count').textContent = '0 POs';
+    return;
+  }
+  document.getElementById('gen-count').textContent = `${rows.length} PO${rows.length !== 1 ? 's' : ''}`;
+  document.getElementById('gen-body').innerHTML = `
+    <table class="gen-table">
+      <thead><tr><th>Style #</th><th>PO#</th><th>Status</th><th>Ship Date</th><th>Cancel Date</th><th></th></tr></thead>
+      <tbody>
+        ${rows.map((row, i) => `<tr>
+          <td>${escH(row.style || '—')}</td>
+          <td><strong>${escH(row.po)}</strong></td>
+          <td><span class="gen-status ${statusClass(row.status)}">${escH(row.status || '—')}</span></td>
+          <td>${escH(row.shipDate || '—')}</td>
+          <td>${escH(row.cancelDate || '—')}</td>
+          <td><button class="start-pl-btn" onclick="openPLForm(${i})">Start PL ›</button></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+const PL_FIELDS = [
+  { key:'style',       label:'STYLE #' },
+  { key:'po',          label:'PO#',                    ro:true },
+  { key:'status',      label:'STATUS',                 ro:true },
+  { key:'shipDate',    label:'SHIP DATE TRADESTONE' },
+  { key:'cancelDate',  label:'CANCEL DATE' },
+  { key:'supplier',    label:'SUPPLIER' },
+  { key:'boxQty',      label:'BOX QTY 📦' },
+  { key:'exFactory',   label:'EX FACTORY / FLIGHT DATE' },
+  { key:'arrivalDate', label:'ARRIVAL DATE' },
+  { key:'supInvoice',  label:'SUP INVOICE #' },
+  { key:'mawb',        label:'MAWB / HAWB' },
+  { key:'category',    label:'CATEGORY' },
+  { key:'subCategory', label:'SUB-CATEGORY' },
+  { key:'poQty',       label:'PO QTY' },
+];
+
+let _plRow  = null;
+let _plFiles = { al: null, pl: null, fedex: null };
+
+function openPLForm(i) {
+  _plRow  = _genRows[i];
+  _plFiles = { al: null, pl: null, fedex: null };
+  document.getElementById('pl-po-disp').textContent = _plRow.po;
+  document.getElementById('pl-save-btn').disabled  = false;
+  document.getElementById('pl-save-btn').textContent = 'Save & Upload';
+
+  const fieldsHtml = PL_FIELDS.map(f => {
+    const val   = _plRow[f.key] || '';
+    const empty = !val && !f.ro;
+    return `<div class="pl-field">
+      <label>${escH(f.label)}</label>
+      <input type="text" id="plf-${f.key}" value="${escH(val)}" ${f.ro ? 'readonly' : ''} class="${empty ? 'pl-empty' : ''}">
+    </div>`;
+  }).join('');
+
+  const po = _plRow.po;
+  document.getElementById('pl-form-body').innerHTML = `
+    <div class="pl-fields-grid">${fieldsHtml}</div>
+    <div class="pl-uploads-section">
+      <div class="pl-uploads-title">Upload Documents</div>
+      <div class="pl-uploads-grid">
+        <div class="pl-upload-box" id="ubox-al" onclick="document.getElementById('upl-al').click()">
+          <input type="file" id="upl-al" style="display:none" onchange="handlePLFile('al',this)">
+          <div class="pl-upload-icon">🏷️</div>
+          <div class="pl-upload-label">Anthro Label</div>
+          <div class="pl-upload-name" id="upl-al-name">AL ${escH(po)} — click to upload</div>
+        </div>
+        <div class="pl-upload-box" id="ubox-pl" onclick="document.getElementById('upl-pl').click()">
+          <input type="file" id="upl-pl" style="display:none" onchange="handlePLFile('pl',this)">
+          <div class="pl-upload-icon">📄</div>
+          <div class="pl-upload-label">Packing List</div>
+          <div class="pl-upload-name" id="upl-pl-name">PL ${escH(po)} — click to upload</div>
+        </div>
+        <div class="pl-upload-box" id="ubox-fedex" onclick="document.getElementById('upl-fedex').click()">
+          <input type="file" id="upl-fedex" style="display:none" onchange="handlePLFile('fedex',this)">
+          <div class="pl-upload-icon">🚚</div>
+          <div class="pl-upload-label">FedEx Label</div>
+          <div class="pl-upload-name" id="upl-fedex-name">FEDEX ${escH(po)} — click to upload</div>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('pl-overlay').classList.add('open');
+}
+
+function closePLForm() {
+  document.getElementById('pl-overlay').classList.remove('open');
+  _plRow = null; _plFiles = { al: null, pl: null, fedex: null };
+}
+
+function handlePLFile(type, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _plFiles[type] = { name: file.name, base64: e.target.result.split(',')[1], mimeType: file.type || 'application/octet-stream' };
+    const nameEl = document.getElementById(`upl-${type}-name`);
+    nameEl.textContent = file.name;
+    document.getElementById(`ubox-${type}`).classList.add('has-file');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function savePLForm() {
+  const btn = document.getElementById('pl-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  const fields = {};
+  PL_FIELDS.forEach(f => { if (!f.ro) fields[f.key] = document.getElementById(`plf-${f.key}`)?.value || ''; });
+
+  try {
+    const r = await fetch('/api/jhonny/save-pl-form', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ po: _plRow.po, rowIndex: _plRow.rowIndex, fields, files: _plFiles }),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'Failed');
+    closePLForm();
+    showToast(`✓ PO ${_plRow.po} saved`);
+    openGenerator('packing-list');
+  } catch (e) {
+    btn.textContent = '⚠ Error — try again';
+    setTimeout(() => { btn.textContent = 'Save & Upload'; btn.disabled = false; }, 2500);
   }
 }
 

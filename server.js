@@ -14,7 +14,7 @@ const AUTH_CONFIG = require('./contacts/authUsers');
 const buyers      = require('./contacts/buyers');
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '25mb' }));
 app.use(session({
   secret: process.env.SESSION_SECRET || '305secret',
   resave: false,
@@ -1340,11 +1340,12 @@ app.get('/api/jhonny/po-list', async (req, res) => {
       style:      idx('style#', 'style #', 'style'),
       po:         idx('po#', 'po number'),
       status:     idx('status'),
-      shipDate:   idx('ship date', 'shipped date', 'ex-factory', 'exfactory'),
+      shipDate:   idx('ship date tradestone', 'ship date', 'shipped date'),
       cancel:     idx('cancel date', 'cancel by', 'cancel'),
       invDate:    idx('urbn invoice date'),
       invEmailSent: idx('invoice email sent'),
       pl:         idx('packing list', 'pack list'),
+      alCheck:    idx('anthro label 🏷️', 'anthro label 🏷', 'anthro label'),
       fx:         idx('fedex label'),
       alLink:     idx('po link', 'al link', 'anthro label link'),
       plLink:     idx('pl link', 'packing list link'),
@@ -1352,7 +1353,17 @@ app.get('/api/jhonny/po-list', async (req, res) => {
       alPrinted:  idx('al printed'),
       plPrinted:  idx('pl printed'),
       fxPrinted:  idx('fedeex printed', 'fedex printed'),
+      supplier:   idx('supplier'),
+      boxQty:     idx('box qty', 'boxes', 'cartons'),
+      exFactory:  idx('ex factory', 'ex-factory', 'flight date'),
+      arrival:    idx('arrival date', 'eta'),
+      supInvoice: idx('sup invoice', 'supplier invoice'),
+      mawb:       idx('mawb', 'hawb'),
+      poQty:      idx('po qty', 'po quantity'),
     };
+    // category/sub-category: find carefully to avoid cross-matching
+    C.subCategory = H.findIndex(h => h.includes('sub') && h.includes('categor'));
+    C.category    = H.findIndex(h => h.includes('categor') && !(h.includes('sub')));
 
     const get = (row, i) => i >= 0 ? (row[i] || '').trim() : '';
 
@@ -1377,7 +1388,7 @@ app.get('/api/jhonny/po-list', async (req, res) => {
       let link  = '';
       if (type === 'invoice')       { match = status.toUpperCase() === 'SHIPPED' && !get(row, C.invDate); }
       if (type === 'send-invoices') { match = status.toUpperCase() === 'SHIPPED' && !get(row, C.invEmailSent); }
-      if (type === 'packing-list')  { match = inTransitWarehouseDelayed(status) && !get(row, C.pl); }
+      if (type === 'packing-list')  { match = inTransitWarehouseDelayed(status) && !get(row, C.pl) && !get(row, C.alCheck); }
       if (type === 'fedex')        { match = inTransitWarehouseDelayed(status) && !get(row, C.fx); }
       const s = status.toLowerCase();
       const printable = s.includes('transit') || s.includes('warehouse');
@@ -1386,8 +1397,19 @@ app.get('/api/jhonny/po-list', async (req, res) => {
       if (type === 'fedex-print') { link = get(row, C.fxLink);  match = !!link && printable && !get(row, C.fxPrinted); }
 
       if (match) {
-        const entry = { style, po, status, shipDate: get(row, C.shipDate), cancelDate: get(row, C.cancel) };
+        const entry = { style, po, status, shipDate: get(row, C.shipDate), cancelDate: get(row, C.cancel), rowIndex: i + 1 };
         if (link) entry.link = link;
+        if (type === 'packing-list') Object.assign(entry, {
+          supplier:    get(row, C.supplier),
+          boxQty:      get(row, C.boxQty),
+          exFactory:   get(row, C.exFactory),
+          arrivalDate: get(row, C.arrival),
+          supInvoice:  get(row, C.supInvoice),
+          mawb:        get(row, C.mawb),
+          category:    get(row, C.category),
+          subCategory: get(row, C.subCategory),
+          poQty:       get(row, C.poQty),
+        });
         result.push(entry);
       }
     }
@@ -1435,6 +1457,111 @@ app.post('/api/jhonny/run-fill-links', async (req, res) => {
     if (r.status !== 204) { const b = await r.text(); return res.status(500).json({ error: `GitHub: ${b}` }); }
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── Jhonny: save packing list form (update sheet + upload to Drive) ─────────
+const AL_PL_FOLDER_ID = '1k4k8EpLdhw4EyUvQMn35ZwiRgvqsniJq';
+const FEDEX_FOLDER_ID = '1ufkdrO23m2C-MrmhR1iKN3QFSJFwuQPY';
+const MONTH_NAMES = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+
+async function getOrCreateMonthFolder(drive, parentId, month) {
+  const r = await drive.files.list({
+    q: `name='${month}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+    fields: 'files(id)', supportsAllDrives: true, includeItemsFromAllDrives: true,
+  });
+  if (r.data.files.length > 0) return r.data.files[0].id;
+  const f = await drive.files.create({
+    requestBody: { name: month, mimeType: 'application/vnd.google-apps.folder', parents: [parentId] },
+    fields: 'id', supportsAllDrives: true,
+  });
+  return f.data.id;
+}
+
+async function uploadToDrive(drive, folderId, fileName, base64, mimeType) {
+  const { Readable } = require('stream');
+  const buf = Buffer.from(base64, 'base64');
+  const r = await drive.files.create({
+    requestBody: { name: fileName, parents: [folderId] },
+    media: { mimeType, body: Readable.from(buf) },
+    fields: 'id,webViewLink', supportsAllDrives: true,
+  });
+  return r.data;
+}
+
+app.post('/api/jhonny/save-pl-form', async (req, res) => {
+  try {
+    const { po, rowIndex, fields, files } = req.body || {};
+    if (!po || !rowIndex) return res.status(400).json({ error: 'po and rowIndex required' });
+
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+    const drive  = google.drive({ version: 'v3', auth });
+    const TAB    = 'Warehouse Now Database';
+
+    const hRes = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `${TAB}!1:1` });
+    const H    = (hRes.data.values?.[0] || []).map(h => (h || '').trim());
+    const idxH = (...keys) => H.findIndex(h => keys.some(k => h.toLowerCase().includes(k.toLowerCase())));
+    const colL = i => { let col='',n=i; while(n>=0){col=String.fromCharCode(65+(n%26))+col;n=Math.floor(n/26)-1;} return col; };
+
+    const fieldMap = {
+      style:       idxH('style#', 'style #', 'style'),
+      shipDate:    idxH('ship date tradestone', 'ship date', 'shipped date'),
+      cancelDate:  idxH('cancel date', 'cancel by', 'cancel'),
+      supplier:    idxH('supplier'),
+      boxQty:      idxH('box qty', 'boxes', 'cartons'),
+      exFactory:   idxH('ex factory', 'ex-factory', 'flight date'),
+      arrivalDate: idxH('arrival date', 'eta'),
+      supInvoice:  idxH('sup invoice', 'supplier invoice'),
+      mawb:        idxH('mawb', 'hawb'),
+      poQty:       idxH('po qty', 'po quantity'),
+    };
+    fieldMap.subCategory = H.findIndex(h => h.toLowerCase().includes('sub') && h.toLowerCase().includes('categor'));
+    fieldMap.category    = H.findIndex(h => h.toLowerCase().includes('categor') && !h.toLowerCase().includes('sub'));
+
+    const data = [];
+    for (const [key, val] of Object.entries(fields || {})) {
+      const col = fieldMap[key];
+      if (col >= 0 && val !== undefined) data.push({ range: `${TAB}!${colL(col)}${rowIndex}`, values: [[val]] });
+    }
+
+    // Upload files to Drive
+    const month = MONTH_NAMES[new Date().getMonth()];
+    const alPlMonthId  = await getOrCreateMonthFolder(drive, AL_PL_FOLDER_ID, month);
+    const fedexMonthId = await getOrCreateMonthFolder(drive, FEDEX_FOLDER_ID, month);
+
+    const alLinkIdx  = idxH('al link', 'anthro label link');
+    const plLinkIdx  = idxH('pl link', 'packing list link');
+    const fxLinkIdx  = idxH('fedex label link', 'fedex link');
+    const alCheckIdx = H.findIndex(h => h.toLowerCase().includes('anthro label') && !h.toLowerCase().includes('link') && !h.toLowerCase().includes('printed'));
+    const plCheckIdx = H.findIndex(h => h.toLowerCase().includes('packing list') && !h.toLowerCase().includes('link') && !h.toLowerCase().includes('printed'));
+    const fxCheckIdx = H.findIndex(h => h.toLowerCase().includes('fedex label') && !h.toLowerCase().includes('link') && !h.toLowerCase().includes('printed'));
+
+    if (files?.al?.base64) {
+      const ext  = (files.al.name.split('.').pop() || 'pdf').toLowerCase();
+      const file = await uploadToDrive(drive, alPlMonthId, `AL ${po}.${ext}`, files.al.base64, files.al.mimeType);
+      if (alLinkIdx  >= 0 && file.webViewLink) data.push({ range: `${TAB}!${colL(alLinkIdx)}${rowIndex}`,  values: [[file.webViewLink]] });
+      if (alCheckIdx >= 0) data.push({ range: `${TAB}!${colL(alCheckIdx)}${rowIndex}`, values: [['✅']] });
+    }
+    if (files?.pl?.base64) {
+      const ext  = (files.pl.name.split('.').pop() || 'pdf').toLowerCase();
+      const file = await uploadToDrive(drive, alPlMonthId, `PL ${po}.${ext}`, files.pl.base64, files.pl.mimeType);
+      if (plLinkIdx  >= 0 && file.webViewLink) data.push({ range: `${TAB}!${colL(plLinkIdx)}${rowIndex}`,  values: [[file.webViewLink]] });
+      if (plCheckIdx >= 0) data.push({ range: `${TAB}!${colL(plCheckIdx)}${rowIndex}`, values: [['✅']] });
+    }
+    if (files?.fedex?.base64) {
+      const ext  = (files.fedex.name.split('.').pop() || 'pdf').toLowerCase();
+      const file = await uploadToDrive(drive, fedexMonthId, `FEDEX ${po}.${ext}`, files.fedex.base64, files.fedex.mimeType);
+      if (fxLinkIdx  >= 0 && file.webViewLink) data.push({ range: `${TAB}!${colL(fxLinkIdx)}${rowIndex}`,  values: [[file.webViewLink]] });
+      if (fxCheckIdx >= 0) data.push({ range: `${TAB}!${colL(fxCheckIdx)}${rowIndex}`, values: [['✅']] });
+    }
+
+    if (data.length) await sheets.spreadsheets.values.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { valueInputOption: 'RAW', data } });
+    res.json({ ok: true, updated: data.length });
+  } catch (e) {
+    console.error('[save-pl-form]', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ─── Jhonny: create invoice email draft in sender's Gmail ────────────────────
