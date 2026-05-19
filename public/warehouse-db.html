@@ -93,7 +93,7 @@
 
     .card-top { display: flex; justify-content: space-between; align-items: center; }
     .card-po-style-row { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
-    .card-po { font-size: 12px; font-weight: 700; }
+    .card-po { font-size: 15px; font-weight: 700; }
     .card-style { font-size: 10px; color: var(--muted); }
     /* CAD lightbox */
     .cad-lb { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 9999; align-items: center; justify-content: center; cursor: zoom-out; }
@@ -230,7 +230,7 @@
 
       /* CARDS â€" slightly more padding on mobile for thumb targets */
       .card-body { padding: 12px 14px; gap: 9px; }
-      .card-po { font-size: 13px; }
+      .card-po { font-size: 16px; }
       .card-style { font-size: 11px; }
       .badge { font-size: 10px; padding: 3px 8px; }
 
@@ -936,21 +936,19 @@ function openCadLightbox(img) {
 }
 
 async function loadCadImages() {
-  const imgs   = [...document.querySelectorAll('.card-cad[data-style]')];
-  const styles = [...new Set(imgs.map(i => i.dataset.style).filter(Boolean))];
-  if (!styles.length) return;
-  try {
-    const { results } = await fetch('/api/jhonny/cad-images-batch', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ styles }),
-    }).then(r => r.json());
-    for (const img of imgs) {
-      const d = results[img.dataset.style];
-      if (!d?.found) continue;
+  const imgs  = [...document.querySelectorAll('.card-cad[data-style]')];
+  const cache = new Map();
+  await Promise.all(imgs.map(async img => {
+    const style = img.dataset.style;
+    if (!style) return;
+    try {
+      if (!cache.has(style)) cache.set(style, fetch(`/api/jhonny/cad-image/${encodeURIComponent(style)}`).then(r => r.json()));
+      const d = await cache.get(style);
+      if (!d.found) return;
       img.src = `data:${d.mimeType};base64,${d.imageData}`;
       img.classList.add('loaded');
-    }
-  } catch {}
+    } catch {}
+  }));
 }
 </script>
 </body>
