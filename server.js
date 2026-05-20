@@ -934,6 +934,18 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       return r.data.values || [];
     };
     const isFormulaPB = v => typeof v === 'string' && v.startsWith('=');
+    const colLetter = idx => {
+      let s = '', n = idx;
+      do { s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26) - 1; } while (n >= 0);
+      return s;
+    };
+    const fmtMonDayYear = v => {
+      if (!v) return '';
+      const d = new Date(String(v));
+      if (isNaN(d.getTime())) return '';
+      const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return M[d.getMonth()] + '/' + d.getDate() + '/' + d.getFullYear();
+    };
 
     const [tsData, poNewData, poInvData] = await Promise.all([
       readTab('TRADESTONE DATABASE', true), // FORMULA mode — preserves existing formulas
@@ -953,6 +965,7 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
     const pnShip  = pnHM['ship date'] ?? -1;
     const pnCancel = pnHM['cancel date'] ?? -1;
     const tsIPcol  = tsHM['ip class'] ?? tsHM['ipclass'] ?? -1;
+    const realCancelIdx = tsHM['real cancel date'] ?? -1;
 
     // Columns that must not be overwritten from PO NEW (V=21, AL=37, AM=38)
     const SKIP = new Set([21, 37, 38]);
@@ -1002,6 +1015,7 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       if (inv.AJ != null && inv.AJ !== '') r[COL_AJ] = inv.AJ;
       if (inv.AK != null && inv.AK !== '') r[COL_AK] = inv.AK;
       r[COL_H] = colH(r);
+      if (realCancelIdx >= 0) r[realCancelIdx] = fmtMonDayYear(r[COL_H]);
     }
 
     // Step 2 — add only NEW POs (not already in TRADESTONE DATABASE)
@@ -1031,6 +1045,7 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       if (inv) { nr[COL_AJ] = inv.AJ; nr[COL_AK] = inv.AK; }
       nr[COL_H] = colH(nr);
       if (tsIPcol >= 0) nr[COL_V] = IP_CAT[parseInt(nr[tsIPcol])] || 'OTHER';
+      if (realCancelIdx >= 0) nr[realCancelIdx] = fmtMonDayYear(nr[COL_H]);
 
       // Inject formulas with the exact sheet row number for this new row
       const r = firstNewSheetRow + newRows.length;
@@ -1043,14 +1058,14 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       newRows.push(nr);
     }
 
-    // Write AJ/AK/H updates — preserve any existing formula cells
-    const ajVals = [], akVals = [], hVals = [];
+    // Write AJ/AK/H/RealCancelDate updates — preserve any existing formula cells
+    const ajVals = [], akVals = [], hVals = [], rcVals = [];
     for (let i = 1; i < tsData.length; i++) {
       const orig = tsData[i];
-      // If cell is a formula, write the formula back unchanged; otherwise write computed value
       ajVals.push([isFormulaPB(orig[COL_AJ]) ? orig[COL_AJ] : (orig[COL_AJ] ?? '')]);
       akVals.push([isFormulaPB(orig[COL_AK]) ? orig[COL_AK] : (orig[COL_AK] ?? '')]);
       hVals.push([isFormulaPB(orig[COL_H])  ? orig[COL_H]  : (orig[COL_H]  ?? '')]);
+      if (realCancelIdx >= 0) rcVals.push([orig[realCancelIdx] ?? '']);
     }
 
     // Deduplicate newRows by PO# (in case PO NEW has duplicate entries)
@@ -1073,6 +1088,7 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
               { range: `'TRADESTONE DATABASE'!AJ2`, values: ajVals },
               { range: `'TRADESTONE DATABASE'!AK2`, values: akVals },
               { range: `'TRADESTONE DATABASE'!H2`,  values: hVals  },
+              ...(realCancelIdx >= 0 && rcVals.length ? [{ range: `'TRADESTONE DATABASE'!${colLetter(realCancelIdx)}2`, values: rcVals }] : []),
             ],
           },
         })
