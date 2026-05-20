@@ -990,19 +990,14 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       if (k && pnHM[k] !== undefined) colMap.push({ tsIdx: ti, poIdx: pnHM[k] });
     }
 
-    // Existing TRADESTONE rows by PO — track first occurrence; collect duplicate sheet rows
+    // Existing TRADESTONE rows by PO
     let lastDataRowIdx = 0;
     const existByPO = new Map();
-    const duplicateSheetRows = []; // 1-indexed sheet rows to delete (duplicates)
     for (let i = 1; i < tsData.length; i++) {
       const po = String(tsData[i][tsPO] || '').trim().toUpperCase();
       if (!po) continue;
-      if (existByPO.has(po)) {
-        duplicateSheetRows.push(i + 1); // sheet row = array index + 1 (row 1 = header)
-      } else {
-        existByPO.set(po, i);
-        lastDataRowIdx = i;
-      }
+      if (!existByPO.has(po)) existByPO.set(po, i);
+      lastDataRowIdx = i;
     }
 
     // Invoice data by PO
@@ -1131,16 +1126,28 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       }
     }
 
-    // Delete duplicate PO# rows — merge consecutive rows into ranges for a single efficient batchUpdate
-    if (duplicateSheetRows.length) {
-      const asc = [...duplicateSheetRows].sort((a, b) => a - b);
+    // Dedup: read column C fresh (plain values), find duplicate PO#s, delete those rows
+    const colCRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID, range: `'TRADESTONE DATABASE'!C:C`,
+      valueRenderOption: 'UNFORMATTED_VALUE',
+    });
+    const colCVals = colCRes.data.values || [];
+    const seenPO = new Set();
+    const dupRows = [];
+    for (let i = 1; i < colCVals.length; i++) {
+      const po = String(colCVals[i]?.[0] || '').trim();
+      if (!po) continue;
+      if (seenPO.has(po)) dupRows.push(i + 1); else seenPO.add(po);
+    }
+    if (dupRows.length) {
+      const asc = dupRows.sort((a, b) => a - b);
       const ranges = [];
       let s = asc[0], e = s;
       for (let i = 1; i < asc.length; i++) {
         if (asc[i] === e + 1) { e = asc[i]; } else { ranges.push([s, e]); s = e = asc[i]; }
       }
       ranges.push([s, e]);
-      ranges.sort((a, b) => b[0] - a[0]); // bottom-up so indices don't shift
+      ranges.sort((a, b) => b[0] - a[0]);
       await sheets.spreadsheets.batchUpdate({
         spreadsheetId: SHEET_ID,
         requestBody: {
@@ -1151,7 +1158,7 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       });
     }
 
-    res.json({ ok: true, newRows: dedupedRows.length, invoiceRefreshed: ajVals.length, duplicatesRemoved: duplicateSheetRows.length });
+    res.json({ ok: true, newRows: dedupedRows.length, invoiceRefreshed: ajVals.length, duplicatesRemoved: dupRows.length });
   } catch (e) {
     console.error('[powerbi-sync]', e.message);
     res.status(500).json({ error: e.message });
