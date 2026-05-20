@@ -1131,14 +1131,21 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       }
     }
 
-    // Delete duplicate PO# rows (bottom-up so indices don't shift)
+    // Delete duplicate PO# rows — merge consecutive rows into ranges for a single efficient batchUpdate
     if (duplicateSheetRows.length) {
-      duplicateSheetRows.sort((a, b) => b - a);
+      const asc = [...duplicateSheetRows].sort((a, b) => a - b);
+      const ranges = [];
+      let s = asc[0], e = s;
+      for (let i = 1; i < asc.length; i++) {
+        if (asc[i] === e + 1) { e = asc[i]; } else { ranges.push([s, e]); s = e = asc[i]; }
+      }
+      ranges.push([s, e]);
+      ranges.sort((a, b) => b[0] - a[0]); // bottom-up so indices don't shift
       await sheets.spreadsheets.batchUpdate({
         spreadsheetId: SHEET_ID,
         requestBody: {
-          requests: duplicateSheetRows.map(row => ({
-            deleteDimension: { range: { sheetId: tsSheetId, dimension: 'ROWS', startIndex: row - 1, endIndex: row } }
+          requests: ranges.map(([s, e]) => ({
+            deleteDimension: { range: { sheetId: tsSheetId, dimension: 'ROWS', startIndex: s - 1, endIndex: e } }
           })),
         },
       });
