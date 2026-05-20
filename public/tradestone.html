@@ -868,7 +868,7 @@
 
     <!-- POWERBI DATABASE card — runs after extractions complete -->
     <div id="powerbi-section" style="margin-top:12px;">
-      <div class="card" id="powerbi-card">
+      <div class="card clickable" id="powerbi-card" onclick="manualPowerBISync()">
         <div class="card-header">
           <div>
             <div class="card-title">POWERBI DATABASE</div>
@@ -880,8 +880,11 @@
           <div class="meta-row"><span class="meta-label">Runs after</span><span class="meta-value">All extractions</span></div>
           <div class="meta-row"><span class="meta-label">Last sync</span><span class="meta-value" id="powerbi-last">—</span></div>
           <div class="meta-row"><span class="meta-label">Result</span><span class="meta-value" id="powerbi-result">—</span></div>
+          <div class="meta-row" style="margin-top:6px;">
+            <span style="font-size:11px;color:var(--accent);font-weight:500;">&#x2192; Click to sync now</span>
+          </div>
         </div>
-        <a class="card-link" href="https://docs.google.com/spreadsheets/d/1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q/edit?gid=187073594#gid=187073594" target="_blank">
+        <a class="card-link" href="https://docs.google.com/spreadsheets/d/1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q/edit?gid=187073594#gid=187073594" target="_blank" onclick="event.stopPropagation()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           Open Sheet
         </a>
@@ -1134,7 +1137,16 @@ function setPowerBI(state, result) {
   if (state === 'success' || state === 'fail') last.textContent = new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
 }
 
+let pbRunning = false;
+
+function manualPowerBISync() {
+  if (pbRunning) return;
+  runPowerBISync();
+}
+
 async function runPowerBISync() {
+  if (pbRunning) return;
+  pbRunning = true;
   setPowerBI('running');
   try {
     const res  = await fetch('/api/samantha/powerbi-sync', { method: 'POST' });
@@ -1149,6 +1161,8 @@ async function runPowerBISync() {
   } catch (e) {
     setPowerBI('fail', e.message);
     showToast('PowerBI sync error', true);
+  } finally {
+    pbRunning = false;
   }
 }
 
