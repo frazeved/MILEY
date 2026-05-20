@@ -348,6 +348,19 @@ app.post('/api/run-all', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+const ALLOWED_WORKFLOWS = new Set(['po-detail.yml', 'all-pos.yml', 'po-headers.yml', 'po-invoiced.yml']);
+app.post('/api/run-workflow', async (req, res) => {
+  const { id } = req.body || {};
+  if (!id || !ALLOWED_WORKFLOWS.has(id)) return res.status(400).json({ error: 'Invalid workflow id' });
+  try {
+    const r = await ghFetch(`https://api.github.com/repos/${REPO}/actions/workflows/${id}/dispatches`, {
+      method: 'POST', body: JSON.stringify({ ref: 'main' }),
+    });
+    if (r.status !== 204) { const b = await r.text(); return res.status(500).json({ error: `GitHub returned ${r.status}: ${b}` }); }
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 async function triggerJhonnyUpdate(req, res) {
   try {
     const r = await ghFetch(`https://api.github.com/repos/frazeved/JHONNY/actions/workflows/update-fedex-status.yml/dispatches`, {
