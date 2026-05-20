@@ -1021,11 +1021,12 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
 
     // Step 2 — add only NEW POs (not already in TRADESTONE DATABASE)
     // Find formula column indices by header name
-    const cat2Idx  = tsHM['category 2']  ?? tsHM['category2']  ?? -1;
-    const cat3Idx  = tsHM['category 3']  ?? tsHM['category3']  ?? -1;
-    const boxesIdx = tsHM['boxes']       ?? -1;
-    const yr2Idx   = tsHM['year 2']      ?? tsHM['year2']       ?? -1;
-    const mo2Idx   = tsHM['month 2']     ?? tsHM['month2']      ?? -1;
+    const cat2Idx    = tsHM['category 2']    ?? tsHM['category2']     ?? -1;
+    const cat3Idx    = tsHM['category 3']    ?? tsHM['category3']     ?? -1;
+    const boxesIdx   = tsHM['boxes']         ?? -1;
+    const totalQtyIdx = tsHM['total qty']    ?? tsHM['total quantity'] ?? tsHM['totalqty'] ?? tsHM['total units'] ?? -1;
+    const yr2Idx     = tsHM['year 2']        ?? tsHM['year2']          ?? -1;
+    const mo2Idx     = tsHM['month 2']       ?? tsHM['month2']         ?? -1;
 
     // firstNewSheetRow: the sheet row where the first appended row will land.
     // tsData[lastDataRowIdx] is at sheet row lastDataRowIdx+1, so next row is lastDataRowIdx+2.
@@ -1068,7 +1069,7 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
     for (const nr of dedupedRows) {
       if (cat2Idx  >= 0) nr[cat2Idx]  = `=IFNA(VLOOKUP(INDEX($V:$V,ROW()),{"Dresses","Dresses";"Rompers","Dresses";"JUMPERS & ROMPERS","Dresses";"Blouses","Blouses";"BLOUSES & SHIRTS","Blouses";"SLEEP","Lounge";"Fine Gauge","Sweaters";"Sweaters","Sweaters";"SWTRS & SWTSHRTS","Sweaters";"Heavyweight","Knit";"Knit","Knit";"Pants","Bottoms";"PANTS & LEGGINGS","Bottoms";"Jumpsuit","Bottoms";"Swimwear","Swimwear";"Water''s Edge","Swimwear";"Wraps","Accessories";"Shorts","Shorts";"Skirts","Skirts"},2,0),"No Match")`;
       if (cat3Idx  >= 0) nr[cat3Idx]  = `=IFNA(VLOOKUP(INDEX($V:$V,ROW()),{"Sleep","Lounge";"Blouses","Blouses";"BLOUSES & SHIRTS","Blouses";"Dresses","Dresses";"Fine Gauge","Sweaters";"Heavyweight","Knit";"JUMPERS & ROMPERS","Bottoms";"Jumpsuit","Bottoms";"Pants","Bottoms";"PANTS & LEGGINGS","Bottoms";"Rompers","Dresses";"Shorts","Skirts";"Skirts","Skirts";"Sweaters","Sweaters";"SWTRS & SWTSHRTS","Sweaters";"Swimwear","Swimwear";"Water''s Edge","Swimwear";"Wraps","Accessories"},2,0),"No Match")`;
-      if (boxesIdx >= 0) nr[boxesIdx] = `=INDEX($AF:$AF,ROW())/30`;
+      if (boxesIdx >= 0 && totalQtyIdx >= 0) { const tqCol = colLetter(totalQtyIdx); nr[boxesIdx] = `=INDEX($${tqCol}:$${tqCol},ROW())/30`; }
       if (yr2Idx   >= 0) nr[yr2Idx]   = `=YEAR(INDEX($H:$H,ROW()))`;
       if (mo2Idx   >= 0) nr[mo2Idx]   = `=TEXT(INDEX($H:$H,ROW()),"MM") & " - " & TEXT(INDEX($H:$H,ROW()),"MMM")`;
     }
