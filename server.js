@@ -989,10 +989,11 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
     }
 
     // Existing TRADESTONE rows by PO
+    let lastDataRowIdx = 0;
     const existByPO = new Map();
     for (let i = 1; i < tsData.length; i++) {
       const po = String(tsData[i][tsPO] || '').trim().toUpperCase();
-      if (po) existByPO.set(po, i);
+      if (po) { existByPO.set(po, i); lastDataRowIdx = i; }
     }
 
     // Invoice data by PO
@@ -1026,8 +1027,11 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
     const yr2Idx   = tsHM['year 2']      ?? tsHM['year2']       ?? -1;
     const mo2Idx   = tsHM['month 2']     ?? tsHM['month2']      ?? -1;
 
-    // First data row = 2, last existing = tsData.length (since tsData[0]=header)
-    const firstNewSheetRow = tsData.length + 1; // sheet row of first new row to be appended
+    // firstNewSheetRow: the sheet row where the first appended row will land.
+    // tsData[lastDataRowIdx] is at sheet row lastDataRowIdx+1, so next row is lastDataRowIdx+2.
+    // Using lastDataRowIdx instead of tsData.length avoids inflation from stale formula-only rows
+    // that the formula-mode read returns beyond the actual data.
+    const firstNewSheetRow = lastDataRowIdx + 2;
 
     const newRows = [];
     for (let si = 1; si < poNewData.length; si++) {
