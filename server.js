@@ -1063,15 +1063,14 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       return true;
     });
 
-    // Inject formulas with explicit row numbers so adjustFormulas can update them during dedup
-    for (let i = 0; i < dedupedRows.length; i++) {
-      const nr = dedupedRows[i];
-      const sheetRow = firstNewSheetRow + i;
-      if (cat2Idx  >= 0) nr[cat2Idx]  = `=IFNA(VLOOKUP(V${sheetRow},{"Dresses","Dresses";"Rompers","Dresses";"JUMPERS & ROMPERS","Dresses";"Blouses","Blouses";"BLOUSES & SHIRTS","Blouses";"SLEEP","Lounge";"Fine Gauge","Sweaters";"Sweaters","Sweaters";"SWTRS & SWTSHRTS","Sweaters";"Heavyweight","Knit";"Knit","Knit";"Pants","Bottoms";"PANTS & LEGGINGS","Bottoms";"Jumpsuit","Bottoms";"Swimwear","Swimwear";"Water''s Edge","Swimwear";"Wraps","Accessories";"Shorts","Shorts";"Skirts","Skirts"},2,0),"No Match")`;
-      if (cat3Idx  >= 0) nr[cat3Idx]  = `=IFNA(VLOOKUP(V${sheetRow},{"Sleep","Lounge";"Blouses","Blouses";"BLOUSES & SHIRTS","Blouses";"Dresses","Dresses";"Fine Gauge","Sweaters";"Heavyweight","Knit";"JUMPERS & ROMPERS","Bottoms";"Jumpsuit","Bottoms";"Pants","Bottoms";"PANTS & LEGGINGS","Bottoms";"Rompers","Dresses";"Shorts","Skirts";"Skirts","Skirts";"Sweaters","Sweaters";"SWTRS & SWTSHRTS","Sweaters";"Swimwear","Swimwear";"Water''s Edge","Swimwear";"Wraps","Accessories"},2,0),"No Match")`;
-      if (boxesIdx >= 0) nr[boxesIdx] = `=AF${sheetRow}/30`;
-      if (yr2Idx   >= 0) nr[yr2Idx]   = `=YEAR(H${sheetRow})`;
-      if (mo2Idx   >= 0) nr[mo2Idx]   = `=TEXT(H${sheetRow},"MM") & " - " & TEXT(H${sheetRow},"MMM")`;
+    // Inject formulas using INDEX($COL:$COL,ROW()) — truly dynamic, no explicit row number needed.
+    // This survives the dedup rewrite without needing adjustFormulas to touch them.
+    for (const nr of dedupedRows) {
+      if (cat2Idx  >= 0) nr[cat2Idx]  = `=IFNA(VLOOKUP(INDEX($V:$V,ROW()),{"Dresses","Dresses";"Rompers","Dresses";"JUMPERS & ROMPERS","Dresses";"Blouses","Blouses";"BLOUSES & SHIRTS","Blouses";"SLEEP","Lounge";"Fine Gauge","Sweaters";"Sweaters","Sweaters";"SWTRS & SWTSHRTS","Sweaters";"Heavyweight","Knit";"Knit","Knit";"Pants","Bottoms";"PANTS & LEGGINGS","Bottoms";"Jumpsuit","Bottoms";"Swimwear","Swimwear";"Water''s Edge","Swimwear";"Wraps","Accessories";"Shorts","Shorts";"Skirts","Skirts"},2,0),"No Match")`;
+      if (cat3Idx  >= 0) nr[cat3Idx]  = `=IFNA(VLOOKUP(INDEX($V:$V,ROW()),{"Sleep","Lounge";"Blouses","Blouses";"BLOUSES & SHIRTS","Blouses";"Dresses","Dresses";"Fine Gauge","Sweaters";"Heavyweight","Knit";"JUMPERS & ROMPERS","Bottoms";"Jumpsuit","Bottoms";"Pants","Bottoms";"PANTS & LEGGINGS","Bottoms";"Rompers","Dresses";"Shorts","Skirts";"Skirts","Skirts";"Sweaters","Sweaters";"SWTRS & SWTSHRTS","Sweaters";"Swimwear","Swimwear";"Water''s Edge","Swimwear";"Wraps","Accessories"},2,0),"No Match")`;
+      if (boxesIdx >= 0) nr[boxesIdx] = `=INDEX($AF:$AF,ROW())/30`;
+      if (yr2Idx   >= 0) nr[yr2Idx]   = `=YEAR(INDEX($H:$H,ROW()))`;
+      if (mo2Idx   >= 0) nr[mo2Idx]   = `=TEXT(INDEX($H:$H,ROW()),"MM") & " - " & TEXT(INDEX($H:$H,ROW()),"MMM")`;
     }
 
     // Write AJ/AK/H/RealCancelDate updates — preserve any existing formula cells
