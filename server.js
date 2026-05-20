@@ -1064,16 +1064,6 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       return true;
     });
 
-    // Inject formulas using INDEX($COL:$COL,ROW()) — truly dynamic, no explicit row number needed.
-    // This survives the dedup rewrite without needing adjustFormulas to touch them.
-    for (const nr of dedupedRows) {
-      if (cat2Idx  >= 0) nr[cat2Idx]  = `=IFNA(VLOOKUP(INDEX($V:$V,ROW()),{"Dresses","Dresses";"Rompers","Dresses";"JUMPERS & ROMPERS","Dresses";"Blouses","Blouses";"BLOUSES & SHIRTS","Blouses";"SLEEP","Lounge";"Fine Gauge","Sweaters";"Sweaters","Sweaters";"SWTRS & SWTSHRTS","Sweaters";"Heavyweight","Knit";"Knit","Knit";"Pants","Bottoms";"PANTS & LEGGINGS","Bottoms";"Jumpsuit","Bottoms";"Swimwear","Swimwear";"Water''s Edge","Swimwear";"Wraps","Accessories";"Shorts","Shorts";"Skirts","Skirts"},2,0),"No Match")`;
-      if (cat3Idx  >= 0) nr[cat3Idx]  = `=IFNA(VLOOKUP(INDEX($V:$V,ROW()),{"Sleep","Lounge";"Blouses","Blouses";"BLOUSES & SHIRTS","Blouses";"Dresses","Dresses";"Fine Gauge","Sweaters";"Heavyweight","Knit";"JUMPERS & ROMPERS","Bottoms";"Jumpsuit","Bottoms";"Pants","Bottoms";"PANTS & LEGGINGS","Bottoms";"Rompers","Dresses";"Shorts","Skirts";"Skirts","Skirts";"Sweaters","Sweaters";"SWTRS & SWTSHRTS","Sweaters";"Swimwear","Swimwear";"Water''s Edge","Swimwear";"Wraps","Accessories"},2,0),"No Match")`;
-      if (boxesIdx >= 0 && totalQtyIdx >= 0) { const tqCol = colLetter(totalQtyIdx); nr[boxesIdx] = `=INDEX($${tqCol}:$${tqCol},ROW())/30`; }
-      if (yr2Idx   >= 0) nr[yr2Idx]   = `=YEAR(INDEX($H:$H,ROW()))`;
-      if (mo2Idx   >= 0) nr[mo2Idx]   = `=TEXT(INDEX($H:$H,ROW()),"MM") & " - " & TEXT(INDEX($H:$H,ROW()),"MMM")`;
-    }
-
     // Write AJ/AK/H/RealCancelDate updates — preserve any existing formula cells
     const ajVals = [], akVals = [], hVals = [], rcVals = [];
     for (let i = 1; i < tsData.length; i++) {
@@ -1084,31 +1074,53 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       if (realCancelIdx >= 0) rcVals.push([isFormulaPB(orig[realCancelIdx]) ? orig[realCancelIdx] : (orig[realCancelIdx] ?? '')]);
     }
 
-    const writes = [];
     if (tsData.length > 1) {
-      writes.push(
-        sheets.spreadsheets.values.batchUpdate({
-          spreadsheetId: SHEET_ID,
-          requestBody: {
-            valueInputOption: 'USER_ENTERED',
-            data: [
-              { range: `'TRADESTONE DATABASE'!AJ2`, values: ajVals },
-              { range: `'TRADESTONE DATABASE'!AK2`, values: akVals },
-              { range: `'TRADESTONE DATABASE'!H2`,  values: hVals  },
-              ...(realCancelIdx >= 0 && rcVals.length ? [{ range: `'TRADESTONE DATABASE'!${colLetter(realCancelIdx)}2`, values: rcVals }] : []),
-            ],
-          },
-        })
-      );
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: SHEET_ID,
+        requestBody: {
+          valueInputOption: 'USER_ENTERED',
+          data: [
+            { range: `'TRADESTONE DATABASE'!AJ2`, values: ajVals },
+            { range: `'TRADESTONE DATABASE'!AK2`, values: akVals },
+            { range: `'TRADESTONE DATABASE'!H2`,  values: hVals  },
+            ...(realCancelIdx >= 0 && rcVals.length ? [{ range: `'TRADESTONE DATABASE'!${colLetter(realCancelIdx)}2`, values: rcVals }] : []),
+          ],
+        },
+      });
     }
+
+    // Append new rows first (no formula columns), then read the exact rows they landed on
+    // from the API response — that's the only reliable way to know the actual row numbers.
     if (dedupedRows.length) {
-      writes.push(sheets.spreadsheets.values.append({
+      const appendRes = await sheets.spreadsheets.values.append({
         spreadsheetId: SHEET_ID, range: `'TRADESTONE DATABASE'!A1`,
         valueInputOption: 'USER_ENTERED', insertDataOption: 'INSERT_ROWS',
         requestBody: { values: dedupedRows },
-      }));
+      });
+
+      // updatedRange looks like "'TRADESTONE DATABASE'!A2920:BQ2925" — extract starting row
+      const rangeMatch = (appendRes.data.updates?.updatedRange || '').match(/!A(\d+)/);
+      const actualFirstRow = rangeMatch ? parseInt(rangeMatch[1]) : null;
+
+      if (actualFirstRow !== null) {
+        const tqCol = totalQtyIdx >= 0 ? colLetter(totalQtyIdx) : null;
+        const formulaData = [];
+        for (let i = 0; i < dedupedRows.length; i++) {
+          const r = actualFirstRow + i;
+          if (cat2Idx  >= 0) formulaData.push({ range: `'TRADESTONE DATABASE'!${colLetter(cat2Idx)}${r}`,  values: [[`=IFNA(VLOOKUP(V${r},{"Dresses","Dresses";"Rompers","Dresses";"JUMPERS & ROMPERS","Dresses";"Blouses","Blouses";"BLOUSES & SHIRTS","Blouses";"SLEEP","Lounge";"Fine Gauge","Sweaters";"Sweaters","Sweaters";"SWTRS & SWTSHRTS","Sweaters";"Heavyweight","Knit";"Knit","Knit";"Pants","Bottoms";"PANTS & LEGGINGS","Bottoms";"Jumpsuit","Bottoms";"Swimwear","Swimwear";"Water''s Edge","Swimwear";"Wraps","Accessories";"Shorts","Shorts";"Skirts","Skirts"},2,0),"No Match")`]] });
+          if (cat3Idx  >= 0) formulaData.push({ range: `'TRADESTONE DATABASE'!${colLetter(cat3Idx)}${r}`,  values: [[`=IFNA(VLOOKUP(V${r},{"Sleep","Lounge";"Blouses","Blouses";"BLOUSES & SHIRTS","Blouses";"Dresses","Dresses";"Fine Gauge","Sweaters";"Heavyweight","Knit";"JUMPERS & ROMPERS","Bottoms";"Jumpsuit","Bottoms";"Pants","Bottoms";"PANTS & LEGGINGS","Bottoms";"Rompers","Dresses";"Shorts","Skirts";"Skirts","Skirts";"Sweaters","Sweaters";"SWTRS & SWTSHRTS","Sweaters";"Swimwear","Swimwear";"Water''s Edge","Swimwear";"Wraps","Accessories"},2,0),"No Match")`]] });
+          if (boxesIdx >= 0 && tqCol) formulaData.push({ range: `'TRADESTONE DATABASE'!${colLetter(boxesIdx)}${r}`, values: [[`=${tqCol}${r}/30`]] });
+          if (yr2Idx   >= 0) formulaData.push({ range: `'TRADESTONE DATABASE'!${colLetter(yr2Idx)}${r}`,   values: [[`=YEAR(H${r})`]] });
+          if (mo2Idx   >= 0) formulaData.push({ range: `'TRADESTONE DATABASE'!${colLetter(mo2Idx)}${r}`,   values: [[`=TEXT(H${r},"MM") & " - " & TEXT(H${r},"MMM")`]] });
+        }
+        if (formulaData.length) {
+          await sheets.spreadsheets.values.batchUpdate({
+            spreadsheetId: SHEET_ID,
+            requestBody: { valueInputOption: 'USER_ENTERED', data: formulaData },
+          });
+        }
+      }
     }
-    await Promise.all(writes);
 
     // Full dedup pass — read fresh, remove duplicate PO# rows, rewrite with corrected formula row refs
     const freshData = await readTab('TRADESTONE DATABASE', true);
