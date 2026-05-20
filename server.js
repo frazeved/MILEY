@@ -2493,6 +2493,196 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
   }
 });
 
+// ── JIMMY — BI DASHBOARDS ─────────────────────────────────────────────────────
+
+async function jimGetSheets() {
+  const sa   = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+  const auth = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'] });
+  return google.sheets({ version: 'v4', auth });
+}
+
+async function jimReadTab(sheets, sheetId, tab) {
+  const r = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId, range: `'${tab}'`,
+    valueRenderOption: 'UNFORMATTED_VALUE', dateTimeRenderOption: 'FORMATTED_STRING',
+  });
+  return r.data.values || [];
+}
+
+function jimBuildHMap(headers) {
+  const m = {};
+  (headers || []).forEach((v, i) => { const k = String(v || '').trim().toLowerCase(); if (k) m[k] = i; });
+  return m;
+}
+
+function jimFindCol(m, ...names) {
+  for (const n of names) {
+    const k = n.toLowerCase();
+    if (m[k] !== undefined) return m[k];
+    const key = Object.keys(m).find(k2 => k2.includes(k) || k.includes(k2));
+    if (key !== undefined) return m[key];
+  }
+  return -1;
+}
+
+function jimToNum(v) { if (v == null || v === '') return 0; return parseFloat(String(v).replace(/[$, ]/g, '')) || 0; }
+function jimParseDate(v) { if (v == null || v === '') return null; const d = new Date(String(v).trim()); return isNaN(d.getTime()) ? null : d; }
+
+function jimSumByMonth(rows, dateCol, valCol, year) {
+  const sums = new Array(12).fill(0);
+  if (dateCol < 0 || valCol < 0) return sums;
+  for (const row of rows) {
+    const n = jimToNum(row[valCol]); if (!n) continue;
+    const d = jimParseDate(row[dateCol]); if (!d || d.getFullYear() !== year) continue;
+    sums[d.getMonth()] += n;
+  }
+  return sums;
+}
+
+function jimSumByMonthAndCat(rows, dateCol, valCol, catCol, year) {
+  const cats = {};
+  if (dateCol < 0 || valCol < 0 || catCol < 0) return cats;
+  for (const row of rows) {
+    const n = jimToNum(row[valCol]); if (!n) continue;
+    const d = jimParseDate(row[dateCol]); if (!d || d.getFullYear() !== year) continue;
+    const cat = String(row[catCol] || '').trim() || 'Other';
+    if (!cats[cat]) cats[cat] = new Array(12).fill(0);
+    cats[cat][d.getMonth()] += n;
+  }
+  return cats;
+}
+
+const JIM_TTL = 10 * 60 * 1000;
+const _jimForecastCache    = { data: null, ts: 0 };
+const _jimFcCatCache       = { data: null, ts: 0 };
+const _jimMapCache         = { data: null, ts: 0 };
+
+app.get('/api/forecast', async (req, res) => {
+  try {
+    if (_jimForecastCache.data && !req.query.refresh && Date.now() - _jimForecastCache.ts < JIM_TTL)
+      return res.json(_jimForecastCache.data);
+
+    const sheets = await jimGetSheets();
+    const [tsData, mapData] = await Promise.all([
+      jimReadTab(sheets, SHEET_ID,     'TRADESTONE DATABASE'),
+      jimReadTab(sheets, MAP_SHEET_ID, 'ANTHRO MAP 2026'),
+    ]);
+
+    const tsH          = jimBuildHMap(tsData[0]);
+    const tsInvValCol  = jimFindCol(tsH, 'invoice value', 'invoice amount', 'inv amount');
+    const tsInvDateCol = jimFindCol(tsH, 'invoice date', 'inv date');
+    const tsCancelCol  = jimFindCol(tsH, 'cancel date', 'ship date');
+    const tsFOBCol     = jimFindCol(tsH, 'total fob', 'fob total', 'net amount', 'total amount', 'po wholesale', 'wholesale');
+    const tsCatCol     = jimFindCol(tsH, 'category 2', 'category2', 'category');
+    const tsRows       = tsData.slice(1);
+
+    const mapH            = jimBuildHMap(mapData[0]);
+    const mapWholesaleCol = jimFindCol(mapH, 'po wholesale', 'wholesale');
+    const mapCancelCol    = jimFindCol(mapH, 'cancel date');
+    const mapRows         = mapData.slice(1);
+
+    const inv2025      = jimSumByMonth(tsRows,  tsInvDateCol,  tsInvValCol,     2025);
+    const po2026       = jimSumByMonth(tsRows,  tsCancelCol,   tsFOBCol,        2026);
+    const inv2026      = jimSumByMonth(tsRows,  tsInvDateCol,  tsInvValCol,     2026);
+    const forecast2026 = jimSumByMonth(mapRows, mapCancelCol,  mapWholesaleCol, 2026);
+    const catBreakdown = jimSumByMonthAndCat(tsRows, tsCancelCol, tsFOBCol, tsCatCol, 2026);
+
+    const result = { inv2025, forecast2026, po2026, inv2026, catBreakdown };
+    _jimForecastCache.data = result; _jimForecastCache.ts = Date.now();
+    res.json(result);
+  } catch (e) { console.error('[jimmy/forecast]', e.message); res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/forecast-by-category', async (req, res) => {
+  try {
+    if (_jimFcCatCache.data && !req.query.refresh && Date.now() - _jimFcCatCache.ts < JIM_TTL)
+      return res.json(_jimFcCatCache.data);
+
+    const sheets = await jimGetSheets();
+    const tsData  = await jimReadTab(sheets, SHEET_ID, 'TRADESTONE DATABASE');
+    const hm      = jimBuildHMap(tsData[0]);
+    const C = {
+      style:      jimFindCol(hm, 'vendor style #', 'style #', 'style#'),
+      status:     jimFindCol(hm, 'status'),
+      supplier:   jimFindCol(hm, 'vendor', 'supplier'),
+      brand:      jimFindCol(hm, 'brand'),
+      category:   jimFindCol(hm, 'category 2', 'category2', 'category'),
+      qty:        jimFindCol(hm, 'total qty', 'quantity', 'qty'),
+      wholesale:  jimFindCol(hm, 'total fob', 'fob total', 'net amount', 'po wholesale', 'wholesale'),
+      invVal:     jimFindCol(hm, 'invoice value', 'invoice amount'),
+      invDate:    jimFindCol(hm, 'invoice date'),
+      cancelDate: jimFindCol(hm, 'cancel date', 'ship date'),
+    };
+    const rows = tsData.slice(1).map(row => ({
+      style:      C.style      >= 0 ? String(row[C.style]      || '') : '',
+      status:     C.status     >= 0 ? String(row[C.status]     || '') : '',
+      supplier:   C.supplier   >= 0 ? String(row[C.supplier]   || '') : '',
+      brand:      C.brand      >= 0 ? String(row[C.brand]      || '') : '',
+      category:   C.category   >= 0 ? String(row[C.category]   || '') : '',
+      qty:        C.qty        >= 0 ? jimToNum(row[C.qty])         : 0,
+      wholesale:  C.wholesale  >= 0 ? jimToNum(row[C.wholesale])   : 0,
+      invoiced:   C.invVal     >= 0 ? jimToNum(row[C.invVal])      : 0,
+      invDate:    C.invDate    >= 0 ? String(row[C.invDate]    || '') : '',
+      cancelDate: C.cancelDate >= 0 ? String(row[C.cancelDate] || '') : '',
+    })).filter(r => r.style || r.qty || r.wholesale);
+
+    const suppliers  = [...new Set(rows.map(r => r.supplier).filter(Boolean))].sort();
+    const brands     = [...new Set(rows.map(r => r.brand).filter(Boolean))].sort();
+    const categories = [...new Set(rows.map(r => r.category).filter(Boolean))].sort();
+    const result = { rows, filters: { suppliers, brands, categories } };
+    _jimFcCatCache.data = result; _jimFcCatCache.ts = Date.now();
+    res.json(result);
+  } catch (e) { console.error('[jimmy/forecast-by-category]', e.message); res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/map-overview', async (req, res) => {
+  try {
+    if (_jimMapCache.data && !req.query.refresh && Date.now() - _jimMapCache.ts < JIM_TTL)
+      return res.json(_jimMapCache.data);
+
+    const sheets  = await jimGetSheets();
+    const mapData = await jimReadTab(sheets, MAP_SHEET_ID, 'ANTHRO MAP 2026');
+    const hm      = jimBuildHMap(mapData[0]);
+    const C = {
+      status:     jimFindCol(hm, 'status'),
+      supplier:   jimFindCol(hm, 'supplier'),
+      style:      jimFindCol(hm, 'style #', 'style#'),
+      po:         jimFindCol(hm, 'purchase order'),
+      qty:        jimFindCol(hm, 'total qty'),
+      boxQty:     jimFindCol(hm, 'box qty'),
+      fob:        jimFindCol(hm, 'fob price'),
+      wholesale:  jimFindCol(hm, 'po wholesale', 'wholesale'),
+      shipDate:   jimFindCol(hm, 'ship date'),
+      cancelDate: jimFindCol(hm, 'cancel date'),
+      exFactory:  jimFindCol(hm, 'ex factory', 'flight date'),
+      arrival:    jimFindCol(hm, 'expected arrival'),
+      brand:      jimFindCol(hm, 'brand'),
+      category:   jimFindCol(hm, 'category'),
+      subCat:     jimFindCol(hm, 'sub-category', 'subcategory'),
+      supQty:     jimFindCol(hm, 'sup qty'),
+      supCost:    jimFindCol(hm, 'sup unit cost'),
+      supInvoice: jimFindCol(hm, 'sup total invoice'),
+      realWhs:    jimFindCol(hm, 'real wholesale total'),
+      urbnDate:   jimFindCol(hm, 'urbn invoice date'),
+      urbnTotal:  jimFindCol(hm, 'urbn invoice total'),
+      chargeback: jimFindCol(hm, 'charge back', 'chargeback', 'po balance'),
+      airfreight: jimFindCol(hm, 'airfreight cost'),
+      groundFreight: jimFindCol(hm, 'ground freight'),
+      totalCosts: jimFindCol(hm, 'total costs'),
+      periodMonth: jimFindCol(hm, 'period month'),
+      year:       jimFindCol(hm, 'year'),
+      ndc:        jimFindCol(hm, 'ndc', 'ndc month'),
+    };
+    const rows = mapData.slice(1)
+      .map(row => { const r = {}; for (const [k, i] of Object.entries(C)) r[k] = i >= 0 ? (row[i] ?? '') : ''; return r; })
+      .filter(r => r.style || r.po);
+
+    const result = { rows, colNames: Object.keys(C) };
+    _jimMapCache.data = result; _jimMapCache.ts = Date.now();
+    res.json(result);
+  } catch (e) { console.error('[jimmy/map-overview]', e.message); res.status(500).json({ error: e.message }); }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`\n  305 WORKSPACE TEAM`);
