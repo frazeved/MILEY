@@ -1177,7 +1177,11 @@ function startPolling() {
   document.getElementById('refresh-info').textContent = 'Checking every 5s...';
   pollInterval = setInterval(async () => {
     ticks++;
-    await fetchStatus();
+    const data = await fetchStatus();
+    if (data && data.every(wf => wf.conclusion === 'success') && !pbTriggered) {
+      pbTriggered = true;
+      runPowerBISync();
+    }
     if (ticks >= 60) {
       clearInterval(pollInterval);
       pollInterval = null;
