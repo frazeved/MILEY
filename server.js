@@ -947,10 +947,12 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       return M[d.getMonth()] + '/' + d.getDate() + '/' + d.getFullYear();
     };
 
-    const [tsData, poNewData, poInvData] = await Promise.all([
+    const [metaRes, tsData, poNewData, poInvData] = await Promise.all([
+      sheets.spreadsheets.get({ spreadsheetId: SHEET_ID, fields: 'sheets.properties' }),
       readTab('TRADESTONE DATABASE', true), // FORMULA mode — preserves existing formulas
       readTab('PO NEW'), readTab('PO INVOICE'),
     ]);
+    const tsSheetId = (metaRes.data.sheets.find(s => s.properties.title === 'TRADESTONE DATABASE')?.properties.sheetId) ?? 0;
 
     const tsH = tsData[0] || [], poNewH = poNewData[0] || [], poInvH = poInvData[0] || [];
     const hMap = H => { const m = {}; H.forEach((h,i) => { const k = String(h).trim().toLowerCase(); if (k) m[k]=i; }); return m; };
@@ -988,12 +990,19 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       if (k && pnHM[k] !== undefined) colMap.push({ tsIdx: ti, poIdx: pnHM[k] });
     }
 
-    // Existing TRADESTONE rows by PO
+    // Existing TRADESTONE rows by PO — track first occurrence; collect duplicate sheet rows
     let lastDataRowIdx = 0;
     const existByPO = new Map();
+    const duplicateSheetRows = []; // 1-indexed sheet rows to delete (duplicates)
     for (let i = 1; i < tsData.length; i++) {
       const po = String(tsData[i][tsPO] || '').trim().toUpperCase();
-      if (po) { existByPO.set(po, i); lastDataRowIdx = i; }
+      if (!po) continue;
+      if (existByPO.has(po)) {
+        duplicateSheetRows.push(i + 1); // sheet row = array index + 1 (row 1 = header)
+      } else {
+        existByPO.set(po, i);
+        lastDataRowIdx = i;
+      }
     }
 
     // Invoice data by PO
@@ -1122,7 +1131,20 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       }
     }
 
-    res.json({ ok: true, newRows: dedupedRows.length, invoiceRefreshed: ajVals.length });
+    // Delete duplicate PO# rows (bottom-up so indices don't shift)
+    if (duplicateSheetRows.length) {
+      duplicateSheetRows.sort((a, b) => b - a);
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: SHEET_ID,
+        requestBody: {
+          requests: duplicateSheetRows.map(row => ({
+            deleteDimension: { range: { sheetId: tsSheetId, dimension: 'ROWS', startIndex: row - 1, endIndex: row } }
+          })),
+        },
+      });
+    }
+
+    res.json({ ok: true, newRows: dedupedRows.length, invoiceRefreshed: ajVals.length, duplicatesRemoved: duplicateSheetRows.length });
   } catch (e) {
     console.error('[powerbi-sync]', e.message);
     res.status(500).json({ error: e.message });
