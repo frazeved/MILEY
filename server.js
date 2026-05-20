@@ -1065,7 +1065,7 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       ajVals.push([isFormulaPB(orig[COL_AJ]) ? orig[COL_AJ] : (orig[COL_AJ] ?? '')]);
       akVals.push([isFormulaPB(orig[COL_AK]) ? orig[COL_AK] : (orig[COL_AK] ?? '')]);
       hVals.push([isFormulaPB(orig[COL_H])  ? orig[COL_H]  : (orig[COL_H]  ?? '')]);
-      if (realCancelIdx >= 0) rcVals.push([orig[realCancelIdx] ?? '']);
+      if (realCancelIdx >= 0) rcVals.push([isFormulaPB(orig[realCancelIdx]) ? orig[realCancelIdx] : (orig[realCancelIdx] ?? '')]);
     }
 
     // Deduplicate newRows by PO# (in case PO NEW has duplicate entries)
