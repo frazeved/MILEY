@@ -1064,9 +1064,9 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       return true;
     });
 
-    // Write AJ/AK/H/RealCancelDate updates — preserve any existing formula cells
+    // Write AJ/AK/H/RealCancelDate updates — only for actual data rows (up to lastDataRowIdx)
     const ajVals = [], akVals = [], hVals = [], rcVals = [];
-    for (let i = 1; i < tsData.length; i++) {
+    for (let i = 1; i <= lastDataRowIdx; i++) {
       const orig = tsData[i];
       ajVals.push([isFormulaPB(orig[COL_AJ]) ? orig[COL_AJ] : (orig[COL_AJ] ?? '')]);
       akVals.push([isFormulaPB(orig[COL_AK]) ? orig[COL_AK] : (orig[COL_AK] ?? '')]);
@@ -1122,50 +1122,7 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       }
     }
 
-    // Full dedup pass — read fresh, remove duplicate PO# rows, rewrite with corrected formula row refs
-    const freshData = await readTab('TRADESTONE DATABASE', true);
-    const freshH = freshData[0] || [];
-    const freshPOcol = hMap(freshH)['po#'] ?? tsPO;
-
-    // Build deduped list keeping track of each row's original sheet position
-    const seenAll = new Set();
-    const dedupedWithPos = [];
-    for (let i = 1; i < freshData.length; i++) {
-      const row = freshData[i];
-      const po = String(row[freshPOcol] || '').trim().toUpperCase();
-      if (po && seenAll.has(po)) continue;
-      if (po) seenAll.add(po);
-      dedupedWithPos.push({ row, origRow: i + 1 }); // origRow = 1-indexed sheet row
-    }
-
-    const removedCount = (freshData.length - 1) - dedupedWithPos.length;
-    if (removedCount > 0) {
-      // Adjust formula row references to match each row's new sheet position
-      // e.g. =YEAR(H2939) in a row that moves to row 100 becomes =YEAR(H100)
-      const adjustFormulas = (row, origRow, newRow) => {
-        if (origRow === newRow) return row;
-        return row.map(cell => {
-          if (!isFormulaPB(cell)) return cell;
-          return cell.replace(/([A-Z]+)(\d+)/g, (match, col, num) =>
-            parseInt(num) === origRow ? col + newRow : match
-          );
-        });
-      };
-
-      const writeRows = dedupedWithPos.map(({ row, origRow }, j) =>
-        adjustFormulas(row, origRow, j + 2) // new sheet row = j+2 (data starts at row 2)
-      );
-
-      await sheets.spreadsheets.values.clear({ spreadsheetId: SHEET_ID, range: `'TRADESTONE DATABASE'!A2:ZZ` });
-      if (writeRows.length) {
-        await sheets.spreadsheets.values.update({
-          spreadsheetId: SHEET_ID, range: `'TRADESTONE DATABASE'!A2`,
-          valueInputOption: 'USER_ENTERED', requestBody: { values: writeRows },
-        });
-      }
-    }
-
-    res.json({ ok: true, newRows: dedupedRows.length, duplicatesRemoved: removedCount, invoiceRefreshed: ajVals.length });
+    res.json({ ok: true, newRows: dedupedRows.length, invoiceRefreshed: ajVals.length });
   } catch (e) {
     console.error('[powerbi-sync]', e.message);
     res.status(500).json({ error: e.message });
