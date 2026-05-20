@@ -1059,15 +1059,13 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       return true;
     });
 
-    // Inject formulas after dedup so row numbers match final append positions
-    for (let j = 0; j < dedupedRows.length; j++) {
-      const nr = dedupedRows[j];
-      const r = firstNewSheetRow + j;
-      if (cat2Idx  >= 0) nr[cat2Idx]  = `=IFNA(VLOOKUP(V${r},{"Dresses","Dresses";"Rompers","Dresses";"JUMPERS & ROMPERS","Dresses";"Blouses","Blouses";"BLOUSES & SHIRTS","Blouses";"SLEEP","Lounge";"Fine Gauge","Sweaters";"Sweaters","Sweaters";"SWTRS & SWTSHRTS","Sweaters";"Heavyweight","Knit";"Knit","Knit";"Pants","Bottoms";"PANTS & LEGGINGS","Bottoms";"Jumpsuit","Bottoms";"Swimwear","Swimwear";"Water''s Edge","Swimwear";"Wraps","Accessories";"Shorts","Shorts";"Skirts","Skirts"},2,0),"No Match")`;
-      if (cat3Idx  >= 0) nr[cat3Idx]  = `=IFNA(VLOOKUP(V${r},{"Sleep","Lounge";"Blouses","Blouses";"BLOUSES & SHIRTS","Blouses";"Dresses","Dresses";"Fine Gauge","Sweaters";"Heavyweight","Knit";"JUMPERS & ROMPERS","Bottoms";"Jumpsuit","Bottoms";"Pants","Bottoms";"PANTS & LEGGINGS","Bottoms";"Rompers","Dresses";"Shorts","Skirts";"Skirts","Skirts";"Sweaters","Sweaters";"SWTRS & SWTSHRTS","Sweaters";"Swimwear","Swimwear";"Water''s Edge","Swimwear";"Wraps","Accessories"},2,0),"No Match")`;
-      if (boxesIdx >= 0) nr[boxesIdx] = `=AF${r}/30`;
-      if (yr2Idx   >= 0) nr[yr2Idx]   = `=YEAR(H${r})`;
-      if (mo2Idx   >= 0) nr[mo2Idx]   = `=TEXT(H${r},"MM") & " - " & TEXT(H${r},"MMM")`;
+    // Inject formulas — use ROW() so references stay correct regardless of position
+    for (const nr of dedupedRows) {
+      if (cat2Idx  >= 0) nr[cat2Idx]  = `=IFNA(VLOOKUP(INDIRECT("V"&ROW()),{"Dresses","Dresses";"Rompers","Dresses";"JUMPERS & ROMPERS","Dresses";"Blouses","Blouses";"BLOUSES & SHIRTS","Blouses";"SLEEP","Lounge";"Fine Gauge","Sweaters";"Sweaters","Sweaters";"SWTRS & SWTSHRTS","Sweaters";"Heavyweight","Knit";"Knit","Knit";"Pants","Bottoms";"PANTS & LEGGINGS","Bottoms";"Jumpsuit","Bottoms";"Swimwear","Swimwear";"Water''s Edge","Swimwear";"Wraps","Accessories";"Shorts","Shorts";"Skirts","Skirts"},2,0),"No Match")`;
+      if (cat3Idx  >= 0) nr[cat3Idx]  = `=IFNA(VLOOKUP(INDIRECT("V"&ROW()),{"Sleep","Lounge";"Blouses","Blouses";"BLOUSES & SHIRTS","Blouses";"Dresses","Dresses";"Fine Gauge","Sweaters";"Heavyweight","Knit";"JUMPERS & ROMPERS","Bottoms";"Jumpsuit","Bottoms";"Pants","Bottoms";"PANTS & LEGGINGS","Bottoms";"Rompers","Dresses";"Shorts","Skirts";"Skirts","Skirts";"Sweaters","Sweaters";"SWTRS & SWTSHRTS","Sweaters";"Swimwear","Swimwear";"Water''s Edge","Swimwear";"Wraps","Accessories"},2,0),"No Match")`;
+      if (boxesIdx >= 0) nr[boxesIdx] = `=INDIRECT("AF"&ROW())/30`;
+      if (yr2Idx   >= 0) nr[yr2Idx]   = `=YEAR(INDIRECT("H"&ROW()))`;
+      if (mo2Idx   >= 0) nr[mo2Idx]   = `=TEXT(INDIRECT("H"&ROW()),"MM") & " - " & TEXT(INDIRECT("H"&ROW()),"MMM")`;
     }
 
     // Write AJ/AK/H/RealCancelDate updates — preserve any existing formula cells
