@@ -1047,15 +1047,27 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       if (tsIPcol >= 0) nr[COL_V] = IP_CAT[parseInt(nr[tsIPcol])] || 'OTHER';
       if (realCancelIdx >= 0) nr[realCancelIdx] = fmtMonDayYear(nr[COL_H]);
 
-      // Inject formulas with the exact sheet row number for this new row
-      const r = firstNewSheetRow + newRows.length;
+      newRows.push(nr);
+    }
+
+    // Deduplicate newRows by PO# (in case PO NEW has duplicate entries)
+    const seenPOs = new Set();
+    const dedupedRows = newRows.filter(row => {
+      const po = String(row[tsPO] || '').trim().toUpperCase();
+      if (!po || seenPOs.has(po)) return false;
+      seenPOs.add(po);
+      return true;
+    });
+
+    // Inject formulas after dedup so row numbers match final append positions
+    for (let j = 0; j < dedupedRows.length; j++) {
+      const nr = dedupedRows[j];
+      const r = firstNewSheetRow + j;
       if (cat2Idx  >= 0) nr[cat2Idx]  = `=IFNA(VLOOKUP(V${r},{"Dresses","Dresses";"Rompers","Dresses";"JUMPERS & ROMPERS","Dresses";"Blouses","Blouses";"BLOUSES & SHIRTS","Blouses";"SLEEP","Lounge";"Fine Gauge","Sweaters";"Sweaters","Sweaters";"SWTRS & SWTSHRTS","Sweaters";"Heavyweight","Knit";"Knit","Knit";"Pants","Bottoms";"PANTS & LEGGINGS","Bottoms";"Jumpsuit","Bottoms";"Swimwear","Swimwear";"Water''s Edge","Swimwear";"Wraps","Accessories";"Shorts","Shorts";"Skirts","Skirts"},2,0),"No Match")`;
       if (cat3Idx  >= 0) nr[cat3Idx]  = `=IFNA(VLOOKUP(V${r},{"Sleep","Lounge";"Blouses","Blouses";"BLOUSES & SHIRTS","Blouses";"Dresses","Dresses";"Fine Gauge","Sweaters";"Heavyweight","Knit";"JUMPERS & ROMPERS","Bottoms";"Jumpsuit","Bottoms";"Pants","Bottoms";"PANTS & LEGGINGS","Bottoms";"Rompers","Dresses";"Shorts","Skirts";"Skirts","Skirts";"Sweaters","Sweaters";"SWTRS & SWTSHRTS","Sweaters";"Swimwear","Swimwear";"Water''s Edge","Swimwear";"Wraps","Accessories"},2,0),"No Match")`;
       if (boxesIdx >= 0) nr[boxesIdx] = `=AF${r}/30`;
       if (yr2Idx   >= 0) nr[yr2Idx]   = `=YEAR(H${r})`;
       if (mo2Idx   >= 0) nr[mo2Idx]   = `=TEXT(H${r},"MM") & " - " & TEXT(H${r},"MMM")`;
-
-      newRows.push(nr);
     }
 
     // Write AJ/AK/H/RealCancelDate updates — preserve any existing formula cells
@@ -1067,15 +1079,6 @@ app.post('/api/samantha/powerbi-sync', async (req, res) => {
       hVals.push([isFormulaPB(orig[COL_H])  ? orig[COL_H]  : (orig[COL_H]  ?? '')]);
       if (realCancelIdx >= 0) rcVals.push([isFormulaPB(orig[realCancelIdx]) ? orig[realCancelIdx] : (orig[realCancelIdx] ?? '')]);
     }
-
-    // Deduplicate newRows by PO# (in case PO NEW has duplicate entries)
-    const seenPOs = new Set();
-    const dedupedRows = newRows.filter(row => {
-      const po = String(row[tsPO] || '').trim().toUpperCase();
-      if (!po || seenPOs.has(po)) return false;
-      seenPOs.add(po);
-      return true;
-    });
 
     const writes = [];
     if (tsData.length > 1) {
