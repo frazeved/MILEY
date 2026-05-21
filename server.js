@@ -542,6 +542,11 @@ ${message?`<p>${message}</p>`:''}
   }
 });
 
+// ─── PO Official Email — creates a Gmail draft ────────────────────────────────
+app.post('/api/po/official-email', async (req, res) => {
+  res.status(501).json({ error: 'PO Official email backend is not built yet.' });
+});
+
 app.post('/api/contact', async (req, res) => {
   const { name, email, message } = req.body;
   if (!name || !message) return res.status(400).json({ error: 'Name and message are required.' });
