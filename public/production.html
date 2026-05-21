@@ -874,9 +874,11 @@ document.querySelector('#po-breakdown-modal form').addEventListener('submit', as
     });
     const data = await res.json();
     if (res.status === 401) {
+      sessionStorage.setItem('305_pendingModal', 'po-breakdown-modal');
+      sessionStorage.setItem('305_pendingForm', JSON.stringify(body));
       const userName = document.querySelector(`#sendingAs-select option[value="${body.sendingAs}"]`)?.textContent?.replace(/\s*✓.*/, '').trim() || body.sendingAs;
-      document.getElementById('gmail-setup-msg').textContent = `${userName}'s Gmail account hasn't been connected yet. This only takes a minute — click "Connect Gmail" below, sign in with your Google account, and you'll be all set.`;
-      document.getElementById('gmail-setup-link').href = `/setup`;
+      document.getElementById('gmail-setup-msg').textContent = `${userName}'s Gmail account isn't connected. Click "Connect Gmail", sign in once, and you'll be brought right back here.`;
+      document.getElementById('gmail-setup-link').href = `/auth/google?userId=${body.sendingAs}&return=${encodeURIComponent(window.location.pathname)}`;
       openModal('gmail-setup-modal');
       return;
     }
@@ -999,9 +1001,11 @@ document.querySelector('#po-official-modal form').addEventListener('submit', asy
     });
     const data = await res.json();
     if (res.status === 401) {
+      sessionStorage.setItem('305_pendingModal', 'po-official-modal');
+      sessionStorage.setItem('305_pendingForm', JSON.stringify(body));
       const userName = document.querySelector(`#sendingAs-select-official option[value="${body.sendingAs}"]`)?.textContent?.replace(/\s*✓.*/, '').trim() || body.sendingAs;
-      document.getElementById('gmail-setup-msg').textContent = `${userName}'s Gmail account hasn't been connected yet. Click "Connect Gmail" below to set it up.`;
-      document.getElementById('gmail-setup-link').href = `/setup`;
+      document.getElementById('gmail-setup-msg').textContent = `${userName}'s Gmail account isn't connected. Click "Connect Gmail", sign in once, and you'll be brought right back here.`;
+      document.getElementById('gmail-setup-link').href = `/auth/google?userId=${body.sendingAs}&return=${encodeURIComponent(window.location.pathname)}`;
       openModal('gmail-setup-modal');
       return;
     }
@@ -1023,6 +1027,30 @@ function showToast(message) {
   toast.classList.add('show');
   setTimeout(() => toast.classList.remove('show'), 3000);
 }
+
+(function restoreAfterOAuth() {
+  if (!new URLSearchParams(window.location.search).has('gmailConnected')) return;
+  history.replaceState({}, '', window.location.pathname);
+  const modalId  = sessionStorage.getItem('305_pendingModal');
+  const formJson = sessionStorage.getItem('305_pendingForm');
+  sessionStorage.removeItem('305_pendingModal');
+  sessionStorage.removeItem('305_pendingForm');
+  if (!modalId || !formJson) return;
+  const saved = JSON.parse(formJson);
+  openModal(modalId).then(() => {
+    const form = document.querySelector(`#${modalId} form`);
+    const selId = modalId === 'po-official-modal' ? 'sendingAs-select-official' : 'sendingAs-select';
+    Object.entries(saved).forEach(([name, value]) => {
+      if (!value) return;
+      const field = form.querySelector(`[name="${name}"]`);
+      if (field) field.value = value;
+    });
+    document.getElementById(selId).value = saved.sendingAs || 'kamilla';
+    if (modalId === 'po-breakdown-modal') updateTopDeadlineDays();
+    if (modalId === 'po-official-modal')  updateOfficialTopDeadlineDays();
+    showToast('Gmail connected! Your form data has been restored.');
+  });
+})();
 
 async function sendChat() {
   const name = document.getElementById('chat-name').value.trim();

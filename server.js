@@ -25,7 +25,8 @@ app.use(session({
 
 // ─── Auth users & password store (Google Sheets persistence) ─────────────────
 const SHEET_ID       = '1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q';
-const AUTH_SHEET_TAB = 'WORKSPACE AUTH';
+const AUTH_SHEET_TAB   = 'WORKSPACE AUTH';
+const TOKENS_SHEET_TAB = 'GMAIL TOKENS';
 let passwordMap = {}; // email → changed password (overrides env var default)
 
 async function loadPasswords() {
@@ -65,7 +66,43 @@ async function savePassword(email, newPwd) {
   passwordMap[email.toLowerCase()] = newPwd;
 }
 
+async function loadTokensFromSheets() {
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) return;
+  try {
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+    const r = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${TOKENS_SHEET_TAB}'!A:B` });
+    for (const [userId, token] of (r.data.values || []).slice(1)) {
+      if (userId && token) userTokens[userId] = { ...(userTokens[userId] || {}), refreshToken: token };
+    }
+  } catch (_) {}
+}
+
+async function saveTokenToSheets(userId, refreshToken) {
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) return;
+  try {
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+    const info   = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
+    if (!info.data.sheets?.some(s => s.properties?.title === TOKENS_SHEET_TAB)) {
+      await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { requests: [{ addSheet: { properties: { title: TOKENS_SHEET_TAB } } }] } });
+      await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID, range: `'${TOKENS_SHEET_TAB}'!A1`, valueInputOption: 'RAW', requestBody: { values: [['USER_ID', 'REFRESH_TOKEN']] } });
+    }
+    const r    = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${TOKENS_SHEET_TAB}'!A:B` });
+    const rows = r.data.values || [];
+    const idx  = rows.slice(1).findIndex(row => (row[0] || '') === userId);
+    if (idx >= 0) {
+      await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID, range: `'${TOKENS_SHEET_TAB}'!B${idx + 2}`, valueInputOption: 'RAW', requestBody: { values: [[refreshToken]] } });
+    } else {
+      await sheets.spreadsheets.values.append({ spreadsheetId: SHEET_ID, range: `'${TOKENS_SHEET_TAB}'!A:B`, valueInputOption: 'RAW', insertDataOption: 'INSERT_ROWS', requestBody: { values: [[userId, refreshToken]] } });
+    }
+  } catch (e) { console.error('saveTokenToSheets error:', e.message); }
+}
+
 loadPasswords();
+loadTokensFromSheets();
 
 const { DEFAULT_PASSWORD, users: AUTH_USERS_CONFIG } = AUTH_CONFIG;
 const AUTH_USERS = AUTH_USERS_CONFIG.map(u => ({
@@ -313,6 +350,7 @@ app.get('/auth/callback', async (req, res) => {
     if (!tokens.refresh_token) return res.redirect('/setup?error=norefresh');
     userTokens[userId] = { refreshToken: tokens.refresh_token };
     saveTokens();
+    saveTokenToSheets(userId, tokens.refresh_token);
     const returnPath = req.session.oauthReturn;
     req.session.oauthReturn = null;
     if (returnPath) return res.redirect(`${returnPath}?gmailConnected=1`);
