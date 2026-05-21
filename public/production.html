@@ -401,12 +401,12 @@
             <div><div class="card-name">TOP STATUS</div><div class="card-type">Email</div></div>
           </div>
         </div>
-        <div class="card email-card">
+        <div class="card email-card" onclick="runWeeklySupReport()" style="cursor:pointer;" id="weekly-sup-card">
           <div class="card-icon-row">
             <div class="icon-email">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
             </div>
-            <div><div class="card-name">PO WEEKLY SUP REPORT</div><div class="card-type">Email</div></div>
+            <div><div class="card-name">PO WEEKLY SUP REPORT</div><div class="card-type" id="weekly-sup-status">Email</div></div>
           </div>
         </div>
         <div class="card email-card">
@@ -1284,6 +1284,28 @@ async function downloadBreakdownReport() {
     showToast('Download failed. Please try again.');
   } finally {
     btn.disabled = false; btn.textContent = 'Download';
+  }
+}
+
+async function runWeeklySupReport() {
+  const card   = document.getElementById('weekly-sup-card');
+  const status = document.getElementById('weekly-sup-status');
+  card.style.pointerEvents = 'none';
+  card.style.opacity = '0.7';
+  status.textContent = 'Running…';
+  try {
+    const res  = await fetch('/api/susan/weekly-sup-report', { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Unknown error');
+    const count = data.emailsSent?.length || 0;
+    showToast(`✅ Report created & ${count} supplier email${count !== 1 ? 's' : ''} sent`);
+    status.textContent = 'Email';
+  } catch (e) {
+    showToast('Error: ' + e.message);
+    status.textContent = 'Email';
+  } finally {
+    card.style.pointerEvents = '';
+    card.style.opacity = '';
   }
 }
 
