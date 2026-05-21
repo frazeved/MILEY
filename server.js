@@ -722,6 +722,86 @@ app.post('/api/po/search', async (req, res) => {
 });
 
 // ─── Breakdown Email — creates a Gmail draft ──────────────────────────────────
+// ─── Breakdown Report — download Excel only (no email) ───────────────────────
+app.post('/api/po/breakdown-report', async (req, res) => {
+  try {
+    const { style } = req.body;
+    if (!style?.trim()) return res.status(400).json({ error: 'Style # is required' });
+
+    const rawStyle     = style.trim();
+    const displayStyle = /^[A-Za-z]-/.test(rawStyle) ? rawStyle.split('-').slice(1).join('-').trim() : rawStyle;
+    const cleanStyle   = displayStyle.toUpperCase().replace(/\s+/g, '');
+
+    const [pdRes, ptRes] = await Promise.all([fetch(csvUrl(2017761959)), fetch(csvUrl(890202899))]);
+    if (!pdRes.ok) throw new Error('Could not fetch PO DETAIL sheet');
+    if (!ptRes.ok) throw new Error('Could not fetch PO TRADE sheet');
+    const pdRows = parseCSV(await pdRes.text());
+    const ptRows = parseCSV(await ptRes.text());
+
+    const channelMap = {};
+    for (let i = 1; i < ptRows.length; i++) { const po = (ptRows[i][0]||'').trim(); if (po) channelMap[po] = (ptRows[i][1]||'').trim(); }
+
+    const H = pdRows[0] || [];
+    const findCol = (...kws) => {
+      for (const kw of kws) { const i = H.findIndex(h=>h.trim().toLowerCase()===kw); if(i>=0) return i; }
+      for (const kw of kws) { const i = H.findIndex(h=>h.trim().toLowerCase().includes(kw)); if(i>=0) return i; }
+      return -1;
+    };
+    const C = {
+      po: findCol('po#','purchase order','po'), style: findCol('vendor style','style#','style #','style'),
+      shortSku: findCol('short sku'), size: findCol('size desc','size'),
+      packType: findCol('ship pack','pack type','pack'), sizeCode: findCol('size code'),
+      qty: findCol('total qty','qty'), units: findCol('allocated','prepack','total units'),
+      itemNum: findCol('long sku','item number','sku'), color: findCol('vendor color','color'),
+    };
+    const get = (r,i) => i>=0 ? (r[i]||'').trim() : '';
+
+    const groupedByPO = {};
+    for (let i=1; i<pdRows.length; i++) {
+      const r = pdRows[i];
+      if (get(r,C.style).toUpperCase().replace(/\s+/g,'') !== cleanStyle) continue;
+      const po = get(r,C.po); if (!po) continue;
+      (groupedByPO[po] = groupedByPO[po]||[]).push(r);
+    }
+
+    if (!Object.keys(groupedByPO).length) return res.status(404).json({ error: `No PO data found for style ${displayStyle}` });
+
+    const gcd=(a,b)=>{a=Math.abs(a);b=Math.abs(b);while(b){const t=b;b=a%b;a=t;}return a;};
+    const gcdArr=ns=>{let g=0;for(const n of ns){if(n)g=g?gcd(g,n):Math.abs(n);}return g||1;};
+
+    const EXCEL_HEADERS=['PO#','Style#','Type','Pack Type','Item Number','Vendor Color','Size code','Size','Short SKU','Qty','RATIO','Total Units'];
+    const allRows=[]; let grandQty=0,grandPack=0,grandUnits=0;
+    for (const po in groupedByPO) {
+      const rows=groupedByPO[po];
+      const ppkUnits=rows.filter(r=>get(r,C.packType).toUpperCase()==='PPK').map(r=>Number(get(r,C.units))||0).filter(v=>v>0);
+      const gcdUnits=gcdArr(ppkUnits);
+      let poQty=0,poPack=0,poTotal=0;
+      for (const r of rows) {
+        const pack=get(r,C.packType).toUpperCase(), qty=Number(get(r,C.qty))||0, units=Number(get(r,C.units))||0;
+        const ratio=pack==='PPK'?Math.round((units/(gcdUnits||1))*1e6)/1e6:1, sc=get(r,C.sizeCode);
+        allRows.push([get(r,C.po),get(r,C.style),channelMap[po]||'',pack,get(r,C.itemNum),get(r,C.color),sc,SIZE_MAP[sc]||get(r,C.size),get(r,C.shortSku),qty,ratio,units]);
+        poQty+=qty; poPack+=ratio; poTotal+=units;
+      }
+      allRows.push(['','','','','','','','TOTAL','',poQty,poPack,poTotal]);
+      grandQty+=poQty; grandPack+=poPack; grandUnits+=poTotal;
+    }
+    allRows.push(Array(12).fill(''));
+    allRows.push(['','','','','','','','GRAND TOTAL','',grandQty,grandPack,grandUnits]);
+
+    const wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet([EXCEL_HEADERS,...allRows]);
+    XLSX.utils.book_append_sheet(wb,ws,'Breakdown');
+    const excelBuf=XLSX.write(wb,{type:'buffer',bookType:'xlsx'});
+
+    const filename = `BREAKDOWN STYLE# ${cleanStyle}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(excelBuf);
+  } catch (e) {
+    console.error('breakdown-report error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.post('/api/po/breakdown-email', async (req, res) => {
   try {
     const { style, supplier, cost, hts, freight, exFactory, message, sendingAs } = req.body;

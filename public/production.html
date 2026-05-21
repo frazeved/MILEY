@@ -469,7 +469,7 @@
             <div><div class="card-name">PI STATUS REPORT</div><div class="card-type">Excel File</div></div>
           </div>
         </div>
-        <div class="card excel-card">
+        <div class="card excel-card" onclick="openModal('breakdown-report-modal')" style="cursor:pointer;">
           <div class="card-icon-row">
             <div class="icon-excel">X</div>
             <div><div class="card-name">BREAKDOWN REPORT</div><div class="card-type">Excel File</div></div>
@@ -773,6 +773,28 @@
         <button type="submit" class="btn-primary">Send PO Official</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- BREAKDOWN REPORT modal -->
+<div class="modal-overlay" id="breakdown-report-modal" onclick="closeModalOnOverlay(event)">
+  <div class="modal" style="max-width:360px;">
+    <div class="modal-header">
+      <div class="modal-title">Breakdown Report</div>
+      <button class="modal-close" onclick="closeModal('breakdown-report-modal')">×</button>
+    </div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:14px;">
+      <div class="form-group">
+        <label class="form-label">Style #</label>
+        <div class="form-row">
+          <input type="text" id="breakdown-report-style" class="form-input" placeholder="e.g. 12345" onkeydown="if(event.key==='Enter')downloadBreakdownReport()" />
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn-secondary" onclick="closeModal('breakdown-report-modal')">Cancel</button>
+        <button class="btn-primary" id="breakdown-report-btn" onclick="downloadBreakdownReport()">Download</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1235,6 +1257,34 @@ function updateOfficialTopDeadlineDays() {
   deadline.setHours(0, 0, 0, 0);
   const days = Math.round((today - deadline) / 86400000);
   display.textContent = days === 0 ? 'Today' : `${Math.abs(days)} Days`;
+}
+
+async function downloadBreakdownReport() {
+  const style = document.getElementById('breakdown-report-style').value.trim();
+  if (!style) { showToast('Please enter a Style #'); return; }
+  const btn = document.getElementById('breakdown-report-btn');
+  btn.disabled = true; btn.textContent = 'Generating...';
+  try {
+    const res = await fetch('/api/po/breakdown-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ style }),
+    });
+    if (!res.ok) { const d = await res.json(); showToast(d.error || 'Failed'); return; }
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `BREAKDOWN STYLE# ${style.toUpperCase()}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+    closeModal('breakdown-report-modal');
+    document.getElementById('breakdown-report-style').value = '';
+  } catch (e) {
+    showToast('Download failed. Please try again.');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Download';
+  }
 }
 
 async function runTopStatus() {
