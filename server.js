@@ -932,7 +932,35 @@ app.post('/api/po/breakdown-email', async (req, res) => {
     const greetName = suppliers.mainContact[supplierKey] || supplierKey;
     const subject   = `BREAKDOWN STYLE# ${displayStyle} - PO ${poSubject.join(' ')} - ${supplierKey}`;
 
+    // Fetch CAD image (CID inline attachment)
+    let cadCid = null;
+    const cadAttachments = [];
+    let cadResult = await getCadImage(rawStyle);
+    if (!cadResult.found) {
+      const norm = rawStyle.replace(/^[A-Za-z]+-?/, '').trim();
+      if (norm && norm !== rawStyle) cadResult = await getCadImage(norm);
+    }
+    if (cadResult.found) {
+      cadCid = 'cad-breakdown';
+      cadAttachments.push({
+        filename:    `${cleanStyle}.jpg`,
+        content:     Buffer.from(cadResult.imageData, 'base64'),
+        encoding:    'base64',
+        cid:         cadCid,
+        contentType: cadResult.mimeType || 'image/jpeg',
+      });
+    }
+
+    const cadCol = cadCid
+      ? `<td style="vertical-align:top;padding-right:16px;width:130px;">
+           <img src="cid:${cadCid}" width="120" style="display:block;border:0;border-radius:4px;">
+         </td>`
+      : '';
+
     const htmlBody = `
+<table style="border-collapse:collapse;font-family:Arial,sans-serif;"><tr>
+${cadCol}
+<td style="vertical-align:top;">
 <p><b><span style="font-size:12pt;">Hi ${greetName} and ${supplierKey} team,</span></b></p>
 <p>Please find attached the breakdown of<br><b>STYLE# ${displayStyle}</b></p>
 <p><b>HTS# ${hts||'xxxxxx'}</b> | <b>${freight||'xxxxxx'} $${cost||'xxxxxx'}</b> | <b>INVOICE/PACKING LIST WITH FLAVIO: ${invoiceFormatted}</b> | <b>AGREED HANDOVER DATE: ${handoverFormatted}</b></p>
@@ -941,7 +969,8 @@ app.post('/api/po/breakdown-email', async (req, res) => {
 <p><b><span style="color:red;">IMPORTANT:</span></b><br>Please, send the Invoice and Packing list before shipping for validation, also the custom description, HTS#, TAX ID on it. AWB when available.</p>
 <p>Any delay or new agreed ship date on this Style#, please answer this email chain immediately!</p>
 ${message?`<p>${message}</p>`:''}
-<p>Best,<br>${sender?.name||sendingAs}<br>Production Team<br>305 CONSULTING AND PRODUCTION</p>`;
+<p>Best,<br>${sender?.name||sendingAs}<br>Production Team<br>305 CONSULTING AND PRODUCTION</p>
+</td></tr></table>`;
 
     // Build raw MIME (nodemailer composes, does NOT send)
     const rawMime = await buildRawMime({
@@ -950,7 +979,10 @@ ${message?`<p>${message}</p>`:''}
       cc:   team305.breakdownCC.join(','),
       subject,
       html: htmlBody,
-      attachments: [{ filename:`BREAKDOWN STYLE# ${cleanStyle}.xlsx`, content:excelBuf, contentType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }],
+      attachments: [
+        { filename:`BREAKDOWN STYLE# ${cleanStyle}.xlsx`, content:excelBuf, contentType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+        ...cadAttachments,
+      ],
     });
     const encoded = rawMime.toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 
