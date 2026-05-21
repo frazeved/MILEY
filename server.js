@@ -353,6 +353,12 @@ app.get('/auth/callback', async (req, res) => {
     saveTokenToSheets(userId, tokens.refresh_token);
     const returnPath = req.session.oauthReturn;
     req.session.oauthReturn = null;
+    if (returnPath === 'popup') {
+      return res.send(`<!DOCTYPE html><html><body><script>
+        try { window.opener.postMessage({ type:'gmailConnected', userId:'${userId}' }, '*'); } catch(e){}
+        window.close();
+      </script></body></html>`);
+    }
     if (returnPath) return res.redirect(`${returnPath}?gmailConnected=1`);
     res.redirect(`/setup?success=${userId}`);
   } catch (e) {
@@ -1131,28 +1137,29 @@ app.post('/api/po/top-status-email', async (req, res) => {
 
       const tableRows = entries.map(e =>
         `<tr>
-          <td style="border:1px solid #ddd;padding:8px 12px;">${e.style}</td>
-          <td style="border:1px solid #ddd;padding:8px 12px;">${e.category}</td>
-          <td style="border:1px solid #ddd;padding:8px 12px;">${e.subcategory}</td>
-          <td style="border:1px solid #ddd;padding:8px 12px;${e.statusLabel==='URGENT'?'color:red;font-weight:bold;':''}">${e.statusLabel}</td>
+          <td style="padding:6px;">${e.style}</td>
+          <td style="padding:6px;${e.statusLabel==='URGENT'?'color:red;font-weight:bold;':''}">${e.statusLabel}</td>
+          <td style="padding:6px;">${e.category}</td>
+          <td style="padding:6px;">${e.subcategory}</td>
+          <td style="padding:6px;"></td>
         </tr>`
       ).join('');
 
-      const htmlBody = `
-<p><b><span style="font-size:12pt;">Hi ${contactName} and ${supplierKey} team,</span></b></p>
-<p>Could you please provide an update on the TOP samples listed below?</p>
-<table style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:11pt;">
+      const htmlBody = `Hi ${contactName} and ${supplierKey} team,<br><br>
+Could you please provide an update on the TOP samples listed below?<br><br>
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:11pt;">
   <thead>
-    <tr style="background:#2E75B6;color:white;">
-      <th style="border:1px solid #ddd;padding:8px 12px;text-align:left;">Style #</th>
-      <th style="border:1px solid #ddd;padding:8px 12px;text-align:left;">Category</th>
-      <th style="border:1px solid #ddd;padding:8px 12px;text-align:left;">Sub-Category</th>
-      <th style="border:1px solid #ddd;padding:8px 12px;text-align:left;">Status</th>
+    <tr style="background-color:#d9edf7;text-align:left;">
+      <th style="padding:6px;">Style #</th>
+      <th style="padding:6px;">Status</th>
+      <th style="padding:6px;">Category</th>
+      <th style="padding:6px;">Sub-category</th>
+      <th style="padding:6px;">Update</th>
     </tr>
   </thead>
   <tbody>${tableRows}</tbody>
 </table>
-<p>Best,<br>${sender?.name || sendingAs}<br>Production Team<br>305 CONSULTING AND PRODUCTION</p>`;
+<br><br>Thank you,<br>${sender?.email || ''}`;
 
       const rawMime = await buildRawMime({
         from: `"${sender?.name || sendingAs}" <${sender?.email || ''}>`,

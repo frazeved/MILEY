@@ -277,6 +277,14 @@
     .nav-menu-item:hover { background: var(--bg); color: var(--text); }
     .nav-menu-item.active { background: var(--accent-light); color: var(--accent); font-weight: 600; }
     @media (max-width: 640px) { nav { padding: 0 16px; } .nav-brand { position: static; transform: none; left: auto; font-size: 14px; } }
+    .sender-btn { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:8px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; font-size:13px; text-align:left; transition:background .15s; }
+    .sender-btn:hover { background:#f9fafb; }
+    .sender-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+    .dot-green  { background:#16a34a; }
+    .dot-orange { background:#f59e0b; }
+    .sender-name { flex:1; font-weight:500; color:#111827; }
+    .sender-status { font-size:12px; color:#6b7280; }
+    .sender-connect { font-size:12px; color:#2563eb; font-weight:500; }
   </style>
 </head>
 <body>
@@ -768,6 +776,16 @@
   </div>
 </div>
 
+<!-- TOP STATUS — sender selection modal -->
+<div class="modal-overlay" id="top-status-sender-modal" onclick="closeModalOnOverlay(event)">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-header">
+      <div class="modal-title">TOP STATUS — Send As</div>
+      <button class="modal-close" onclick="closeModal('top-status-sender-modal')">×</button>
+    </div>
+    <div id="top-status-sender-list" style="padding:16px 20px 20px;display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
 
 <script>
 // ── Supplier Contact Book ─────────────────────────────────────────────────────
@@ -1220,22 +1238,44 @@ function updateOfficialTopDeadlineDays() {
 }
 
 async function runTopStatus() {
-  if (!confirm('Create TOP STATUS drafts for all suppliers?')) return;
+  const users = await fetch('/api/users').then(r => r.json());
+  const list = document.getElementById('top-status-sender-list');
+  list.innerHTML = users.map(u => `
+    <button class="sender-btn" onclick="selectTopStatusSender('${u.id}', ${u.connected})">
+      <span class="sender-dot ${u.connected ? 'dot-green' : 'dot-orange'}"></span>
+      <span class="sender-name">${u.name}</span>
+      ${u.connected
+        ? '<span class="sender-status">Connected</span>'
+        : '<span class="sender-connect">Connect Gmail →</span>'}
+    </button>`).join('');
+  document.getElementById('top-status-sender-modal').classList.add('open');
+}
+
+function selectTopStatusSender(userId, connected) {
+  if (!connected) {
+    const popup = window.open(`/auth/google?userId=${userId}&return=popup`, 'gmail-oauth', 'width=520,height=640,left=200,top=80');
+    if (!popup) { showToast('Allow popups for this site and try again'); return; }
+    const onMsg = async (e) => {
+      if (e.data?.type !== 'gmailConnected' || e.data?.userId !== userId) return;
+      window.removeEventListener('message', onMsg);
+      await executeTopStatus(userId);
+    };
+    window.addEventListener('message', onMsg);
+    return;
+  }
+  executeTopStatus(userId);
+}
+
+async function executeTopStatus(userId) {
+  document.getElementById('top-status-sender-modal').classList.remove('open');
   showToast('Running TOP STATUS — creating drafts...');
   try {
     const res = await fetch('/api/po/top-status-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sendingAs: 'kamilla' }),
+      body: JSON.stringify({ sendingAs: userId }),
     });
     const data = await res.json();
-    if (res.status === 401) {
-      sessionStorage.setItem('305_pendingAction', 'top-status');
-      document.getElementById('gmail-setup-msg').textContent = `Kamilla's Gmail account isn't connected. Click "Connect Gmail", sign in once, and the script will run automatically.`;
-      document.getElementById('gmail-setup-link').href = `/auth/google?userId=kamilla&return=${encodeURIComponent(window.location.pathname)}`;
-      openModal('gmail-setup-modal');
-      return;
-    }
     if (!res.ok) { showToast(data.error || 'Failed'); return; }
     if (data.draftsCreated?.length) {
       const names = data.draftsCreated.map(d => `${d.supplier} (${d.styles})`).join(', ');
@@ -1374,15 +1414,6 @@ function showToast(message) {
 (function restoreAfterOAuth() {
   if (!new URLSearchParams(window.location.search).has('gmailConnected')) return;
   history.replaceState({}, '', window.location.pathname);
-
-  const pendingAction = sessionStorage.getItem('305_pendingAction');
-  if (pendingAction === 'top-status') {
-    sessionStorage.removeItem('305_pendingAction');
-    showToast('Gmail connected! Running TOP STATUS...');
-    setTimeout(() => runTopStatus(), 800);
-    return;
-  }
-
   const modalId  = sessionStorage.getItem('305_pendingModal');
   const formJson = sessionStorage.getItem('305_pendingForm');
   sessionStorage.removeItem('305_pendingModal');
