@@ -1120,38 +1120,71 @@ app.post('/api/po/top-status-email', async (req, res) => {
         const supplierDeadline = parseDate(deadlineRaw);
         if (!supplierDeadline) continue;
 
-        const diffInDays  = Math.floor((supplierDeadline - today) / 86400000);
-        const statusLabel = diffInDays >= 0 ? 'Waiting for Sample' : 'URGENT';
+        const diffInDays = Math.floor((supplierDeadline - today) / 86400000);
 
         entries.push({
-          style:       styleNumber,
-          statusLabel,
-          category:    get(rows[i], C.category),
-          subcategory: get(rows[i], C.subcategory),
+          style:        styleNumber,
+          deadlineDate: supplierDeadline,
+          diffInDays,
+          category:     get(rows[i], C.category),
+          subcategory:  get(rows[i], C.subcategory),
         });
       }
 
       if (entries.length === 0) { skipped.push(supplierKey); continue; }
 
+      // Fetch CAD images (CID inline attachments — render in all email clients)
+      const fmtDate = d => `${d.getMonth()+1}/${d.getDate()}/${String(d.getFullYear()).slice(2)}`;
+      const attachments = [];
+      const entriesWithCad = await Promise.all(entries.map(async (e, idx) => {
+        let cad = await getCadImage(e.style);
+        if (!cad.found) {
+          const norm = e.style.replace(/^[A-Za-z]+-?/, '').trim();
+          if (norm && norm !== e.style) cad = await getCadImage(norm);
+        }
+        const cid = `cad-${idx}`;
+        if (cad.found) {
+          attachments.push({
+            filename:    `${e.style}.jpg`,
+            content:     Buffer.from(cad.imageData, 'base64'),
+            encoding:    'base64',
+            cid,
+            contentType: cad.mimeType || 'image/jpeg',
+          });
+        }
+        return { ...e, hasCad: cad.found, cid };
+      }));
+
       const subject = `TOP Sample ${formattedDate} Status Request - ${supplierKey}`;
 
-      const tableRows = entries.map(e =>
-        `<tr>
+      const tableRows = entriesWithCad.map(e => {
+        const isOverdue = e.diffInDays < 0;
+        const deadlineCell = isOverdue
+          ? `<span style="color:red;font-weight:bold;">${fmtDate(e.deadlineDate)} — OVERDUE</span>`
+          : fmtDate(e.deadlineDate);
+        const cadCell = e.hasCad
+          ? `<img src="cid:${e.cid}" width="70" style="display:block;border:0;">`
+          : '';
+        return `<tr>
+          <td style="padding:4px;text-align:center;">${cadCell}</td>
           <td style="padding:6px;">${e.style}</td>
-          <td style="padding:6px;${e.statusLabel==='URGENT'?'color:red;font-weight:bold;':''}">${e.statusLabel}</td>
+          <td style="padding:6px;">PENDING</td>
+          <td style="padding:6px;">${deadlineCell}</td>
           <td style="padding:6px;">${e.category}</td>
           <td style="padding:6px;">${e.subcategory}</td>
           <td style="padding:6px;"></td>
-        </tr>`
-      ).join('');
+        </tr>`;
+      }).join('');
 
       const htmlBody = `Hi ${contactName} and ${supplierKey} team,<br><br>
 Could you please provide an update on the TOP samples listed below?<br><br>
 <table border="1" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:11pt;">
   <thead>
     <tr style="background-color:#d9edf7;text-align:left;">
+      <th style="padding:6px;">CAD</th>
       <th style="padding:6px;">Style #</th>
       <th style="padding:6px;">Status</th>
+      <th style="padding:6px;">Deadline</th>
       <th style="padding:6px;">Category</th>
       <th style="padding:6px;">Sub-category</th>
       <th style="padding:6px;">Update</th>
@@ -1162,11 +1195,12 @@ Could you please provide an update on the TOP samples listed below?<br><br>
 <br><br>Thank you,<br>${sender?.email || ''}`;
 
       const rawMime = await buildRawMime({
-        from: `"${sender?.name || sendingAs}" <${sender?.email || ''}>`,
-        to:   toEmails.join(','),
-        cc:   CC.join(','),
+        from:        `"${sender?.name || sendingAs}" <${sender?.email || ''}>`,
+        to:          toEmails.join(','),
+        cc:          CC.join(','),
         subject,
-        html: htmlBody,
+        html:        htmlBody,
+        attachments,
       });
       const encoded = rawMime.toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
       await gmail.users.drafts.create({ userId:'me', requestBody:{ message:{ raw:encoded } } });
