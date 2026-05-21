@@ -932,14 +932,12 @@ app.post('/api/po/breakdown-email', async (req, res) => {
     const greetName = suppliers.mainContact[supplierKey] || supplierKey;
     const subject   = `BREAKDOWN STYLE# ${displayStyle} - PO ${poSubject.join(' ')} - ${supplierKey}`;
 
-    // Fetch CAD image (CID inline attachment)
+    // Fetch CAD image (CID inline attachment) — use same style format as TOP STATUS
     let cadCid = null;
     const cadAttachments = [];
-    let cadResult = await getCadImage(rawStyle);
-    if (!cadResult.found) {
-      const norm = rawStyle.replace(/^[A-Za-z]+-?/, '').trim();
-      if (norm && norm !== rawStyle) cadResult = await getCadImage(norm);
-    }
+    let cadResult = await getCadImage(displayStyle);
+    if (!cadResult.found) cadResult = await getCadImage(cleanStyle);
+    if (!cadResult.found) cadResult = await getCadImage(rawStyle);
     if (cadResult.found) {
       cadCid = 'cad-breakdown';
       cadAttachments.push({
@@ -990,8 +988,8 @@ ${message?`<p>${message}</p>`:''}
       subject,
       html: htmlBody,
       attachments: [
-        { filename:`BREAKDOWN STYLE# ${cleanStyle}.xlsx`, content:excelBuf, contentType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
         ...cadAttachments,
+        { filename:`BREAKDOWN STYLE# ${cleanStyle}.xlsx`, content:excelBuf, contentType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
       ],
     });
     const encoded = rawMime.toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
