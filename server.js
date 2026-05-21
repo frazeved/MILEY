@@ -3337,7 +3337,7 @@ app.post('/api/susan/weekly-sup-report', async (req, res) => {
     };
     const CC_LIST = ["paula@creativetwotwelve.com","ozan.guruscu@creativetwotwelve.com","rafaela@showroom212.com","kamilla@creativetwotwelve.com"];
 
-    const sheetRes = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: 'Production & PO DataBase!A:BZ' });
+    const sheetRes = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: "'Production & PO DataBase'!A:BZ" });
     const data = sheetRes.data.values || [];
 
     const reportMap = {};
@@ -3391,7 +3391,7 @@ app.post('/api/susan/weekly-sup-report', async (req, res) => {
       for (const r of reportMap[sup]) { values.push(r); ri++; }
       values.push([]); ri++;
     }
-    await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID, range: `${sheetName}!A1`, valueInputOption: 'USER_ENTERED', requestBody: { values } });
+    await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID, range: `'${sheetName}'!A1`, valueInputOption: 'USER_ENTERED', requestBody: { values } });
     await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { requests: headerRows.map(hr => ({ repeatCell: { range: { sheetId: newSheetId, startRowIndex: hr, endRowIndex: hr+1, startColumnIndex: 0, endColumnIndex: REPORT_HEADER.length }, cell: { userEnteredFormat: { backgroundColor: { red:0.812, green:0.886, blue:0.953 }, textFormat: { bold:true } } }, fields: 'userEnteredFormat(backgroundColor,textFormat)' } })) } });
 
     // Create Gmail drafts (same pattern as PO Breakdown)
