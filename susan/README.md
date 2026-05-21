@@ -16,6 +16,7 @@ Susan handles all outbound production emails to suppliers and internal team, plu
 | Main PO sheet | 0 | General production data |
 | PO DETAIL | 2017761959 | Line items: size / qty / SKU per style |
 | PO TRADE | 890202899 | Channel mapping: PO# → channel name |
+| RLM | 1284509953 | Color code lookup (col F = style, col P = color code) |
 
 **Google Sheet ID:** `1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q`
 
@@ -26,7 +27,7 @@ Susan handles all outbound production emails to suppliers and internal team, plu
 | # | Name | Status | Endpoint |
 |---|------|--------|----------|
 | 1 | PO BREAKDOWN | Built | `POST /api/po/breakdown-email` |
-| 2 | PO OFFICIAL | TBD | — |
+| 2 | PO OFFICIAL | Built | `POST /api/po/official-email` |
 | 3 | TOP STATUS | TBD | — |
 | 4 | PO WEEKLY SUP REPORT | TBD | — |
 | 5 | PI STATUS REPORT | TBD | — |
@@ -51,8 +52,8 @@ Susan handles all outbound production emails to suppliers and internal team, plu
 
 ## PO Breakdown Email
 
-**Frontend:** `public/production.html:317` — card opens `#po-breakdown-modal`  
-**Backend:** `server.js:416` — `POST /api/po/breakdown-email`  
+**Frontend:** `public/production.html` — card opens `#po-breakdown-modal`  
+**Backend:** `server.js` — `POST /api/po/breakdown-email`  
 **CC list:** `contacts/team305.js` → `breakdownCC`
 
 ### Form Inputs
@@ -81,6 +82,34 @@ Susan handles all outbound production emails to suppliers and internal team, plu
 - Each sender needs OAuth token in `userTokens[sendingAs]`
 - OAuth connect flow at `/setup`
 - Draft created via `gmail.users.drafts.create`
+
+---
+
+---
+
+## PO Official Email
+
+**Frontend:** `public/production.html` — card opens `#po-official-modal`  
+**Backend:** `server.js` — `POST /api/po/official-email`
+
+### Form Inputs
+- Style # (search auto-fills supplier, NDC, ExF date, cost, freight)
+- Sending As (Gmail OAuth user selector, defaults to Kamilla)
+
+### Data Sources
+- PO DETAIL (gid=2017761959): aggregate qty by size across all POs
+- RLM (gid=1284509953): color code (col F = style, col P = color code)
+
+### Excel Attachment
+- Filename: `PO_{style}.xlsx`, sheet: `PO Import`
+- 26 columns: COMPANY, DIVISION, USER PO# (style+A26), Season, Year, PO EXF Date, PO Vendor, Warehouse, Style#, Fabric Code, Length Code, Color Code (RLM), Size, Cost, Quantity, PO PIW/ETA Date, PO Notes, PO Product Notes, PO Cancel Date, Ship Mode, Selling Prd, Selling Prd Year, PO Type, PO Terms, Special Instructions, Comments/Special 01
+- One row per size; ETA = exfDate + 7 days
+
+### Email Structure
+- **To:** inbound@farmrio.com, danielle.gouvea@farmrio.com, anacarolina.azevedo@farmrio.com
+- **CC:** paula, rafaela@showroom212, ozan, business, kamilla
+- **Subject:** `[ANTHRO X FARM] official PO request - style # {digits-only}`
+- **Body:** plain text — Hi Ana, style#, supplier, Anthro NDC, RLM confirmation
 
 ---
 
