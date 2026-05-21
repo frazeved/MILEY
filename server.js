@@ -542,9 +542,145 @@ ${message?`<p>${message}</p>`:''}
   }
 });
 
-// ─── PO Official Email — creates a Gmail draft ────────────────────────────────
+// ─── PO Official Email — creates a Gmail draft ───────────────────────────────
 app.post('/api/po/official-email', async (req, res) => {
-  res.status(501).json({ error: 'PO Official email backend is not built yet.' });
+  try {
+    const { style, supplier, finalNDC, exFactory, cost, freight, sendingAs } = req.body;
+    if (!style?.trim())    return res.status(400).json({ error: 'Style # is required' });
+    if (!supplier?.trim()) return res.status(400).json({ error: 'Supplier is required' });
+    if (!sendingAs)        return res.status(400).json({ error: 'Please select who is sending this' });
+
+    const token = userTokens[sendingAs];
+    if (!token?.refreshToken) {
+      const user = TEAM_USERS.find(u => u.id === sendingAs);
+      return res.status(401).json({ error: `${user?.name || sendingAs} has not connected their Gmail yet. Please visit /setup first.` });
+    }
+
+    const sender = TEAM_USERS.find(u => u.id === sendingAs);
+
+    // Normalize style — strip leading "X-" prefix
+    const rawStyle   = style.trim();
+    const cleanStyle = rawStyle.toUpperCase().replace(/^[A-Za-z]+-/, '').replace(/\s+/g, '');
+    // Digits-only version for subject line (matches GAS create_po_request_draft)
+    const styleDigits = cleanStyle.replace(/[^0-9]/g, '');
+
+    // Format NDC date  MM/DD/YYYY
+    const fmtNDC = iso => {
+      if (!iso) return 'xxxxxx';
+      const d = new Date(iso);
+      return isNaN(d) ? 'xxxxxx' : d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+    };
+    const anthroNDC = fmtNDC(finalNDC);
+
+    // Fetch PO DETAIL + RLM in parallel
+    const [pdRes, rlmRes] = await Promise.all([fetch(csvUrl(2017761959)), fetch(csvUrl(1284509953))]);
+    if (!pdRes.ok)  throw new Error('Could not fetch PO DETAIL sheet');
+    if (!rlmRes.ok) throw new Error('Could not fetch RLM sheet');
+    const pdRows  = parseCSV(await pdRes.text());
+    const rlmRows = parseCSV(await rlmRes.text());
+
+    const H = pdRows[0] || [];
+    const findCol = (...kws) => {
+      for (const kw of kws) { const i = H.findIndex(h => h.trim().toLowerCase() === kw); if (i >= 0) return i; }
+      for (const kw of kws) { const i = H.findIndex(h => h.trim().toLowerCase().includes(kw)); if (i >= 0) return i; }
+      return -1;
+    };
+    const C = {
+      style:    findCol('vendor style', 'style#', 'style # ', 'style'),
+      sizeCode: findCol('size code'),
+      size:     findCol('size desc', 'size'),
+      qty:      findCol('total qty', 'qty'),
+      color:    findCol('vendor color', 'color'),
+    };
+    const get = (r, i) => i >= 0 ? (r[i] || '').trim() : '';
+
+    // Look up color code from RLM sheet (col F=index 5 = style, col P=index 15 = color code)
+    const normalizeStyle = s => s.toUpperCase().replace(/^[A-Za-z]+-/, '').replace(/ /g, '').replace(/\s+/g, '').replace(/[^0-9A-Z-]/g, '');
+    let colorCode = 'Not Found';
+    for (let i = 1; i < rlmRows.length; i++) {
+      if (normalizeStyle(rlmRows[i][5] || '') === normalizeStyle(cleanStyle)) {
+        colorCode = (rlmRows[i][15] || '').trim();
+        break;
+      }
+    }
+
+    // Aggregate qty by size across all POs for this style
+    const sizeTotals = {};
+    for (let i = 1; i < pdRows.length; i++) {
+      const r = pdRows[i];
+      const rowStyle = normalizeStyle(get(r, C.style));
+      if (rowStyle !== normalizeStyle(cleanStyle)) continue;
+      const sc  = get(r, C.sizeCode);
+      const sz  = SIZE_MAP[sc] || get(r, C.size);
+      const qty = Number(get(r, C.qty)) || 0;
+      if (sz) sizeTotals[sz] = (sizeTotals[sz] || 0) + qty;
+    }
+
+    if (Object.keys(sizeTotals).length === 0) {
+      return res.status(404).json({ error: `No PO DETAIL rows found for style ${cleanStyle}` });
+    }
+
+    // Build Excel — 26-column PO import format (matches buildStyleExcelFile2)
+    const userPO   = cleanStyle + 'A26';
+    const etaDate  = exFactory ? new Date(new Date(exFactory).getTime() + 7 * 86400000).toLocaleDateString('en-US') : '';
+    const exfFormatted = exFactory ? new Date(exFactory).toLocaleDateString('en-US') : '';
+    const poTerms  = freight || '';
+
+    const OFFICIAL_HEADERS = [
+      'COMPANY','DIVISION','USER PO#','Season','Year','PO EXF Date','PO Vendor','Warehouse',
+      'Style #','Fabric Code (SKU200)','Length Code (SKU300)','Color Code (RLM)','Size',
+      'Cost (FOB/DDP)','Quantity','PO PIW/ETA Date','PO Notes','PO Product Notes','PO Cancel Date',
+      'Ship Mode','Selling Prd','Selling Prd Year','PO Type','PO Terms (FOB ou DDP)',
+      'Special Instructions','Comments/Special 01',
+    ];
+
+    const dataRows = Object.entries(sizeTotals).map(([sz, qty]) => [
+      '1','1',userPO,'A','26',exfFormatted,supplier,'305',cleanStyle,
+      '','',colorCode,sz,cost,qty,etaDate,
+      '','',exfFormatted,
+      'A','A','26','',poTerms,'','',
+    ]);
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([OFFICIAL_HEADERS, ...dataRows]);
+    XLSX.utils.book_append_sheet(wb, ws, 'PO Import');
+    const excelBuf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    // Email
+    const subject = `[ANTHRO X FARM] official PO request - style # ${styleDigits}`;
+    const toEmails = ['inbound@farmrio.com', 'danielle.gouvea@farmrio.com', 'anacarolina.azevedo@farmrio.com'];
+    const ccEmails = ['paula@creativetwotwelve.com', 'rafaela@showroom212.com', 'ozan.guruscu@creativetwotwelve.com', 'business@creativetwotwelve.com', 'kamilla@creativetwotwelve.com'];
+
+    const textBody =
+      `Hi Ana,\n\n` +
+      `Please find attached the base PO import of the following style:\n` +
+      `Style#  ${styleDigits}\n` +
+      `Supplier: ${supplier}\n` +
+      `Anthro NDC ${anthroNDC}:\n\n` +
+      `This style has also already been issued in RLM.\n\n` +
+      `Thank you,\n\n` +
+      `${sender?.name || sendingAs}`;
+
+    const rawMime = await buildRawMime({
+      from:        `"${sender?.name || sendingAs}" <${sender?.email || ''}>`,
+      to:          toEmails.join(','),
+      cc:          ccEmails.join(','),
+      subject,
+      text:        textBody,
+      attachments: [{ filename: `PO_${cleanStyle}.xlsx`, content: excelBuf, contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }],
+    });
+    const encoded = rawMime.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+    const authClient = makeOAuth2Client();
+    authClient.setCredentials({ refresh_token: token.refreshToken });
+    const gmail = google.gmail({ version: 'v1', auth: authClient });
+    await gmail.users.drafts.create({ userId: 'me', requestBody: { message: { raw: encoded } } });
+
+    res.json({ ok: true, message: 'Draft created in your Gmail Drafts folder' });
+  } catch (e) {
+    console.error('official-email error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.post('/api/contact', async (req, res) => {
