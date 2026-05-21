@@ -932,48 +932,11 @@ app.post('/api/po/breakdown-email', async (req, res) => {
     const greetName = suppliers.mainContact[supplierKey] || supplierKey;
     const subject   = `BREAKDOWN STYLE# ${displayStyle} - PO ${poSubject.join(' ')} - ${supplierKey}`;
 
-    // Fetch CAD image (CID inline attachment) — use same style format as TOP STATUS
-    let cadCid = null;
-    const cadAttachments = [];
-    let cadResult = await getCadImage(displayStyle);
-    if (!cadResult.found) cadResult = await getCadImage(cleanStyle);
-    if (!cadResult.found) cadResult = await getCadImage(rawStyle);
-    if (cadResult.found) {
-      cadCid = 'cad-breakdown';
-      cadAttachments.push({
-        filename:    `${cleanStyle}.jpg`,
-        content:     Buffer.from(cadResult.imageData, 'base64'),
-        encoding:    'base64',
-        cid:         cadCid,
-        contentType: cadResult.mimeType || 'image/jpeg',
-      });
-    }
-
-    const cadCell = cadCid
-      ? `<td style="padding:6px;text-align:center;"><img src="cid:${cadCid}" width="80" style="display:block;border:0;"></td>`
-      : '';
-
     const htmlBody = `
 <p><b><span style="font-size:12pt;">Hi ${greetName} and ${supplierKey} team,</span></b></p>
 <p>Please find attached the breakdown of<br><b>STYLE# ${displayStyle}</b></p>
 <p><b>HTS# ${hts||'xxxxxx'}</b> | <b>${freight||'xxxxxx'} $${cost||'xxxxxx'}</b> | <b>INVOICE/PACKING LIST WITH FLAVIO: ${invoiceFormatted}</b> | <b>AGREED HANDOVER DATE: ${handoverFormatted}</b></p>
-${cadCid ? `
-<table border="1" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:11pt;">
-  <thead>
-    <tr style="background-color:#d9edf7;text-align:left;">
-      <th style="padding:6px;">CAD</th>
-      <th style="padding:6px;">Style #</th>
-      <th style="padding:6px;">PO(s)</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      ${cadCell}
-      <td style="padding:6px;">${displayStyle}</td>
-      <td style="padding:6px;">${poLines.join('<br>')}</td>
-    </tr>
-  </tbody>
-</table>` : `<p>${poLines.join('<br>')}</p>`}
+<p>${poLines.join('<br>')}</p>
 <p>Could you please confirm this style fabric composition?</p>
 <p><b><span style="color:red;">IMPORTANT:</span></b><br>Please, send the Invoice and Packing list before shipping for validation, also the custom description, HTS#, TAX ID on it. AWB when available.</p>
 <p>Any delay or new agreed ship date on this Style#, please answer this email chain immediately!</p>
@@ -987,10 +950,7 @@ ${message?`<p>${message}</p>`:''}
       cc:   team305.breakdownCC.join(','),
       subject,
       html: htmlBody,
-      attachments: [
-        ...cadAttachments,
-        { filename:`BREAKDOWN STYLE# ${cleanStyle}.xlsx`, content:excelBuf, contentType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
-      ],
+      attachments: [{ filename:`BREAKDOWN STYLE# ${cleanStyle}.xlsx`, content:excelBuf, contentType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }],
     });
     const encoded = rawMime.toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 
