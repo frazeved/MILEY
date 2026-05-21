@@ -733,24 +733,16 @@ async function loadSendingAsUsers(selectId) {
   const sel = document.getElementById(selectId);
   try {
     const users = await fetch('/api/users').then(r => r.json());
-    const saved = localStorage.getItem('305_sendingAs') || 'kamilla';
     sel.innerHTML = '<option value="">— Select your name —</option>';
     users.forEach(u => {
       const opt = document.createElement('option');
       opt.value = u.id;
       opt.textContent = u.connected ? `${u.name}  ✓ Connected` : u.name;
-      if (u.id === saved) opt.selected = true;
+      if (u.id === 'kamilla') opt.selected = true;
       sel.appendChild(opt);
     });
   } catch (_) {}
 }
-
-document.getElementById('sendingAs-select').addEventListener('change', function() {
-  if (this.value) localStorage.setItem('305_sendingAs', this.value);
-});
-document.getElementById('sendingAs-select-official').addEventListener('change', function() {
-  if (this.value) localStorage.setItem('305_sendingAs', this.value);
-});
 
 function closeModal(modalId) {
   document.getElementById(modalId).classList.remove('open');
@@ -785,6 +777,7 @@ async function breakdownSearch() {
 
     const data = await response.json();
 
+    if (response.status === 401) { window.location.href = '/login'; return; }
     if (!response.ok) {
       showToast(data.error || 'Search failed');
       return;
@@ -928,6 +921,7 @@ async function officialSearch() {
       body: JSON.stringify({ style })
     });
     const data = await response.json();
+    if (response.status === 401) { window.location.href = '/login'; return; }
     if (!response.ok) { showToast(data.error || 'Search failed'); return; }
 
     const form = document.querySelector('#po-official-modal form');
