@@ -1229,7 +1229,13 @@ async function runTopStatus() {
       body: JSON.stringify({ sendingAs: 'kamilla' }),
     });
     const data = await res.json();
-    if (res.status === 401) { window.location.href = '/setup'; return; }
+    if (res.status === 401) {
+      sessionStorage.setItem('305_pendingAction', 'top-status');
+      document.getElementById('gmail-setup-msg').textContent = `Kamilla's Gmail account isn't connected. Click "Connect Gmail", sign in once, and the script will run automatically.`;
+      document.getElementById('gmail-setup-link').href = `/auth/google?userId=kamilla&return=${encodeURIComponent(window.location.pathname)}`;
+      openModal('gmail-setup-modal');
+      return;
+    }
     if (!res.ok) { showToast(data.error || 'Failed'); return; }
     if (data.draftsCreated?.length) {
       const names = data.draftsCreated.map(d => `${d.supplier} (${d.styles})`).join(', ');
@@ -1368,6 +1374,15 @@ function showToast(message) {
 (function restoreAfterOAuth() {
   if (!new URLSearchParams(window.location.search).has('gmailConnected')) return;
   history.replaceState({}, '', window.location.pathname);
+
+  const pendingAction = sessionStorage.getItem('305_pendingAction');
+  if (pendingAction === 'top-status') {
+    sessionStorage.removeItem('305_pendingAction');
+    showToast('Gmail connected! Running TOP STATUS...');
+    setTimeout(() => runTopStatus(), 800);
+    return;
+  }
+
   const modalId  = sessionStorage.getItem('305_pendingModal');
   const formJson = sessionStorage.getItem('305_pendingForm');
   sessionStorage.removeItem('305_pendingModal');
