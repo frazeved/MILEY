@@ -100,10 +100,12 @@
     .styles-save-status { font-size: 12px; color: var(--text-muted); }
     @media(max-width:640px) { #styles-list-modal.has-sms-col .style-row, #styles-list-modal.has-sms-col .styles-list-header { grid-template-columns: 44px 70px 1fr 50px 1fr; } #styles-list-modal.has-sms-col .style-row > :nth-child(4), #styles-list-modal.has-sms-col .styles-list-header > :nth-child(4) { display: none; } }
 
-    /* Form CAD preview */
-    .form-cad-preview { display: flex; align-items: flex-start; gap: 14px; padding: 2px 0 6px; }
-    .form-cad-img { width: 80px; height: 106px; object-fit: contain; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); cursor: zoom-in; flex-shrink: 0; display: block; }
-    .form-cad-loading { width: 80px; height: 106px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    /* Form CAD — same pattern as warehouse transit dashboard */
+    .form-cad-top { display: flex; gap: 14px; align-items: stretch; }
+    .form-cad-fields { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 10px; align-content: start; }
+    .form-cad-thumb-wrap { display: flex; flex-direction: column; align-items: center; gap: 5px; flex-shrink: 0; width: 130px; align-self: flex-start; }
+    .form-cad-thumb { width: 130px; height: 340px; object-fit: contain; border-radius: 8px; border: 1.5px solid var(--border); background: #f9fafb; display: block; cursor: zoom-in; }
+    @media(max-width:640px) { .form-cad-top { flex-direction: column; } .form-cad-thumb-wrap { width: 100%; } .form-cad-thumb { width: 100%; height: 160px; } .form-cad-fields { grid-template-columns: 1fr 1fr; } }
 
     /* Task type group */
     .task-group { margin-bottom: 28px; }
@@ -517,101 +519,87 @@
 
       <hr class="form-divider" />
 
-      <!-- CAD preview — shown after search -->
-      <div class="form-full" id="breakdown-cad-preview" style="display:none;">
-        <div class="form-cad-preview">
-          <img id="breakdown-cad-img" class="form-cad-img" src="" alt="CAD"
-            onclick="document.getElementById('status-cad-lightbox-img').src=this.src;document.getElementById('status-cad-lightbox').classList.add('open')">
+      <div class="form-full">
+        <div class="form-cad-top">
+          <div id="breakdown-cad-section"></div>
+          <div class="form-cad-fields">
+            <div class="form-group">
+              <label class="form-label">Supplier</label>
+              <input type="text" name="supplier" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Category</label>
+              <input type="text" name="category" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Sub-Category</label>
+              <input type="text" name="subcategory" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">PI Received</label>
+              <input type="date" name="piReceived" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Top Sent to Anthro</label>
+              <input type="date" name="topSent" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Top Sample Status</label>
+              <select name="topSampleStatus" class="form-select">
+                <option></option>
+                <option>Request top and photo sample</option>
+                <option>Received</option>
+                <option>Approved</option>
+                <option>Rejected</option>
+              </select>
+            </div>
+            <div class="form-group form-span2">
+              <label class="form-label">Base PO Import Farm</label>
+              <input type="text" name="basePo" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Final NDC</label>
+              <input type="date" name="finalNDC" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Top Deadline</label>
+              <input type="date" name="topDeadline" class="form-input" onchange="updateTopDeadlineDays()" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Top Deadline Days</label>
+              <div id="topDeadlineDays-display" class="form-display">—</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ex Factory / Flight Date</label>
+              <input type="date" name="exFactory" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Cost</label>
+              <input type="number" name="cost" class="form-input" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Freight</label>
+              <select name="freight" class="form-select">
+                <option></option>
+                <option>DDP</option>
+                <option>FOB</option>
+                <option>CIF</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Duty</label>
+              <input type="number" name="duty" class="form-input" step="0.01" />
+            </div>
+            <div class="form-group form-full">
+              <label class="form-label">HTS</label>
+              <input type="text" name="hts" class="form-input" />
+            </div>
+            <div class="form-group form-full">
+              <label class="form-label">Message</label>
+              <textarea class="form-textarea" name="message" rows="2"></textarea>
+            </div>
+          </div>
         </div>
-      </div>
-
-      <!-- Row 2: Supplier | Category | Sub-Category -->
-      <div class="form-group">
-        <label class="form-label">Supplier</label>
-        <input type="text" name="supplier" class="form-input" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Category</label>
-        <input type="text" name="category" class="form-input" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Sub-Category</label>
-        <input type="text" name="subcategory" class="form-input" />
-      </div>
-
-      <!-- Row 3: PI Received | Top Sent to Anthro | Top Sample Status -->
-      <div class="form-group">
-        <label class="form-label">PI Received</label>
-        <input type="date" name="piReceived" class="form-input" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Top Sent to Anthro</label>
-        <input type="date" name="topSent" class="form-input" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Top Sample Status</label>
-        <select name="topSampleStatus" class="form-select">
-          <option></option>
-          <option>Request top and photo sample</option>
-          <option>Received</option>
-          <option>Approved</option>
-          <option>Rejected</option>
-        </select>
-      </div>
-
-      <!-- Row 4: Base PO (2 cols) | Final NDC -->
-      <div class="form-group form-span2">
-        <label class="form-label">Base PO Import Farm</label>
-        <input type="text" name="basePo" class="form-input" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Final NDC</label>
-        <input type="date" name="finalNDC" class="form-input" />
-      </div>
-
-      <!-- Row 5: Top Deadline | Top Deadline Days | Ex Factory -->
-      <div class="form-group">
-        <label class="form-label">Top Deadline</label>
-        <input type="date" name="topDeadline" class="form-input" onchange="updateTopDeadlineDays()" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Top Deadline Days</label>
-        <div id="topDeadlineDays-display" class="form-display">—</div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Ex Factory / Flight Date</label>
-        <input type="date" name="exFactory" class="form-input" />
-      </div>
-
-      <!-- Row 6: Cost | Freight | Duty -->
-      <div class="form-group">
-        <label class="form-label">Cost</label>
-        <input type="number" name="cost" class="form-input" step="0.01" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Freight</label>
-        <select name="freight" class="form-select">
-          <option></option>
-          <option>DDP</option>
-          <option>FOB</option>
-          <option>CIF</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Duty</label>
-        <input type="number" name="duty" class="form-input" step="0.01" />
-      </div>
-
-      <!-- Row 7: HTS (full) -->
-      <div class="form-group form-full">
-        <label class="form-label">HTS</label>
-        <input type="text" name="hts" class="form-input" />
-      </div>
-
-      <!-- Row 8: Message -->
-      <div class="form-group form-full">
-        <label class="form-label">Message</label>
-        <textarea class="form-textarea" name="message" rows="2"></textarea>
       </div>
 
       <div class="form-actions form-full">
@@ -674,101 +662,87 @@
 
       <hr class="form-divider" />
 
-      <!-- CAD preview — shown after search -->
-      <div class="form-full" id="official-cad-preview" style="display:none;">
-        <div class="form-cad-preview">
-          <img id="official-cad-img" class="form-cad-img" src="" alt="CAD"
-            onclick="document.getElementById('status-cad-lightbox-img').src=this.src;document.getElementById('status-cad-lightbox').classList.add('open')">
+      <div class="form-full">
+        <div class="form-cad-top">
+          <div id="official-cad-section"></div>
+          <div class="form-cad-fields">
+            <div class="form-group">
+              <label class="form-label">Supplier</label>
+              <input type="text" name="supplier" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Category</label>
+              <input type="text" name="category" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Sub-Category</label>
+              <input type="text" name="subcategory" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">PI Received</label>
+              <input type="date" name="piReceived" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Top Sent to Anthro</label>
+              <input type="date" name="topSent" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Top Sample Status</label>
+              <select name="topSampleStatus" class="form-select">
+                <option></option>
+                <option>Request top and photo sample</option>
+                <option>Received</option>
+                <option>Approved</option>
+                <option>Rejected</option>
+              </select>
+            </div>
+            <div class="form-group form-span2">
+              <label class="form-label">Base PO Import Farm</label>
+              <input type="text" name="basePo" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Final NDC</label>
+              <input type="date" name="finalNDC" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Top Deadline</label>
+              <input type="date" name="topDeadline" class="form-input" onchange="updateOfficialTopDeadlineDays()" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Top Deadline Days</label>
+              <div id="topDeadlineDays-display-official" class="form-display">—</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ex Factory / Flight Date</label>
+              <input type="date" name="exFactory" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Cost</label>
+              <input type="number" name="cost" class="form-input" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Freight</label>
+              <select name="freight" class="form-select">
+                <option></option>
+                <option>DDP</option>
+                <option>FOB</option>
+                <option>CIF</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Duty</label>
+              <input type="number" name="duty" class="form-input" step="0.01" />
+            </div>
+            <div class="form-group form-full">
+              <label class="form-label">HTS</label>
+              <input type="text" name="hts" class="form-input" />
+            </div>
+            <div class="form-group form-full">
+              <label class="form-label">Message</label>
+              <textarea class="form-textarea" name="message" rows="2"></textarea>
+            </div>
+          </div>
         </div>
-      </div>
-
-      <!-- Row 2: Supplier | Category | Sub-Category -->
-      <div class="form-group">
-        <label class="form-label">Supplier</label>
-        <input type="text" name="supplier" class="form-input" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Category</label>
-        <input type="text" name="category" class="form-input" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Sub-Category</label>
-        <input type="text" name="subcategory" class="form-input" />
-      </div>
-
-      <!-- Row 3: PI Received | Top Sent to Anthro | Top Sample Status -->
-      <div class="form-group">
-        <label class="form-label">PI Received</label>
-        <input type="date" name="piReceived" class="form-input" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Top Sent to Anthro</label>
-        <input type="date" name="topSent" class="form-input" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Top Sample Status</label>
-        <select name="topSampleStatus" class="form-select">
-          <option></option>
-          <option>Request top and photo sample</option>
-          <option>Received</option>
-          <option>Approved</option>
-          <option>Rejected</option>
-        </select>
-      </div>
-
-      <!-- Row 4: Base PO (2 cols) | Final NDC -->
-      <div class="form-group form-span2">
-        <label class="form-label">Base PO Import Farm</label>
-        <input type="text" name="basePo" class="form-input" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Final NDC</label>
-        <input type="date" name="finalNDC" class="form-input" />
-      </div>
-
-      <!-- Row 5: Top Deadline | Top Deadline Days | Ex Factory -->
-      <div class="form-group">
-        <label class="form-label">Top Deadline</label>
-        <input type="date" name="topDeadline" class="form-input" onchange="updateOfficialTopDeadlineDays()" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Top Deadline Days</label>
-        <div id="topDeadlineDays-display-official" class="form-display">—</div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Ex Factory / Flight Date</label>
-        <input type="date" name="exFactory" class="form-input" />
-      </div>
-
-      <!-- Row 6: Cost | Freight | Duty -->
-      <div class="form-group">
-        <label class="form-label">Cost</label>
-        <input type="number" name="cost" class="form-input" step="0.01" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Freight</label>
-        <select name="freight" class="form-select">
-          <option></option>
-          <option>DDP</option>
-          <option>FOB</option>
-          <option>CIF</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Duty</label>
-        <input type="number" name="duty" class="form-input" step="0.01" />
-      </div>
-
-      <!-- Row 7: HTS (full) -->
-      <div class="form-group form-full">
-        <label class="form-label">HTS</label>
-        <input type="text" name="hts" class="form-input" />
-      </div>
-
-      <!-- Row 8: Message -->
-      <div class="form-group form-full">
-        <label class="form-label">Message</label>
-        <textarea class="form-textarea" name="message" rows="2"></textarea>
       </div>
 
       <div class="form-actions form-full">
@@ -868,25 +842,20 @@ function openStylesList(status) {
   .catch(() => {});
 }
 
-async function loadFormCad(style, prefix) {
-  const container = document.getElementById(`${prefix}-cad-preview`);
-  const img = document.getElementById(`${prefix}-cad-img`);
-  if (!container || !img) return;
-  container.style.display = 'none';
-  img.src = '';
+async function loadFormCAD(style, sectionId) {
+  const section = document.getElementById(sectionId);
+  if (!section || !style) return;
+  section.innerHTML = '';
   try {
-    const r = await fetch('/api/jhonny/cad-images-batch', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ styles: [style] }),
-    });
-    const data = await r.json();
-    const d = data.results?.[style];
-    if (d?.found) {
-      img.src = `data:${d.mimeType};base64,${d.imageData}`;
-      container.style.display = 'block';
-    }
-  } catch {}
+    const d = await fetch(`/api/jhonny/cad-image/${encodeURIComponent(style)}`).then(r => r.json());
+    if (!d.found) return;
+    const src = `data:${d.mimeType};base64,${d.imageData}`;
+    section.innerHTML = `
+      <div class="form-cad-thumb-wrap">
+        <img class="form-cad-thumb" src="${src}" alt="CAD"
+          onclick="document.getElementById('status-cad-lightbox-img').src=this.src;document.getElementById('status-cad-lightbox').classList.add('open')">
+      </div>`;
+  } catch (e) { section.innerHTML = ''; }
 }
 
 async function saveSmsSent() {
@@ -1033,7 +1002,7 @@ async function breakdownSearch() {
     setField('duty', data.duty);
     setField('hts', data.hts);
     updateTopDeadlineDays();
-    loadFormCad(style, 'breakdown');
+    loadFormCAD(style, 'breakdown-cad-section');
 
     showToast('PO data loaded successfully');
 
@@ -1164,7 +1133,7 @@ async function officialSearch() {
     setField('duty',            data.duty);
     setField('hts',             data.hts);
     updateOfficialTopDeadlineDays();
-    loadFormCad(style, 'official');
+    loadFormCAD(style, 'official-cad-section');
     showToast('PO data loaded successfully');
   } catch (error) {
     showToast('Search failed. Please try again.');
