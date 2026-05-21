@@ -430,16 +430,22 @@ app.get('/api/po/status-summary', async (req, res) => {
       status:   col('status'),
       supplier: col('supplier'),
       category: col('category'),
-      ndc:      col('final ndc', 'ndc'),
+      ndc:      col('ndc month/year', 'ndc month'),
       smsSent:  col('sms sent from supplier', 'sms sent'),
     };
     if (C.style < 0 || C.status < 0) return res.status(500).json({ error: 'Required columns not found' });
     const get = (r, i) => i >= 0 ? (r[i] || '').trim() : '';
+    const MONTH_NAMES = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+    const MONTH_SHORT = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
     const fmtNDC = raw => {
       if (!raw) return '';
+      const s = raw.trim().toUpperCase();
+      for (let i = 0; i < MONTH_NAMES.length; i++) {
+        if (s.startsWith(MONTH_NAMES[i]) || s.startsWith(MONTH_SHORT[i])) return MONTH_NAMES[i];
+      }
       const d = new Date(raw);
-      if (isNaN(d)) return '';
-      return d.toLocaleDateString('en-US', { month: 'long' }).toUpperCase();
+      if (!isNaN(d)) return MONTH_NAMES[d.getMonth()];
+      return '';
     };
     const counts = {}, styles = {};
     TRACKED_STATUSES.forEach(s => { counts[s] = 0; styles[s] = []; });

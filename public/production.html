@@ -847,7 +847,14 @@ async function loadFormCAD(style, sectionId) {
   if (!section || !style) return;
   section.innerHTML = '';
   try {
-    const d = await fetch(`/api/jhonny/cad-image/${encodeURIComponent(style)}`).then(r => r.json());
+    let d = await fetch(`/api/jhonny/cad-image/${encodeURIComponent(style)}`).then(r => r.json());
+    // If not found, retry with normalized style (strip leading letter prefix e.g. "F-")
+    if (!d.found) {
+      const norm = style.replace(/^[A-Za-z]+-?/, '').trim();
+      if (norm && norm !== style) {
+        d = await fetch(`/api/jhonny/cad-image/${encodeURIComponent(norm)}`).then(r => r.json());
+      }
+    }
     if (!d.found) return;
     const src = `data:${d.mimeType};base64,${d.imageData}`;
     section.innerHTML = `
@@ -1002,7 +1009,7 @@ async function breakdownSearch() {
     setField('duty', data.duty);
     setField('hts', data.hts);
     updateTopDeadlineDays();
-    loadFormCAD(style, 'breakdown-cad-section');
+    loadFormCAD(data.style || style, 'breakdown-cad-section');
 
     showToast('PO data loaded successfully');
 
@@ -1133,7 +1140,7 @@ async function officialSearch() {
     setField('duty',            data.duty);
     setField('hts',             data.hts);
     updateOfficialTopDeadlineDays();
-    loadFormCAD(style, 'official-cad-section');
+    loadFormCAD(data.style || style, 'official-cad-section');
     showToast('PO data loaded successfully');
   } catch (error) {
     showToast('Search failed. Please try again.');
