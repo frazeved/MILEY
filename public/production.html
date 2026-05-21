@@ -104,6 +104,11 @@
     #styles-list-modal.has-po-col .style-row,
     #styles-list-modal.has-po-col .styles-list-header { grid-template-columns: 52px 80px 1fr 1fr 54px 1fr; }
     @media(max-width:640px) { #styles-list-modal.has-po-col .style-row, #styles-list-modal.has-po-col .styles-list-header { grid-template-columns: 44px 70px 1fr 50px 1fr; } #styles-list-modal.has-po-col .style-row > :nth-child(4), #styles-list-modal.has-po-col .styles-list-header > :nth-child(4) { display: none; } }
+    /* Print Sent column mode (MISSING AW) */
+    #styles-list-modal.has-print-col .modal { max-width: 820px; }
+    #styles-list-modal.has-print-col .style-row,
+    #styles-list-modal.has-print-col .styles-list-header { grid-template-columns: 52px 80px 1fr 1fr 54px 1fr; }
+    @media(max-width:640px) { #styles-list-modal.has-print-col .style-row, #styles-list-modal.has-print-col .styles-list-header { grid-template-columns: 44px 70px 1fr 50px 1fr; } #styles-list-modal.has-print-col .style-row > :nth-child(4), #styles-list-modal.has-print-col .styles-list-header > :nth-child(4) { display: none; } }
 
     /* Form CAD — same pattern as warehouse transit dashboard */
     .form-cad-top { display: flex; gap: 14px; align-items: stretch; }
@@ -788,9 +793,10 @@ function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'
 
 function openStylesList(status) {
   const list = statusStylesData[status] || [];
-  const isWaitingSms = status === 'WAITING SMS';
-  const isWaitingPo  = status === 'WAITING PO';
-  const hasExtraCol  = isWaitingSms || isWaitingPo;
+  const isWaitingSms  = status === 'WAITING SMS';
+  const isWaitingPo   = status === 'WAITING PO';
+  const isMissingAW   = status === 'MISSING AW';
+  const hasExtraCol   = isWaitingSms || isWaitingPo || isMissingAW;
   document.getElementById('styles-list-title').textContent = status + ' (' + list.length + ')';
   const body = document.getElementById('styles-list-body');
   const modalEl = document.getElementById('styles-list-modal');
@@ -799,15 +805,16 @@ function openStylesList(status) {
   const saveStatus = document.getElementById('sms-save-status');
   const saveBtn    = document.querySelector('#styles-save-footer button');
 
-  modalEl.classList.toggle('has-sms-col', isWaitingSms);
-  modalEl.classList.toggle('has-po-col',  isWaitingPo);
-  const extraHeader = isWaitingSms ? 'SMS FROM SUPPLIER' : isWaitingPo ? 'PO ISSUED BY ANTHRO' : '';
+  modalEl.classList.toggle('has-sms-col',   isWaitingSms);
+  modalEl.classList.toggle('has-po-col',    isWaitingPo);
+  modalEl.classList.toggle('has-print-col', isMissingAW);
+  const extraHeader = isWaitingSms ? 'SMS FROM SUPPLIER' : isWaitingPo ? 'PO ISSUED BY ANTHRO' : isMissingAW ? 'PRINT SENT TO SUPPLIER' : '';
   headerEl.innerHTML = hasExtraCol
     ? `<span>CAD</span><span>Style #</span><span>Supplier</span><span>Category</span><span>MONTH</span><span>${extraHeader}</span>`
     : '<span>CAD</span><span>Style #</span><span>Supplier</span><span>Category</span><span>MONTH</span>';
   saveFooter.style.display = hasExtraCol ? 'flex' : 'none';
   if (saveStatus) saveStatus.textContent = '';
-  if (saveBtn) saveBtn.onclick = isWaitingSms ? saveSmsSent : isWaitingPo ? savePoIssued : null;
+  if (saveBtn) saveBtn.onclick = isWaitingSms ? saveSmsSent : isWaitingPo ? savePoIssued : isMissingAW ? savePrintSent : null;
 
   if (list.length === 0) {
     body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">No styles found</div>';
@@ -824,7 +831,8 @@ function openStylesList(status) {
       <div><div class="style-field-sub">${esc(row.category || '—')}</div></div>
       <div class="style-ndc">${esc(row.ndc || '—')}</div>
       ${isWaitingSms ? `<div><input type="date" class="sms-input" id="sms-input-${i}" data-style="${esc(row.style)}" value="${esc(row.smsSent||'')}"></div>` : ''}
-      ${isWaitingPo  ? `<div><input type="date" class="sms-input" id="po-input-${i}"  data-style="${esc(row.style)}" value="${esc(row.poIssued||'')}"></div>` : ''}
+      ${isWaitingPo  ? `<div><input type="date" class="sms-input" id="po-input-${i}"    data-style="${esc(row.style)}" value="${esc(row.poIssued||'')}"></div>` : ''}
+      ${isMissingAW  ? `<div><input type="date" class="sms-input" id="print-input-${i}" data-style="${esc(row.style)}" value="${esc(row.printSent||'')}"></div>` : ''}
     </div>
   `).join('');
   modalEl.classList.add('open');
@@ -886,6 +894,29 @@ async function saveSmsSent() {
   btn.disabled = true;
   try {
     const r = await fetch('/api/po/save-sms-sent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ updates }),
+    });
+    const data = await r.json();
+    if (!r.ok) { statusEl.textContent = 'Error: ' + (data.error || r.status); return; }
+    statusEl.textContent = `Saved ${data.updated} row${data.updated !== 1 ? 's' : ''}` + (data.notFound?.length ? ` (${data.notFound.length} not found)` : '');
+  } catch (e) {
+    statusEl.textContent = 'Network error';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function savePrintSent() {
+  const inputs = document.querySelectorAll('#styles-list-body .sms-input');
+  const updates = Array.from(inputs).map(el => ({ style: el.dataset.style, printSent: el.value }));
+  const statusEl = document.getElementById('sms-save-status');
+  const btn = document.querySelector('#styles-save-footer button');
+  statusEl.textContent = 'Saving…';
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/po/save-print-sent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ updates }),
