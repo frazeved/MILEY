@@ -733,7 +733,7 @@ async function loadSendingAsUsers(selectId) {
   const sel = document.getElementById(selectId);
   try {
     const users = await fetch('/api/users').then(r => r.json());
-    const saved = localStorage.getItem('305_sendingAs') || sel.value;
+    const saved = localStorage.getItem('305_sendingAs') || 'kamilla';
     sel.innerHTML = '<option value="">— Select your name —</option>';
     users.forEach(u => {
       const opt = document.createElement('option');
