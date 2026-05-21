@@ -412,6 +412,34 @@ async function triggerJhonnyUpdate(req, res) {
 app.post('/api/run-jhonny', triggerJhonnyUpdate);
 app.post('/api/fedex/update', triggerJhonnyUpdate);
 
+// ─── Status Summary Dashboard ─────────────────────────────────────────────────
+const TRACKED_STATUSES = [
+  'WAITING SMS', 'WAITING PRICE FROM SUPPLIER', 'CHECKING PRICE NDC',
+  'WAITING PO', 'WAITING REVISED SMS', 'WAITING REVISED AW', 'WAITING PROTO APPROVAL',
+];
+app.get('/api/po/status-summary', async (req, res) => {
+  try {
+    const response = await fetch(csvUrl(0));
+    if (!response.ok) return res.status(500).json({ error: 'Failed to fetch sheet' });
+    const rows = parseCSV(await response.text());
+    if (rows.length < 2) return res.json({ counts: {}, styles: {} });
+    const headers = rows[0].map(h => h.trim().toLowerCase());
+    const styleIdx  = headers.findIndex(h => h === 'style #' || h === 'style#' || h === 'style');
+    const statusIdx = headers.findIndex(h => h === 'status');
+    if (styleIdx < 0 || statusIdx < 0) return res.status(500).json({ error: 'Required columns not found' });
+    const counts = {}, styles = {};
+    TRACKED_STATUSES.forEach(s => { counts[s] = 0; styles[s] = []; });
+    for (let i = 1; i < rows.length; i++) {
+      const status = (rows[i][statusIdx] || '').trim().toUpperCase();
+      const style  = (rows[i][styleIdx]  || '').trim();
+      if (!style) continue;
+      const match = TRACKED_STATUSES.find(s => s === status);
+      if (match) { counts[match]++; styles[match].push(style); }
+    }
+    res.json({ counts, styles });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.post('/api/po/search', async (req, res) => {
   try {
     const { style } = req.body;
