@@ -3310,14 +3310,16 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
   }
 });
 
-// ─── PO Weekly SUP Report — writes sheet + sends supplier emails ──────────────
+// ─── PO Weekly SUP Report — writes sheet + creates Gmail drafts per supplier ──
 app.post('/api/susan/weekly-sup-report', async (req, res) => {
   try {
-    const auth = new google.auth.GoogleAuth({
-      credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON),
-      scopes: ['https://www.googleapis.com/auth/spreadsheets']
-    });
-    const sheets = google.sheets({ version: 'v4', auth });
+    const { sendingAs } = req.body;
+    const token = userTokens[sendingAs];
+    if (!token?.refreshToken) return res.status(401).json({ error: 'Gmail not connected for this user' });
+    const sender = TEAM_USERS.find(u => u.id === sendingAs);
+
+    const sheetsAuth = new google.auth.GoogleAuth({ credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON), scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+    const sheets = google.sheets({ version: 'v4', auth: sheetsAuth });
 
     const COL = { style:2, status:3, supplier:6, category:7, subcat:8, freight:35, cost:36, proto:17, sms:25, ship:51, tp:14 };
     const EXCLUDED = ["Canceled","On Hold","Other Supplier","PO'd + production ok","PO'd","Waiting PO","Changed supplier after tariffs","Other supplier"];
@@ -3342,7 +3344,7 @@ app.post('/api/susan/weekly-sup-report', async (req, res) => {
     const emailMap  = {};
 
     for (let i = 1; i < data.length; i++) {
-      const row      = data[i];
+      const row = data[i];
       const styleRaw = row[COL.style];
       const status   = (row[COL.status]   || '').toString().trim();
       const supplier = (row[COL.supplier] || '').toString().trim();
@@ -3392,10 +3394,12 @@ app.post('/api/susan/weekly-sup-report', async (req, res) => {
     await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID, range: `${sheetName}!A1`, valueInputOption: 'USER_ENTERED', requestBody: { values } });
     await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { requests: headerRows.map(hr => ({ repeatCell: { range: { sheetId: newSheetId, startRowIndex: hr, endRowIndex: hr+1, startColumnIndex: 0, endColumnIndex: REPORT_HEADER.length }, cell: { userEnteredFormat: { backgroundColor: { red:0.812, green:0.886, blue:0.953 }, textFormat: { bold:true } } }, fields: 'userEnteredFormat(backgroundColor,textFormat)' } })) } });
 
-    // Send emails
-    const transporter = nodemailer.createTransport({ service: 'gmail', auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS } });
+    // Create Gmail drafts (same pattern as PO Breakdown)
+    const authClient = makeOAuth2Client();
+    authClient.setCredentials({ refresh_token: token.refreshToken });
+    const gmail = google.gmail({ version: 'v1', auth: authClient });
     const todaySlash = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
-    const emailsSent = [];
+    const draftsCreated = [];
 
     for (const sup of Object.keys(emailMap).sort()) {
       const contact = SUPPLIER_CONTACTS[sup];
@@ -3404,12 +3408,14 @@ app.post('/api/susan/weekly-sup-report', async (req, res) => {
       const to = Array.isArray(contact.email) ? contact.email.join(', ') : contact.email;
       let html = `Hi ${contact.name}!<br><br>I hope all is well!<br><br>Please pay special attention to the styles below. The following styles updates are urgent!<br><br>We need them by Monday:<br><br><table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;"><tr style="background-color:#cfe2f3;font-weight:bold;"><th>Style #</th><th>Category</th><th>Comments</th><th>TP sent</th><th>Updates</th></tr>`;
       for (const r of rows) html += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td></tr>`;
-      html += `</table><br>Best regards,<br>`;
-      await transporter.sendMail({ from: `"305 Team" <${process.env.EMAIL_USER}>`, to, cc: CC_LIST.join(', '), subject: `URGENT FUP - Development Status - ${sup} - ${todaySlash}`, html });
-      emailsSent.push({ supplier: sup, styles: rows.length });
+      html += `</table><br>Best regards,<br>${sender?.name || ''}`;
+      const rawMime = await buildRawMime({ from: `"${sender?.name || ''}" <${sender?.email || ''}>`, to, cc: CC_LIST.join(','), subject: `URGENT FUP - Development Status - ${sup} - ${todaySlash}`, html });
+      const encoded = rawMime.toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+      await gmail.users.drafts.create({ userId: 'me', requestBody: { message: { raw: encoded } } });
+      draftsCreated.push({ supplier: sup, styles: rows.length });
     }
 
-    res.json({ ok: true, sheetName, emailsSent });
+    res.json({ ok: true, sheetName, draftsCreated });
   } catch (e) {
     console.error('[weekly-sup-report]', e.message);
     res.status(500).json({ error: e.message });
