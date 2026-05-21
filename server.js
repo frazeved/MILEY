@@ -3318,10 +3318,6 @@ app.post('/api/susan/weekly-sup-report', async (req, res) => {
     if (!token?.refreshToken) return res.status(401).json({ error: 'Gmail not connected for this user' });
     const sender = TEAM_USERS.find(u => u.id === sendingAs);
 
-    const sheetsAuth = new google.auth.GoogleAuth({ credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON), scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
-    const sheets = google.sheets({ version: 'v4', auth: sheetsAuth });
-
-    const COL = { style:2, status:3, supplier:6, category:7, subcat:8, freight:35, cost:36, proto:17, sms:25, ship:51, tp:14 };
     const EXCLUDED = ["Canceled","On Hold","Other Supplier","PO'd + production ok","PO'd","Waiting PO","Changed supplier after tariffs","Other supplier"];
     const REPORT_HEADER = ["Style#","Status","Supplier","Category","Subcategory","Freight","Cost","Proto sent","SMS sent","Ship Date","TP sent"];
     const SUPPLIER_CONTACTS = {
@@ -3337,42 +3333,72 @@ app.post('/api/susan/weekly-sup-report', async (req, res) => {
     };
     const CC_LIST = ["paula@creativetwotwelve.com","ozan.guruscu@creativetwotwelve.com","rafaela@showroom212.com","kamilla@creativetwotwelve.com"];
 
-    const sheetRes = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: "'Production & PO DataBase'!A:BZ" });
-    const data = sheetRes.data.values || [];
+    // Read sheet via CSV export — same path as all other Susan endpoints
+    const csvRes = await fetch(csvUrl(0));
+    if (!csvRes.ok) throw new Error('Could not fetch production sheet');
+    const rows = parseCSV(await csvRes.text());
+    if (rows.length < 2) return res.json({ ok: true, sheetName: '', draftsCreated: [] });
+
+    const H = rows[0].map(h => (h || '').trim().toLowerCase());
+    const findCol = (...kws) => { for (const kw of kws) { const i = H.findIndex(h => h.includes(kw.toLowerCase())); if (i >= 0) return i; } return -1; };
+    const get = (r, i) => i >= 0 ? (r[i] || '').trim() : '';
+
+    const C = {
+      style:    findCol('style #', 'style#', 'style'),
+      status:   findCol('status'),
+      supplier: findCol('supplier'),
+      category: findCol('category'),
+      subcat:   findCol('sub-category', 'subcategory'),
+      freight:  findCol('freight'),
+      cost:     findCol('cost'),
+      proto:    findCol('proto'),
+      sms:      findCol('sms sent', 'sms'),
+      ship:     findCol('ship date', 'ex factory', 'flight date'),
+      tp:       findCol('tp sent', 'top sent', 'sms sent to anthro'),
+    };
 
     const reportMap = {};
     const emailMap  = {};
 
-    for (let i = 1; i < data.length; i++) {
-      const row = data[i];
-      const styleRaw = row[COL.style];
-      const status   = (row[COL.status]   || '').toString().trim();
-      const supplier = (row[COL.supplier] || '').toString().trim();
+    for (let i = 1; i < rows.length; i++) {
+      const row      = rows[i];
+      const styleRaw = get(row, C.style);
+      const status   = get(row, C.status);
+      const supplier = get(row, C.supplier);
       if (!styleRaw || !status || !supplier) continue;
       if (EXCLUDED.includes(status)) continue;
 
-      const style = (() => { const s = styleRaw.toString().trim(); const m = s.match(/(\d.*)/); return m ? m[1] : s; })();
-      const cost  = row[COL.cost];
+      const style = styleRaw.match(/(\d.*)/)?.[1] || styleRaw;
+      const cost  = get(row, C.cost);
+      const proto = get(row, C.proto);
+      const sms   = get(row, C.sms);
+      const ship  = get(row, C.ship);
+      const tp    = get(row, C.tp);
 
-      if (!row[COL.proto] || !row[COL.sms] || !row[COL.ship] || !row[COL.tp]) {
+      if (!proto || !sms || !ship || !tp) {
         if (!reportMap[supplier]) reportMap[supplier] = [];
-        reportMap[supplier].push([style, status, supplier, row[COL.category]||'', row[COL.subcat]||'', row[COL.freight]||'', cost ? `$${Number(cost).toFixed(2)}` : '', row[COL.proto]||'', row[COL.sms]||'', row[COL.ship]||'', row[COL.tp]||'']);
+        reportMap[supplier].push([style, status, supplier, get(row,C.category), get(row,C.subcat), get(row,C.freight), cost ? `$${Number(cost).toFixed(2)}` : '', proto, sms, ship, tp]);
       }
 
       if (!SUPPLIER_CONTACTS[supplier]) continue;
       const comments = [];
       if (!cost) comments.push("Waiting Price");
-      if (!row[COL.proto] || !row[COL.sms]) comments.push("Waiting Proto/SMS");
+      if (!proto || !sms) comments.push("Waiting Proto/SMS");
       let tpFmt = '';
-      const tpDate = row[COL.tp] ? new Date(row[COL.tp]) : null;
+      const tpDate = tp ? new Date(tp) : null;
       if (tpDate && !isNaN(tpDate)) {
         tpFmt = `${String(tpDate.getMonth()+1).padStart(2,'0')}/${String(tpDate.getDate()).padStart(2,'0')}/${tpDate.getFullYear()}`;
         if (Math.floor((new Date() - tpDate) / 86400000) > 15) comments.push('<span style="color:red;font-size:8pt;">Urgent</span>');
       }
       if (!comments.length) continue;
       if (!emailMap[supplier]) emailMap[supplier] = [];
-      emailMap[supplier].push([style, row[COL.category]||'', comments.join(', '), tpFmt, '']);
+      emailMap[supplier].push([style, get(row,C.category), comments.join(', '), tpFmt, '']);
     }
+
+    // Write report tab via Sheets API (service account)
+    const sa = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const sheetsAuth = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+    const sheets = google.sheets({ version: 'v4', auth: sheetsAuth });
 
     // Write sheet report
     const now = new Date();
