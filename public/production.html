@@ -322,7 +322,7 @@
             <div><div class="card-name">PO BREAKDOWN</div><div class="card-type">Email</div></div>
           </div>
         </div>
-        <div class="card email-card">
+        <div class="card email-card" onclick="openModal('po-official-modal')" style="cursor:pointer;">
           <div class="card-icon-row">
             <div class="icon-email">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
@@ -576,6 +576,132 @@
   </div>
 </div>
 
+<!-- PO OFFICIAL MODAL -->
+<div class="modal-overlay" id="po-official-modal" onclick="closeModalOnOverlay(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">PO Official Form</div>
+      <button class="modal-close" onclick="closeModal('po-official-modal')">×</button>
+    </div>
+
+    <form class="form-grid">
+
+      <!-- Row 0: Sending As — full width -->
+      <div class="form-group form-full">
+        <label class="form-label">Sending As</label>
+        <select name="sendingAs" class="form-select" id="sendingAs-select-official">
+          <option value="">— Select your name —</option>
+        </select>
+      </div>
+
+      <!-- Row 1: Style search — full width -->
+      <div class="form-group form-full">
+        <label class="form-label">Style #</label>
+        <div class="form-row">
+          <input type="text" name="style" class="form-input" />
+          <button type="button" class="btn-search" onclick="officialSearch()">Search</button>
+        </div>
+      </div>
+
+      <hr class="form-divider" />
+
+      <!-- Row 2: Supplier | Category | Sub-Category -->
+      <div class="form-group">
+        <label class="form-label">Supplier</label>
+        <input type="text" name="supplier" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <input type="text" name="category" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Sub-Category</label>
+        <input type="text" name="subcategory" class="form-input" />
+      </div>
+
+      <!-- Row 3: PI Received | Top Sent to Anthro | Top Sample Status -->
+      <div class="form-group">
+        <label class="form-label">PI Received</label>
+        <input type="date" name="piReceived" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Top Sent to Anthro</label>
+        <input type="date" name="topSent" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Top Sample Status</label>
+        <select name="topSampleStatus" class="form-select">
+          <option></option>
+          <option>Request top and photo sample</option>
+          <option>Received</option>
+          <option>Approved</option>
+          <option>Rejected</option>
+        </select>
+      </div>
+
+      <!-- Row 4: Base PO (2 cols) | Final NDC -->
+      <div class="form-group form-span2">
+        <label class="form-label">Base PO Import Farm</label>
+        <input type="text" name="basePo" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Final NDC</label>
+        <input type="date" name="finalNDC" class="form-input" />
+      </div>
+
+      <!-- Row 5: Top Deadline | Top Deadline Days | Ex Factory -->
+      <div class="form-group">
+        <label class="form-label">Top Deadline</label>
+        <input type="date" name="topDeadline" class="form-input" onchange="updateOfficialTopDeadlineDays()" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Top Deadline Days</label>
+        <div id="topDeadlineDays-display-official" class="form-display">—</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ex Factory / Flight Date</label>
+        <input type="date" name="exFactory" class="form-input" />
+      </div>
+
+      <!-- Row 6: Cost | Freight | Duty -->
+      <div class="form-group">
+        <label class="form-label">Cost</label>
+        <input type="number" name="cost" class="form-input" step="0.01" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Freight</label>
+        <select name="freight" class="form-select">
+          <option></option>
+          <option>DDP</option>
+          <option>FOB</option>
+          <option>CIF</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Duty</label>
+        <input type="number" name="duty" class="form-input" step="0.01" />
+      </div>
+
+      <!-- Row 7: HTS (full) -->
+      <div class="form-group form-full">
+        <label class="form-label">HTS</label>
+        <input type="text" name="hts" class="form-input" />
+      </div>
+
+      <!-- Row 8: Message -->
+      <div class="form-group form-full">
+        <label class="form-label">Message</label>
+        <textarea class="form-textarea" name="message" rows="2"></textarea>
+      </div>
+
+      <div class="form-actions form-full">
+        <button type="button" class="btn-secondary" onclick="closeModal('po-official-modal')">Cancel</button>
+        <button type="submit" class="btn-primary">Send PO Official</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
 function toggleNav() { document.getElementById('nav-panel').classList.toggle('open'); }
 document.addEventListener('click', function(e) {
@@ -599,13 +725,12 @@ function updateTopDeadlineDays() {
 
 async function openModal(modalId) {
   document.getElementById(modalId).classList.add('open');
-  if (modalId === 'po-breakdown-modal') {
-    await loadSendingAsUsers();
-  }
+  if (modalId === 'po-breakdown-modal') await loadSendingAsUsers('sendingAs-select');
+  if (modalId === 'po-official-modal')  await loadSendingAsUsers('sendingAs-select-official');
 }
 
-async function loadSendingAsUsers() {
-  const sel = document.getElementById('sendingAs-select');
+async function loadSendingAsUsers(selectId) {
+  const sel = document.getElementById(selectId);
   try {
     const users = await fetch('/api/users').then(r => r.json());
     const saved = localStorage.getItem('305_sendingAs') || sel.value;
@@ -621,6 +746,9 @@ async function loadSendingAsUsers() {
 }
 
 document.getElementById('sendingAs-select').addEventListener('change', function() {
+  if (this.value) localStorage.setItem('305_sendingAs', this.value);
+});
+document.getElementById('sendingAs-select-official').addEventListener('change', function() {
   if (this.value) localStorage.setItem('305_sendingAs', this.value);
 });
 
@@ -765,6 +893,129 @@ document.querySelector('#po-breakdown-modal form').addEventListener('submit', as
   } catch (err) {
     showToast('Error: ' + err.message);
     console.error(err);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+});
+
+function updateOfficialTopDeadlineDays() {
+  const input = document.querySelector('#po-official-modal [name="topDeadline"]');
+  const display = document.getElementById('topDeadlineDays-display-official');
+  if (!input?.value) { display.textContent = '—'; return; }
+  const deadline = new Date(input.value);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  deadline.setHours(0, 0, 0, 0);
+  const days = Math.round((today - deadline) / 86400000);
+  display.textContent = days === 0 ? 'Today' : `${Math.abs(days)} Days`;
+}
+
+async function officialSearch() {
+  const styleInput = document.querySelector('#po-official-modal input[type="text"]');
+  const style = styleInput.value.trim();
+  if (!style) { showToast('Please enter a Style #'); return; }
+
+  const btn = document.querySelector('#po-official-modal .btn-search');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Searching...';
+
+  try {
+    const response = await fetch('/api/po/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ style })
+    });
+    const data = await response.json();
+    if (!response.ok) { showToast(data.error || 'Search failed'); return; }
+
+    const form = document.querySelector('#po-official-modal form');
+    const setField = (name, value) => {
+      const field = form.querySelector(`[name="${name}"]`);
+      if (!field) return;
+      if (field.type === 'date' && value) {
+        try { const d = new Date(value); if (!isNaN(d)) field.value = d.toISOString().split('T')[0]; } catch { field.value = value; }
+      } else {
+        field.value = value;
+      }
+    };
+
+    setField('supplier',        data.supplier);
+    setField('category',        data.category);
+    setField('subcategory',     data.subcategory);
+    setField('piReceived',      data.piReceived);
+    setField('topSent',         data.topSent);
+    setField('topSampleStatus', data.topSampleStatus);
+    setField('basePo',          data.basePo);
+    setField('finalNDC',        data.finalNDC);
+    setField('topDeadline',     data.topDeadline);
+    setField('exFactory',       data.exFactory);
+    setField('cost',            data.cost);
+    setField('freight',         data.freight);
+    setField('duty',            data.duty);
+    setField('hts',             data.hts);
+    updateOfficialTopDeadlineDays();
+    showToast('PO data loaded successfully');
+  } catch (error) {
+    showToast('Search failed. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+document.querySelector('#po-official-modal form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = this.querySelector('.btn-primary');
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+
+  const g = name => (this.querySelector(`[name="${name}"]`)?.value || '').trim();
+  const body = {
+    sendingAs:       g('sendingAs'),
+    style:           g('style'),
+    supplier:        g('supplier'),
+    category:        g('category'),
+    subcategory:     g('subcategory'),
+    piReceived:      g('piReceived'),
+    topSent:         g('topSent'),
+    topSampleStatus: g('topSampleStatus'),
+    basePo:          g('basePo'),
+    finalNDC:        g('finalNDC'),
+    topDeadline:     g('topDeadline'),
+    exFactory:       g('exFactory'),
+    cost:            g('cost'),
+    freight:         g('freight'),
+    duty:            g('duty'),
+    hts:             g('hts'),
+    message:         g('message'),
+  };
+
+  if (!body.sendingAs) { showToast('Please select who is sending this'); btn.disabled = false; btn.textContent = orig; return; }
+  if (!body.style)     { showToast('Style # is required');               btn.disabled = false; btn.textContent = orig; return; }
+  if (!body.supplier)  { showToast('Supplier is required');              btn.disabled = false; btn.textContent = orig; return; }
+
+  try {
+    const res = await fetch('/api/po/official-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (res.status === 401) {
+      const userName = document.querySelector(`#sendingAs-select-official option[value="${body.sendingAs}"]`)?.textContent?.replace(/\s*✓.*/, '').trim() || body.sendingAs;
+      document.getElementById('gmail-setup-msg').textContent = `${userName}'s Gmail account hasn't been connected yet. Click "Connect Gmail" below to set it up.`;
+      document.getElementById('gmail-setup-link').href = `/setup`;
+      openModal('gmail-setup-modal');
+      return;
+    }
+    if (!res.ok) throw new Error(data.error || 'Failed to send');
+    showToast('Draft created in Gmail!');
+    closeModal('po-official-modal');
+  } catch (err) {
+    showToast('Error: ' + err.message);
   } finally {
     btn.disabled = false;
     btn.textContent = orig;
