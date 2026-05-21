@@ -951,26 +951,36 @@ app.post('/api/po/breakdown-email', async (req, res) => {
       });
     }
 
-    const cadCol = cadCid
-      ? `<td style="vertical-align:top;padding:4px 16px 4px 0;text-align:center;width:90px;">
-           <img src="cid:${cadCid}" width="80" style="display:block;border:0;">
-         </td>`
+    const cadCell = cadCid
+      ? `<td style="padding:6px;text-align:center;"><img src="cid:${cadCid}" width="80" style="display:block;border:0;"></td>`
       : '';
 
     const htmlBody = `
-<table border="0" cellpadding="0" cellspacing="0" style="font-family:Arial,sans-serif;"><tr>
-${cadCol}
-<td style="vertical-align:top;">
 <p><b><span style="font-size:12pt;">Hi ${greetName} and ${supplierKey} team,</span></b></p>
 <p>Please find attached the breakdown of<br><b>STYLE# ${displayStyle}</b></p>
 <p><b>HTS# ${hts||'xxxxxx'}</b> | <b>${freight||'xxxxxx'} $${cost||'xxxxxx'}</b> | <b>INVOICE/PACKING LIST WITH FLAVIO: ${invoiceFormatted}</b> | <b>AGREED HANDOVER DATE: ${handoverFormatted}</b></p>
-<p>${poLines.join('<br>')}</p>
+${cadCid ? `
+<table border="1" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:11pt;">
+  <thead>
+    <tr style="background-color:#d9edf7;text-align:left;">
+      <th style="padding:6px;">CAD</th>
+      <th style="padding:6px;">Style #</th>
+      <th style="padding:6px;">PO(s)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      ${cadCell}
+      <td style="padding:6px;">${displayStyle}</td>
+      <td style="padding:6px;">${poLines.join('<br>')}</td>
+    </tr>
+  </tbody>
+</table>` : `<p>${poLines.join('<br>')}</p>`}
 <p>Could you please confirm this style fabric composition?</p>
 <p><b><span style="color:red;">IMPORTANT:</span></b><br>Please, send the Invoice and Packing list before shipping for validation, also the custom description, HTS#, TAX ID on it. AWB when available.</p>
 <p>Any delay or new agreed ship date on this Style#, please answer this email chain immediately!</p>
 ${message?`<p>${message}</p>`:''}
-<p>Best,<br>${sender?.name||sendingAs}<br>Production Team<br>305 CONSULTING AND PRODUCTION</p>
-</td></tr></table>`;
+<p>Best,<br>${sender?.name||sendingAs}<br>Production Team<br>305 CONSULTING AND PRODUCTION</p>`;
 
     // Build raw MIME (nodemailer composes, does NOT send)
     const rawMime = await buildRawMime({
