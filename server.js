@@ -943,22 +943,22 @@ app.post('/api/po/breakdown-email', async (req, res) => {
     if (cadResult.found) {
       cadCid = 'cad-breakdown';
       cadAttachments.push({
-        filename:           `${cleanStyle}.jpg`,
-        content:            Buffer.from(cadResult.imageData, 'base64'),
-        cid:                cadCid,
-        contentType:        cadResult.mimeType || 'image/jpeg',
-        contentDisposition: 'inline',
+        filename:    `${cleanStyle}.jpg`,
+        content:     Buffer.from(cadResult.imageData, 'base64'),
+        encoding:    'base64',
+        cid:         cadCid,
+        contentType: cadResult.mimeType || 'image/jpeg',
       });
     }
 
     const cadCol = cadCid
-      ? `<td style="vertical-align:top;padding-right:16px;width:90px;">
-           <img src="cid:${cadCid}" width="80" style="display:block;border:0;border-radius:4px;">
+      ? `<td style="vertical-align:top;padding:4px 16px 4px 0;text-align:center;width:90px;">
+           <img src="cid:${cadCid}" width="80" style="display:block;border:0;">
          </td>`
       : '';
 
     const htmlBody = `
-<table style="border-collapse:collapse;font-family:Arial,sans-serif;"><tr>
+<table border="0" cellpadding="0" cellspacing="0" style="font-family:Arial,sans-serif;"><tr>
 ${cadCol}
 <td style="vertical-align:top;">
 <p><b><span style="font-size:12pt;">Hi ${greetName} and ${supplierKey} team,</span></b></p>
@@ -1294,11 +1294,11 @@ app.post('/api/po/top-status-email', async (req, res) => {
         const cid = `cad-${idx}`;
         if (cad.found) {
           attachments.push({
-            filename:           `${e.style}.jpg`,
-            content:            Buffer.from(cad.imageData, 'base64'),
+            filename:    `${e.style}.jpg`,
+            content:     Buffer.from(cad.imageData, 'base64'),
+            encoding:    'base64',
             cid,
-            contentType:        cad.mimeType || 'image/jpeg',
-            contentDisposition: 'inline',
+            contentType: cad.mimeType || 'image/jpeg',
           });
         }
         return { ...e, hasCad: cad.found, cid };
