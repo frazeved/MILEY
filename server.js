@@ -414,8 +414,8 @@ app.post('/api/fedex/update', triggerJhonnyUpdate);
 
 // ─── Status Summary Dashboard ─────────────────────────────────────────────────
 const TRACKED_STATUSES = [
-  'WAITING SMS', 'WAITING PRICE FROM SUPPLIER', 'CHECKING PRICE NDC',
-  'WAITING PO', 'WAITING REVISED SMS', 'WAITING REVISED AW', 'WAITING PROTO APPROVAL',
+  'NEW', 'WAITING SMS', 'WAITING PRICE FROM SUPPLIER', 'CHECKING PRICE NDC',
+  'WAITING PO', 'WAITING REVISED SMS', 'WAITING REVISED AW', 'WAITING PROTO APPROVAL', 'MISSING AW',
 ];
 app.get('/api/po/status-summary', async (req, res) => {
   try {

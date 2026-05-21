@@ -728,8 +728,8 @@
 <script>
 // ── Status Dashboard ──────────────────────────────────────────────────────────
 const STATUS_LABELS = [
-  'WAITING SMS', 'WAITING PRICE FROM SUPPLIER', 'CHECKING PRICE NDC',
-  'WAITING PO', 'WAITING REVISED SMS', 'WAITING REVISED AW', 'WAITING PROTO APPROVAL',
+  'NEW', 'WAITING SMS', 'WAITING PRICE FROM SUPPLIER', 'CHECKING PRICE NDC',
+  'WAITING PO', 'WAITING REVISED SMS', 'WAITING REVISED AW', 'WAITING PROTO APPROVAL', 'MISSING AW',
 ];
 let statusStylesData = {};
 
@@ -738,12 +738,14 @@ async function loadStatusDashboard() {
     const data = await fetch('/api/po/status-summary').then(r => r.json());
     statusStylesData = data.styles || {};
     const dashboard = document.getElementById('status-dashboard');
-    dashboard.innerHTML = STATUS_LABELS.map(label => `
-      <button class="stat-card" onclick="openStylesList('${label}')">
-        <div class="stat-count ${(data.counts[label] || 0) === 0 ? 'zero' : ''}">${data.counts[label] || 0}</div>
-        <div class="stat-label">${label}</div>
-      </button>
-    `).join('');
+    dashboard.innerHTML = STATUS_LABELS
+      .filter(label => (data.counts[label] || 0) > 0)
+      .map(label => `
+        <button class="stat-card" onclick="openStylesList('${label}')">
+          <div class="stat-count">${data.counts[label]}</div>
+          <div class="stat-label">${label}</div>
+        </button>
+      `).join('') || '<div style="font-size:13px;color:var(--text-muted);padding:8px 0;">All clear — no pending statuses.</div>';
   } catch (_) {
     document.getElementById('status-dashboard').innerHTML = '';
   }
