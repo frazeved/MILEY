@@ -597,12 +597,15 @@ app.post('/api/po/official-email', async (req, res) => {
 
     // Look up color code from RLM sheet (col F=index 5 = style, col P=index 15 = color code)
     const normalizeStyle = s => s.toUpperCase().replace(/^[A-Za-z]+-/, '').replace(/ /g, '').replace(/\s+/g, '').replace(/[^0-9A-Z-]/g, '');
-    let colorCode = 'Not Found';
+    let colorCode = null;
     for (let i = 1; i < rlmRows.length; i++) {
       if (normalizeStyle(rlmRows[i][5] || '') === normalizeStyle(cleanStyle)) {
         colorCode = (rlmRows[i][15] || '').trim();
         break;
       }
+    }
+    if (colorCode === null) {
+      return res.status(404).json({ error: `Style ${cleanStyle} was not found in the RLM sheet.` });
     }
 
     // Aggregate qty by size across all POs for this style
@@ -618,7 +621,7 @@ app.post('/api/po/official-email', async (req, res) => {
     }
 
     if (Object.keys(sizeTotals).length === 0) {
-      return res.status(404).json({ error: `No PO DETAIL rows found for style ${cleanStyle}` });
+      return res.status(404).json({ error: `Style ${cleanStyle} was not found in the PO Detail sheet.` });
     }
 
     // Build Excel — 26-column PO import format with light blue formatting

@@ -1005,6 +1005,7 @@ document.querySelector('#po-official-modal form').addEventListener('submit', asy
       openModal('gmail-setup-modal');
       return;
     }
+    if (res.status === 404) { alert(data.error); return; }
     if (!res.ok) throw new Error(data.error || 'Failed to send');
     showToast('Draft created in Gmail!');
     closeModal('po-official-modal');
