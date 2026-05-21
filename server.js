@@ -4,6 +4,7 @@ const path     = require('path');
 const fs       = require('fs');
 const nodemailer = require('nodemailer');
 const XLSX     = require('xlsx');
+const ExcelJS  = require('exceljs');
 const { google } = require('googleapis');
 const session  = require('express-session');
 
@@ -620,11 +621,11 @@ app.post('/api/po/official-email', async (req, res) => {
       return res.status(404).json({ error: `No PO DETAIL rows found for style ${cleanStyle}` });
     }
 
-    // Build Excel — 26-column PO import format (matches buildStyleExcelFile2)
-    const userPO   = cleanStyle + 'A26';
-    const etaDate  = exFactory ? new Date(new Date(exFactory).getTime() + 7 * 86400000).toLocaleDateString('en-US') : '';
+    // Build Excel — 26-column PO import format with light blue formatting
+    const userPO       = cleanStyle + 'A26';
+    const etaDate      = exFactory ? new Date(new Date(exFactory).getTime() + 7 * 86400000).toLocaleDateString('en-US') : '';
     const exfFormatted = exFactory ? new Date(exFactory).toLocaleDateString('en-US') : '';
-    const poTerms  = freight || '';
+    const poTerms      = freight || '';
 
     const OFFICIAL_HEADERS = [
       'COMPANY','DIVISION','USER PO#','Season','Year','PO EXF Date','PO Vendor','Warehouse',
@@ -634,17 +635,63 @@ app.post('/api/po/official-email', async (req, res) => {
       'Special Instructions','Comments/Special 01',
     ];
 
-    const dataRows = Object.entries(sizeTotals).map(([sz, qty]) => [
-      '1','1',userPO,'A','26',exfFormatted,supplier,'305',cleanStyle,
-      '','',colorCode,sz,cost,qty,etaDate,
-      '','',exfFormatted,
-      'A','A','26','',poTerms,'','',
-    ]);
+    // Sort sizes by SIZE_MAP order
+    const sizeOrder = Object.values(SIZE_MAP);
+    const sortedSizes = Object.entries(sizeTotals).sort((a, b) => {
+      const ai = sizeOrder.indexOf(a[0]), bi = sizeOrder.indexOf(b[0]);
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+    });
 
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet([OFFICIAL_HEADERS, ...dataRows]);
-    XLSX.utils.book_append_sheet(wb, ws, 'PO Import');
-    const excelBuf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    const wb2 = new ExcelJS.Workbook();
+    const ws2 = wb2.addWorksheet('PO Import');
+
+    // Header style — medium blue bg, white bold text
+    const hdrFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2E75B6' } };
+    const hdrFont = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+    const thinBorder = {
+      top: { style: 'thin', color: { argb: 'FFB8CCE4' } },
+      left: { style: 'thin', color: { argb: 'FFB8CCE4' } },
+      bottom: { style: 'thin', color: { argb: 'FFB8CCE4' } },
+      right: { style: 'thin', color: { argb: 'FFB8CCE4' } },
+    };
+
+    // Add header row
+    const headerRow = ws2.addRow(OFFICIAL_HEADERS);
+    headerRow.eachCell(cell => {
+      cell.fill   = hdrFill;
+      cell.font   = hdrFont;
+      cell.border = thinBorder;
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    });
+    headerRow.height = 18;
+
+    // Data rows — alternating light blue / white
+    sortedSizes.forEach(([sz, qty], idx) => {
+      const rowData = [
+        '1','1',userPO,'A','26',exfFormatted,supplier,'305',cleanStyle,
+        '','',colorCode,sz,Number(cost)||0,qty,etaDate,
+        '','',exfFormatted,
+        'A','A','26','',poTerms,'','',
+      ];
+      const row = ws2.addRow(rowData);
+      const rowFill = idx % 2 === 0
+        ? { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDEEAF1' } }
+        : { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
+      row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+        cell.fill   = rowFill;
+        cell.border = thinBorder;
+        if (colNum === 14) cell.numFmt = '$#,##0.00';   // Cost
+        if (colNum === 15) cell.numFmt = '0';            // Quantity
+      });
+    });
+
+    // Column widths based on header length
+    ws2.columns.forEach((col, i) => {
+      col.width = Math.min(30, Math.max(10, OFFICIAL_HEADERS[i].length * 1.1));
+    });
+    ws2.views = [{ state: 'frozen', ySplit: 1 }];
+
+    const excelBuf = await wb2.xlsx.writeBuffer();
 
     // Email
     const subject = `[ANTHRO X FARM] official PO request - style # ${styleDigits}`;
