@@ -423,18 +423,39 @@ app.get('/api/po/status-summary', async (req, res) => {
     if (!response.ok) return res.status(500).json({ error: 'Failed to fetch sheet' });
     const rows = parseCSV(await response.text());
     if (rows.length < 2) return res.json({ counts: {}, styles: {} });
-    const headers = rows[0].map(h => h.trim().toLowerCase());
-    const styleIdx  = headers.findIndex(h => h === 'style #' || h === 'style#' || h === 'style');
-    const statusIdx = headers.findIndex(h => h === 'status');
-    if (styleIdx < 0 || statusIdx < 0) return res.status(500).json({ error: 'Required columns not found' });
+    const H = rows[0].map(h => h.trim().toLowerCase());
+    const col = (...kws) => { for (const kw of kws) { const i = H.findIndex(h => h.includes(kw)); if (i >= 0) return i; } return -1; };
+    const C = {
+      style:    col('style #', 'style#', 'style'),
+      status:   col('status'),
+      supplier: col('supplier'),
+      category: col('category'),
+      ndc:      col('final ndc', 'ndc'),
+    };
+    if (C.style < 0 || C.status < 0) return res.status(500).json({ error: 'Required columns not found' });
+    const get = (r, i) => i >= 0 ? (r[i] || '').trim() : '';
+    const fmtNDC = raw => {
+      if (!raw) return '';
+      const d = new Date(raw);
+      if (isNaN(d)) return '';
+      return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }).toUpperCase().replace(' ', ' \'');
+    };
     const counts = {}, styles = {};
     TRACKED_STATUSES.forEach(s => { counts[s] = 0; styles[s] = []; });
     for (let i = 1; i < rows.length; i++) {
-      const status = (rows[i][statusIdx] || '').trim().toUpperCase();
-      const style  = (rows[i][styleIdx]  || '').trim();
+      const status = get(rows[i], C.status).toUpperCase();
+      const style  = get(rows[i], C.style);
       if (!style) continue;
       const match = TRACKED_STATUSES.find(s => s === status);
-      if (match) { counts[match]++; styles[match].push(style); }
+      if (match) {
+        counts[match]++;
+        styles[match].push({
+          style,
+          supplier: get(rows[i], C.supplier),
+          category: get(rows[i], C.category),
+          ndc:      fmtNDC(get(rows[i], C.ndc)),
+        });
+      }
     }
     res.json({ counts, styles });
   } catch (e) { res.status(500).json({ error: e.message }); }
