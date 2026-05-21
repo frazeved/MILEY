@@ -769,29 +769,66 @@ app.post('/api/po/breakdown-report', async (req, res) => {
     const gcd=(a,b)=>{a=Math.abs(a);b=Math.abs(b);while(b){const t=b;b=a%b;a=t;}return a;};
     const gcdArr=ns=>{let g=0;for(const n of ns){if(n)g=g?gcd(g,n):Math.abs(n);}return g||1;};
 
-    const EXCEL_HEADERS=['PO#','Style#','Type','Pack Type','Item Number','Vendor Color','Size code','Size','Short SKU','Qty','RATIO','Total Units'];
-    const allRows=[]; let grandQty=0,grandPack=0,grandUnits=0;
+    const HEADERS = ['PO#','Style#','Type','Pack Type','Item Number','Vendor Color','Size code','Size','Short SKU','Qty','RATIO','Total Units'];
+    const allRows = []; let grandQty=0, grandPack=0, grandUnits=0;
     for (const po in groupedByPO) {
       const rows=groupedByPO[po];
       const ppkUnits=rows.filter(r=>get(r,C.packType).toUpperCase()==='PPK').map(r=>Number(get(r,C.units))||0).filter(v=>v>0);
       const gcdUnits=gcdArr(ppkUnits);
-      let poQty=0,poPack=0,poTotal=0;
+      let poQty=0, poPack=0, poTotal=0;
       for (const r of rows) {
         const pack=get(r,C.packType).toUpperCase(), qty=Number(get(r,C.qty))||0, units=Number(get(r,C.units))||0;
         const ratio=pack==='PPK'?Math.round((units/(gcdUnits||1))*1e6)/1e6:1, sc=get(r,C.sizeCode);
-        allRows.push([get(r,C.po),get(r,C.style),channelMap[po]||'',pack,get(r,C.itemNum),get(r,C.color),sc,SIZE_MAP[sc]||get(r,C.size),get(r,C.shortSku),qty,ratio,units]);
+        allRows.push({ type:'data', vals:[get(r,C.po),get(r,C.style),channelMap[po]||'',pack,get(r,C.itemNum),get(r,C.color),sc,SIZE_MAP[sc]||get(r,C.size),get(r,C.shortSku),qty,ratio,units] });
         poQty+=qty; poPack+=ratio; poTotal+=units;
       }
-      allRows.push(['','','','','','','','TOTAL','',poQty,poPack,poTotal]);
+      allRows.push({ type:'total', vals:['','','','','','','','TOTAL','',poQty,poPack,poTotal] });
       grandQty+=poQty; grandPack+=poPack; grandUnits+=poTotal;
     }
-    allRows.push(Array(12).fill(''));
-    allRows.push(['','','','','','','','GRAND TOTAL','',grandQty,grandPack,grandUnits]);
+    allRows.push({ type:'blank', vals: Array(12).fill('') });
+    allRows.push({ type:'grand', vals:['','','','','','','','GRAND TOTAL','',grandQty,grandPack,grandUnits] });
 
-    const wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet([EXCEL_HEADERS,...allRows]);
-    XLSX.utils.book_append_sheet(wb,ws,'Breakdown');
-    const excelBuf=XLSX.write(wb,{type:'buffer',bookType:'xlsx'});
+    // Build formatted workbook with ExcelJS
+    const wbx = new ExcelJS.Workbook();
+    const wsx = wbx.addWorksheet('Breakdown');
+    wsx.views = [{ state: 'frozen', ySplit: 1 }];
 
+    const headerRow = wsx.addRow(HEADERS);
+    headerRow.eachCell(cell => {
+      cell.fill   = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF2E75B6' } };
+      cell.font   = { bold:true, color:{ argb:'FFFFFFFF' } };
+      cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+      cell.alignment = { vertical:'middle' };
+    });
+
+    let rowIdx = 0;
+    for (const r of allRows) {
+      const xlRow = wsx.addRow(r.vals);
+      if (r.type === 'total') {
+        xlRow.eachCell(cell => {
+          cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFDEEAF1' } };
+          cell.font = { bold:true };
+          cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+        });
+      } else if (r.type === 'grand') {
+        xlRow.eachCell(cell => {
+          cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF2E75B6' } };
+          cell.font = { bold:true, color:{ argb:'FFFFFFFF' } };
+          cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+        });
+      } else if (r.type === 'data') {
+        const bg = rowIdx % 2 === 0 ? 'FFDEEAF1' : 'FFFFFFFF';
+        xlRow.eachCell(cell => {
+          cell.fill   = { type:'pattern', pattern:'solid', fgColor:{ argb:bg } };
+          cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+        });
+        rowIdx++;
+      }
+    }
+
+    wsx.columns.forEach(col => { col.width = 14; });
+
+    const excelBuf = await wbx.xlsx.writeBuffer();
     const filename = `BREAKDOWN STYLE# ${cleanStyle}.xlsx`;
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
