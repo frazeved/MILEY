@@ -618,7 +618,7 @@
       <button class="modal-close" onclick="closeModal('styles-list-modal')">×</button>
     </div>
     <div class="styles-list-header" id="styles-list-header">
-      <span>CAD</span><span>Style #</span><span>Supplier</span><span>Category</span><span>NDC</span>
+      <span>CAD</span><span>Style #</span><span>Supplier</span><span>Category</span><span>MONTH</span>
     </div>
     <div class="styles-list" id="styles-list-body"></div>
     <div class="styles-save-footer" id="styles-save-footer" style="display:none;">
@@ -793,8 +793,8 @@ function openStylesList(status) {
 
   modalEl.classList.toggle('has-sms-col', isWaitingSms);
   headerEl.innerHTML = isWaitingSms
-    ? '<span>CAD</span><span>Style #</span><span>Supplier</span><span>Category</span><span>NDC</span><span>SMS FROM SUPPLIER</span>'
-    : '<span>CAD</span><span>Style #</span><span>Supplier</span><span>Category</span><span>NDC</span>';
+    ? '<span>CAD</span><span>Style #</span><span>Supplier</span><span>Category</span><span>MONTH</span><span>SMS FROM SUPPLIER</span>'
+    : '<span>CAD</span><span>Style #</span><span>Supplier</span><span>Category</span><span>MONTH</span>';
   saveFooter.style.display = isWaitingSms ? 'flex' : 'none';
   if (saveStatus) saveStatus.textContent = '';
 
@@ -812,7 +812,7 @@ function openStylesList(status) {
       <div><div class="style-field-sub">${esc(row.supplier || '—')}</div></div>
       <div><div class="style-field-sub">${esc(row.category || '—')}</div></div>
       <div class="style-ndc">${esc(row.ndc || '—')}</div>
-      ${isWaitingSms ? `<div><input class="sms-input" id="sms-input-${i}" data-style="${esc(row.style)}" value="${esc(row.smsSent||'')}" placeholder="Enter SMS..."></div>` : ''}
+      ${isWaitingSms ? `<div><input type="date" class="sms-input" id="sms-input-${i}" data-style="${esc(row.style)}" value="${esc(row.smsSent||'')}"></div>` : ''}
     </div>
   `).join('');
   modalEl.classList.add('open');

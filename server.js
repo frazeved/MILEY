@@ -439,7 +439,7 @@ app.get('/api/po/status-summary', async (req, res) => {
       if (!raw) return '';
       const d = new Date(raw);
       if (isNaN(d)) return '';
-      return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }).toUpperCase().replace(' ', ' \'');
+      return d.toLocaleDateString('en-US', { month: 'long' }).toUpperCase();
     };
     const counts = {}, styles = {};
     TRACKED_STATUSES.forEach(s => { counts[s] = 0; styles[s] = []; });
