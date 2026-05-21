@@ -624,6 +624,57 @@ app.post('/api/po/save-print-sent', async (req, res) => {
   }
 });
 
+app.post('/api/po/save-status', async (req, res) => {
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON)
+    return res.status(500).json({ error: 'Google credentials not configured' });
+  const { updates } = req.body;
+  if (!Array.isArray(updates) || updates.length === 0)
+    return res.status(400).json({ error: 'updates array required' });
+  try {
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    const meta    = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID, fields: 'sheets.properties' });
+    const tabName = meta.data.sheets.find(s => s.properties.sheetId === 0)?.properties.title;
+    if (!tabName) return res.status(500).json({ error: 'Main PO tab not found' });
+
+    const hRes    = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${tabName}'!1:1` });
+    const headers = (hRes.data.values?.[0] || []).map(h => (h || '').trim().toLowerCase());
+    const styleCol  = headers.findIndex(h => h.includes('style #') || h.includes('style#') || h === 'style');
+    const statusCol = headers.findIndex(h => h === 'status');
+    if (statusCol < 0) return res.status(404).json({ error: '"STATUS" column not found in main PO sheet' });
+    if (styleCol < 0)  return res.status(500).json({ error: 'Style column not found in main PO sheet' });
+
+    const dataRes = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${tabName}'` });
+    const allRows = dataRes.data.values || [];
+    const styleToRow = new Map();
+    for (let i = 1; i < allRows.length; i++) {
+      const s = (allRows[i][styleCol] || '').trim();
+      if (s && !styleToRow.has(s)) styleToRow.set(s, i + 1);
+    }
+
+    const colLetter = colToLetter(statusCol);
+    const data = [], notFound = [];
+    for (const { style, status } of updates) {
+      if (!status) continue;
+      const rowNum = styleToRow.get(style);
+      if (!rowNum) { notFound.push(style); continue; }
+      data.push({ range: `'${tabName}'!${colLetter}${rowNum}`, values: [[status]] });
+    }
+    if (data.length > 0) {
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: SHEET_ID,
+        requestBody: { valueInputOption: 'USER_ENTERED', data },
+      });
+    }
+    res.json({ ok: true, updated: data.length, notFound });
+  } catch (e) {
+    console.error('[save-status]', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.post('/api/po/search', async (req, res) => {
   try {
     const { style } = req.body;
