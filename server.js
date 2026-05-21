@@ -1034,6 +1034,145 @@ app.post('/api/po/official-email', async (req, res) => {
   }
 });
 
+// ─── TOP STATUS Email — creates Gmail drafts for all suppliers ────────────────
+app.post('/api/po/top-status-email', async (req, res) => {
+  try {
+    const sendingAs = req.body.sendingAs || 'kamilla';
+    const token = userTokens[sendingAs];
+    if (!token?.refreshToken) {
+      const user = TEAM_USERS.find(u => u.id === sendingAs);
+      return res.status(401).json({ error: `${user?.name || sendingAs} has not connected their Gmail. Please visit /setup first.` });
+    }
+    const sender = TEAM_USERS.find(u => u.id === sendingAs);
+
+    const response = await fetch(csvUrl(0));
+    if (!response.ok) throw new Error('Could not fetch production sheet');
+    const rows = parseCSV(await response.text());
+    if (rows.length < 2) return res.json({ ok: true, draftsCreated: [], skipped: [] });
+
+    const H = rows[0].map(h => (h || '').trim().toLowerCase());
+    const findCol = (...kws) => {
+      for (const kw of kws) { const i = H.findIndex(h => h.includes(kw.toLowerCase())); if (i >= 0) return i; }
+      return -1;
+    };
+    const findColOr = (fallback, ...kws) => { const i = findCol(...kws); return i >= 0 ? i : fallback; };
+
+    const C = {
+      style:       findCol('style #', 'style#', 'style'),
+      status:      findCol('status'),
+      supplier:    findCol('supplier'),
+      category:    findCol('category'),
+      subcategory: findCol('sub-category', 'subcategory'),
+      responded:   findColOr(57, 'top responded', 'top - responded'),
+      sent:        findColOr(58, 'top - sent', 'top sample sent'),
+      deadline:    findColOr(59, 'supplier top deadline', 'top deadline'),
+    };
+
+    const get = (r, i) => i >= 0 ? (r[i] || '').trim() : '';
+    const parseDate = val => { if (!val) return null; const d = new Date(val); return isNaN(d) ? null : d; };
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const formattedDate = `${today.getMonth()+1}/${today.getDate()}/${String(today.getFullYear()).slice(2)}`;
+
+    const CC = [
+      'paula@creativetwotwelve.com',
+      'Production@showroom212.com',
+      'rafaela@showroom212.com',
+      'samples@creativetwotwelve.com',
+      'kamilla@creativetwotwelve.com',
+    ];
+
+    const authClient = makeOAuth2Client();
+    authClient.setCredentials({ refresh_token: token.refreshToken });
+    const gmail = google.gmail({ version: 'v1', auth: authClient });
+
+    const draftsCreated = [];
+    const skipped = [];
+
+    for (const [supplierKey, toEmails] of Object.entries(suppliers.emails)) {
+      const contactName = suppliers.mainContact[supplierKey] || supplierKey;
+      const entries = [];
+
+      for (let i = 1; i < rows.length; i++) {
+        const rawStyle = get(rows[i], C.style);
+        if (!rawStyle) continue;
+        const m = rawStyle.match(/[0-9][0-9A-Z\-]*$/);
+        const styleNumber = m ? m[0] : rawStyle;
+
+        const status      = get(rows[i], C.status);
+        const rowSupplier = get(rows[i], C.supplier).toUpperCase();
+        const responded   = get(rows[i], C.responded);
+        const sent        = get(rows[i], C.sent);
+        const deadlineRaw = get(rows[i], C.deadline);
+
+        if (rowSupplier !== supplierKey) continue;
+        if (!styleNumber || status !== "PO'd + production ok") continue;
+        if (responded !== '') continue;
+        if (sent && sent.toLowerCase().includes('sent')) continue;
+
+        const supplierDeadline = parseDate(deadlineRaw);
+        if (!supplierDeadline) continue;
+
+        const diffInDays  = Math.floor((supplierDeadline - today) / 86400000);
+        const statusLabel = diffInDays >= 0 ? 'Waiting for Sample' : 'URGENT';
+
+        entries.push({
+          style:       styleNumber,
+          statusLabel,
+          category:    get(rows[i], C.category),
+          subcategory: get(rows[i], C.subcategory),
+        });
+      }
+
+      if (entries.length === 0) { skipped.push(supplierKey); continue; }
+
+      const subject = `TOP Sample ${formattedDate} Status Request - ${supplierKey}`;
+
+      const tableRows = entries.map(e =>
+        `<tr>
+          <td style="border:1px solid #ddd;padding:8px 12px;">${e.style}</td>
+          <td style="border:1px solid #ddd;padding:8px 12px;">${e.category}</td>
+          <td style="border:1px solid #ddd;padding:8px 12px;">${e.subcategory}</td>
+          <td style="border:1px solid #ddd;padding:8px 12px;${e.statusLabel==='URGENT'?'color:red;font-weight:bold;':''}">${e.statusLabel}</td>
+        </tr>`
+      ).join('');
+
+      const htmlBody = `
+<p><b><span style="font-size:12pt;">Hi ${contactName} and ${supplierKey} team,</span></b></p>
+<p>Could you please provide an update on the TOP samples listed below?</p>
+<table style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:11pt;">
+  <thead>
+    <tr style="background:#2E75B6;color:white;">
+      <th style="border:1px solid #ddd;padding:8px 12px;text-align:left;">Style #</th>
+      <th style="border:1px solid #ddd;padding:8px 12px;text-align:left;">Category</th>
+      <th style="border:1px solid #ddd;padding:8px 12px;text-align:left;">Sub-Category</th>
+      <th style="border:1px solid #ddd;padding:8px 12px;text-align:left;">Status</th>
+    </tr>
+  </thead>
+  <tbody>${tableRows}</tbody>
+</table>
+<p>Best,<br>${sender?.name || sendingAs}<br>Production Team<br>305 CONSULTING AND PRODUCTION</p>`;
+
+      const rawMime = await buildRawMime({
+        from: `"${sender?.name || sendingAs}" <${sender?.email || ''}>`,
+        to:   toEmails.join(','),
+        cc:   CC.join(','),
+        subject,
+        html: htmlBody,
+      });
+      const encoded = rawMime.toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+      await gmail.users.drafts.create({ userId:'me', requestBody:{ message:{ raw:encoded } } });
+      draftsCreated.push({ supplier: supplierKey, styles: entries.length });
+    }
+
+    res.json({ ok: true, draftsCreated, skipped });
+  } catch (e) {
+    console.error('top-status-email error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.post('/api/contact', async (req, res) => {
   const { name, email, message } = req.body;
   if (!name || !message) return res.status(400).json({ error: 'Name and message are required.' });

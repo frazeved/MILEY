@@ -12,7 +12,7 @@ const emails = {
 
 const mainContact = {
   "ECICO":      "Elin",
-  "H&F":        "Anthony",
+  "H&F":        "Daisy",
   "HS FASHION": "Miya",
   "S&S":        "Ravi",
   "KON":        "Neha",
