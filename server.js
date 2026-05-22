@@ -3541,11 +3541,11 @@ app.post('/api/susan/farm-anthro-weekly-email', async (req, res) => {
     const COL = {
       style:    findCol('style #', 'style#', 'style'),
       status:   findCol('status'),
-      class:    findCol('class'),
+      class:    findCol('category'),
       fabric:   findCol('fabric'),
       sms:      findCol('sms sent to anthro', 'sms anthro'),
       fit:      findCol('fit comment', 'fit'),
-      poInfo:   findCol('po info', 'po information'),
+      poInfo:   findCol('po info anthro', 'po info', 'po information'),
       ndc:      findCol('final ndc', 'ndc'),
       poIssued: findCol('po issued by anthro', 'po issued'),
     };
@@ -3682,11 +3682,11 @@ app.get('/api/susan/farm-anthro-weekly-excel', async (req, res) => {
     const COL = {
       style:    findCol('style #', 'style#', 'style'),
       status:   findCol('status'),
-      class:    findCol('class'),
+      class:    findCol('category'),
       fabric:   findCol('fabric'),
       sms:      findCol('sms sent to anthro', 'sms anthro'),
       fit:      findCol('fit comment', 'fit'),
-      poInfo:   findCol('po info', 'po information'),
+      poInfo:   findCol('po info anthro', 'po info', 'po information'),
       ndc:      findCol('final ndc', 'ndc'),
       poIssued: findCol('po issued by anthro', 'po issued'),
     };
