@@ -426,7 +426,7 @@
             <div><div class="card-name">[Farm x Anthro] Weekly Status</div><div class="card-type">Email</div></div>
           </div>
         </div>
-        <div class="card email-card">
+        <div class="card email-card" onclick="runUrgentFup()" style="cursor:pointer;">
           <div class="card-icon-row">
             <div class="icon-email">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
@@ -830,6 +830,17 @@
       <button class="modal-close" onclick="closeModal('pi-status-sender-modal')">×</button>
     </div>
     <div id="pi-status-sender-list" style="padding:16px 20px 20px;display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
+<!-- URGENT FUP — sender selection modal -->
+<div class="modal-overlay" id="urgent-fup-sender-modal" onclick="closeModalOnOverlay(event)">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-header">
+      <div class="modal-title">URGENT FUP — Send As</div>
+      <button class="modal-close" onclick="closeModal('urgent-fup-sender-modal')">×</button>
+    </div>
+    <div id="urgent-fup-sender-list" style="padding:16px 20px 20px;display:flex;flex-direction:column;gap:8px;"></div>
   </div>
 </div>
 
@@ -1487,6 +1498,55 @@ async function downloadPiStatusExcel() {
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 200);
     showToast('✅ Excel file downloaded');
+  } catch (e) {
+    showToast('Error: ' + e.message);
+  }
+}
+
+async function runUrgentFup() {
+  const users = await fetch('/api/users').then(r => r.json());
+  const list = document.getElementById('urgent-fup-sender-list');
+  list.innerHTML = users.map(u => `
+    <button class="sender-btn" onclick="selectUrgentFupSender('${u.id}', ${u.connected})">
+      <span class="sender-dot ${u.connected ? 'dot-green' : 'dot-orange'}"></span>
+      <span class="sender-name">${u.name}</span>
+      ${u.connected ? '<span class="sender-status">Connected</span>' : '<span class="sender-connect">Connect Gmail →</span>'}
+    </button>`).join('');
+  document.getElementById('urgent-fup-sender-modal').classList.add('open');
+}
+
+function selectUrgentFupSender(userId, connected) {
+  if (!connected) {
+    const popup = window.open(`/auth/google?userId=${userId}&return=popup`, 'gmail-oauth', 'width=520,height=640,left=200,top=80');
+    const onMsg = async (e) => {
+      if (e.data?.type !== 'gmailConnected' || e.data?.userId !== userId) return;
+      window.removeEventListener('message', onMsg);
+      popup?.close();
+      await executeUrgentFup(userId);
+    };
+    window.addEventListener('message', onMsg);
+    return;
+  }
+  executeUrgentFup(userId);
+}
+
+async function executeUrgentFup(userId) {
+  document.getElementById('urgent-fup-sender-modal').classList.remove('open');
+  showToast('URGENT FUP — creating drafts...');
+  try {
+    const res = await fetch('/api/susan/urgent-fup-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sendingAs: userId }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Failed'); return; }
+    if (data.draftsCreated?.length) {
+      const names = data.draftsCreated.map(d => `${d.supplier} (${d.styles})`).join(', ');
+      showToast(`✅ Drafts created: ${names}`);
+    } else {
+      showToast('No qualifying styles found today.');
+    }
   } catch (e) {
     showToast('Error: ' + e.message);
   }

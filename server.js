@@ -3510,6 +3510,103 @@ app.get('/api/susan/pi-status-excel', async (req, res) => {
   }
 });
 
+// ─── URGENT FUP — Gmail drafts per supplier ───────────────────────────────────
+app.post('/api/susan/urgent-fup-email', async (req, res) => {
+  try {
+    const { sendingAs } = req.body;
+    const token = userTokens[sendingAs];
+    if (!token?.refreshToken) return res.status(401).json({ error: 'Gmail not connected for this user' });
+    const sender = TEAM_USERS.find(u => u.id === sendingAs);
+
+    const CC_LIST = ["business@creativetwotwelve.com","paula@creativetwotwelve.com","ozan.guruscu@creativetwotwelve.com","rafaela.neves@farmrio.com","kamilla@creativetwotwelve.com"];
+    const VALID_STATUSES = ["Waiting SMS", "Waiting price from supplier", "Waiting revised SMS"];
+
+    const csvRes = await fetch(csvUrl(0));
+    if (!csvRes.ok) throw new Error('Could not fetch production sheet');
+    const rows = parseCSV(await csvRes.text());
+    if (rows.length < 2) return res.json({ ok: true, draftsCreated: [] });
+
+    const H = rows[0].map(h => (h || '').trim().toLowerCase());
+    const findCol = (...kws) => { for (const kw of kws) { const i = H.findIndex(h => h.includes(kw.toLowerCase())); if (i >= 0) return i; } return -1; };
+    const COL = {
+      style:    findCol('original style#', 'original style'),
+      status:   findCol('status'),
+      supplier: findCol('supplier'),
+      category: findCol('category'),
+      tpSent:   findCol('tp sent to supplier'),
+    };
+    const get = (r, i) => (i >= 0 && r[i] != null ? r[i].toString().trim() : '');
+
+    const grouped = {};
+    for (let i = 1; i < rows.length; i++) {
+      const row      = rows[i];
+      const status   = get(row, COL.status);
+      const supplier = get(row, COL.supplier);
+      if (!VALID_STATUSES.includes(status) || !supplier) continue;
+      if (!suppliers.emails[supplier]) continue;
+      if (!grouped[supplier]) grouped[supplier] = [];
+      grouped[supplier].push({
+        style:    get(row, COL.style),
+        category: get(row, COL.category),
+        comments: status,
+        tpSent:   get(row, COL.tpSent),
+      });
+    }
+
+    const authClient = makeOAuth2Client();
+    authClient.setCredentials({ refresh_token: token.refreshToken });
+    const gmail = google.gmail({ version: 'v1', auth: authClient });
+    const now = new Date();
+    const todayFmt = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}/${String(now.getFullYear()).slice(2)}`;
+    const draftsCreated = [];
+
+    for (const sup of Object.keys(grouped).sort()) {
+      const entries     = grouped[sup];
+      const contactName = suppliers.mainContact[sup] || sup;
+
+      const tableRows = entries.map(e => `
+        <tr>
+          <td style="border:1px solid #ccc;padding:6px;">${e.style}</td>
+          <td style="border:1px solid #ccc;padding:6px;">${e.category}</td>
+          <td style="border:1px solid #ccc;padding:6px;">${e.comments}</td>
+          <td style="border:1px solid #ccc;padding:6px;">${e.tpSent}</td>
+          <td style="border:1px solid #ccc;padding:6px;"></td>
+        </tr>`).join('');
+
+      const html = `<p>Hi ${contactName}!<br>I hope all is well!</p>
+<p>Please pay special attention to the styles below. The following samples are urgent!</p>
+<p><strong>We need the styles updates by Monday:</strong></p>
+<table style="border-collapse:collapse;font-family:Arial,sans-serif;">
+  <tr style="background-color:#d9eafd;font-weight:bold;">
+    <td style="border:1px solid #ccc;padding:6px;">Style #</td>
+    <td style="border:1px solid #ccc;padding:6px;">Category</td>
+    <td style="border:1px solid #ccc;padding:6px;">Comments</td>
+    <td style="border:1px solid #ccc;padding:6px;">TP Sent</td>
+    <td style="border:1px solid #ccc;padding:6px;">Updates</td>
+  </tr>
+  ${tableRows}
+</table>
+<br>Thank you,<br>${sender?.name || ''}`;
+
+      const rawMime = await buildRawMime({
+        from:    `"${sender?.name || ''}" <${sender?.email || ''}>`,
+        to:      suppliers.emails[sup].join(', '),
+        cc:      CC_LIST.join(','),
+        subject: `URGENT FUP - Development Status - ${sup} - ${todayFmt}`,
+        html,
+      });
+      const encoded = rawMime.toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+      await gmail.users.drafts.create({ userId: 'me', requestBody: { message: { raw: encoded } } });
+      draftsCreated.push({ supplier: sup, styles: entries.length });
+    }
+
+    res.json({ ok: true, draftsCreated });
+  } catch (e) {
+    console.error('[urgent-fup-email]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── [Farm x Anthro] Weekly Status — Gmail drafts per class group ─────────────
 app.post('/api/susan/farm-anthro-weekly-email', async (req, res) => {
   try {
