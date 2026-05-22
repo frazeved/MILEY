@@ -3311,6 +3311,168 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
 });
 
 
+// ─── PI Status Report — Gmail drafts per supplier ────────────────────────────
+app.post('/api/susan/pi-status-email', async (req, res) => {
+  try {
+    const { sendingAs } = req.body;
+    const token = userTokens[sendingAs];
+    if (!token?.refreshToken) return res.status(401).json({ error: 'Gmail not connected for this user' });
+    const sender = TEAM_USERS.find(u => u.id === sendingAs);
+
+    const SUPPLIER_CONTACTS = {
+      "ECICO":     ["Elin@ecicogroup.com","Hyacinth@ecicogroup.com","Helen@ecicogroup.com","Daphne@ecicogroup.com"],
+      "H&F":       ["Anthony.Wang@hfourwing.com.cn","hayley.wu@hfourwing.com.cn","Chloe.Yang@hfourwing.com.cn","jean.zhang@hfourwing.com.cn","abby.hu@hfourwing.com.cn"],
+      "HS FASHION":["miya.lin@hsfashion.cn","sendy.sheng@hsfashion.cn","aindy.wang@hsfashion.cn"],
+      "S&S":       ["saintsandseers@gmail.com","Info@saintsandseers.com"],
+      "KON":       ["neha.shashi@konceptiondesigns.com","kaveri.das@konceptiondesigns.com","pradeep.mishra1@konceptiondesigns.com"],
+      "GAIA":      ["gozdeb@gaia-sourcing.com","YesimO@gaia-sourcing.com","CerenT@gaia-sourcing.com","IremE@gaia-sourcing.com","BesteK@gaia-sourcing.com"],
+      "JJ":        ["vivek@cmsassociates.net","anjanisinghania@hotmail.com","pd@jjexpoimpo.com","taran@cmsassociates.net","sanjana@cmsassociates.net"],
+      "PQSWIM":    ["paola@pqswim.com","headofdesign@pqswim.com","pldesign@pqswim.com","anne@pqswim.com","internationaltrade@pqswim.com","planning@pqswim.com"],
+      "CASCADE":   ["shilparawal@cascadenterprises.com","nanditachauhan@cascadenterprises.com","simranbhateja@cascadenterprises.com","Dolphy@cascadenterprises.com"],
+    };
+    const MAIN_CONTACTS = {
+      "ECICO":"Elin","H&F":"Anthony","HS FASHION":"Miya","S&S":"Ravi",
+      "KON":"Neha","GAIA":"Gozde","JJ":"Vivek","PQSWIM":"Paola","CASCADE":"Shilpa",
+    };
+    const CC_LIST = ["paula@creativetwotwelve.com","kamilla@creativetwotwelve.com","ozan.guruscu@creativetwotwelve.com","rafaela.neves@farmrio.com"];
+    const CSV_HEADERS = ["Style#","Knit or woven :","Type of garment/accessory :","1. Material Content","2. Lining Content","3. Care wash instruction","4. Country of Origin","5. Length from HPS (High Point Shoulder)","6. Back Length (if different)","7. Inseam (Jumpsuits only)","8. Leg Opening (Jumpsuits only)","9. Closure (Snap, Open Front, Pullover, Zipper)","10. Pockets (if any)","11. Label"];
+
+    const csvRes = await fetch(csvUrl(0));
+    if (!csvRes.ok) throw new Error('Could not fetch production sheet');
+    const rows = parseCSV(await csvRes.text());
+    if (rows.length < 2) return res.json({ ok: true, draftsCreated: [] });
+
+    const H = rows[0].map(h => (h || '').trim().toLowerCase());
+    const findCol = (...kws) => { for (const kw of kws) { const i = H.findIndex(h => h.includes(kw.toLowerCase())); if (i >= 0) return i; } return -1; };
+    const COL = {
+      style:      findCol('style #', 'style#', 'style'),
+      status:     findCol('status'),
+      supplier:   findCol('supplier'),
+      category:   findCol('category'),
+      piReceived: findCol('pi received', 'pi status', 'pi rec'),
+    };
+    const get = (r, i) => (i >= 0 && r[i] != null ? r[i].toString().trim() : '');
+
+    const supplierMap = {};
+    for (let i = 1; i < rows.length; i++) {
+      const row      = rows[i];
+      const styleRaw = get(row, COL.style);
+      const status   = get(row, COL.status);
+      const supplier = get(row, COL.supplier);
+      const piRec    = get(row, COL.piReceived);
+      if (status !== "PO'd + production ok" || piRec || !styleRaw) continue;
+      if (!SUPPLIER_CONTACTS[supplier]) continue;
+      const style = styleRaw.match(/(\d.*)/)?.[1] || styleRaw;
+      if (!supplierMap[supplier]) supplierMap[supplier] = [];
+      supplierMap[supplier].push({ style, category: get(row, COL.category) });
+    }
+
+    const authClient = makeOAuth2Client();
+    authClient.setCredentials({ refresh_token: token.refreshToken });
+    const gmail = google.gmail({ version: 'v1', auth: authClient });
+    const now = new Date();
+    const todaySlash = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
+    const draftsCreated = [];
+
+    for (const sup of Object.keys(supplierMap).sort()) {
+      const entries     = supplierMap[sup];
+      const contactName = MAIN_CONTACTS[sup] || sup;
+      const styleList   = entries.map(e => e.style).join('\n');
+
+      const textBody = `Hi ${contactName} and ${sup} team,\n\nI hope you're doing well!\n\nCould you please send the PI for the styles listed below asap? Kindly use the attached Excel template to provide the information.\n\nStyle#\n${styleList}\n\nBest regards,\n${sender?.name || ''}`;
+
+      const csvRows  = entries.map(e => [e.style, '', e.category, '', '', '', '', '', '', '', '', '', '', '']);
+      const csvContent = [CSV_HEADERS, ...csvRows].map(row => row.map(c => `"${c}"`).join(',')).join('\n');
+      const csvBuf   = Buffer.from(csvContent, 'utf-8');
+
+      const rawMime = await buildRawMime({
+        from:        `"${sender?.name || ''}" <${sender?.email || ''}>`,
+        to:          SUPPLIER_CONTACTS[sup].join(', '),
+        cc:          CC_LIST.join(','),
+        subject:     `PI Needed - ${todaySlash}`,
+        text:        textBody,
+        attachments: [{ filename: `${sup}_PI_Status.csv`, content: csvBuf, contentType: 'text/csv' }],
+      });
+      const encoded = rawMime.toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+      await gmail.users.drafts.create({ userId: 'me', requestBody: { message: { raw: encoded } } });
+      draftsCreated.push({ supplier: sup, styles: entries.length });
+    }
+
+    res.json({ ok: true, draftsCreated });
+  } catch (e) {
+    console.error('[pi-status-email]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ─── PI Status Report — Excel download ───────────────────────────────────────
+app.get('/api/susan/pi-status-excel', async (req, res) => {
+  try {
+    const csvRes = await fetch(csvUrl(0));
+    if (!csvRes.ok) throw new Error('Could not fetch production sheet');
+    const rows = parseCSV(await csvRes.text());
+
+    const H = rows[0].map(h => (h || '').trim().toLowerCase());
+    const findCol = (...kws) => { for (const kw of kws) { const i = H.findIndex(h => h.includes(kw.toLowerCase())); if (i >= 0) return i; } return -1; };
+    const COL = {
+      style:      findCol('style #', 'style#', 'style'),
+      status:     findCol('status'),
+      supplier:   findCol('supplier'),
+      category:   findCol('category'),
+      ndc:        findCol('ndc', 'needed date', 'need by'),
+      piReceived: findCol('pi received', 'pi status', 'pi rec'),
+    };
+    const get = (r, i) => (i >= 0 && r[i] != null ? r[i].toString().trim() : '');
+
+    const output = [];
+    for (let i = 1; i < rows.length; i++) {
+      const row      = rows[i];
+      const styleRaw = get(row, COL.style);
+      const status   = get(row, COL.status);
+      const supplier = get(row, COL.supplier);
+      const piRec    = get(row, COL.piReceived);
+      if (status !== "PO'd + production ok" || piRec || !styleRaw) continue;
+      const style = styleRaw.match(/(\d.*)/)?.[1] || styleRaw;
+      const ndcRaw = get(row, COL.ndc);
+      let ndcMonth = '';
+      if (ndcRaw) { const d = new Date(ndcRaw); if (!isNaN(d)) ndcMonth = d.toLocaleString('en-US', { month: 'long' }); }
+      output.push([style, get(row, COL.category), supplier, 'Pending', ndcMonth]);
+    }
+
+    output.sort((a, b) => a[2].localeCompare(b[2]) || a[0].localeCompare(b[0]));
+
+    const HEADERS = ["Style #","Category","Supplier","PI Status","NDC Month"];
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('PI Status Report');
+    ws.columns = HEADERS.map(h => ({ width: Math.max(h.length + 4, 16) }));
+
+    const hdrFill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2E75B6' } };
+    const rowFill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDEEAF1' } };
+    const border   = { top:{style:'thin',color:{argb:'FFB8CCE4'}}, left:{style:'thin',color:{argb:'FFB8CCE4'}}, bottom:{style:'thin',color:{argb:'FFB8CCE4'}}, right:{style:'thin',color:{argb:'FFB8CCE4'}} };
+
+    const hdrRow = ws.addRow(HEADERS);
+    hdrRow.height = 18;
+    hdrRow.eachCell(cell => { cell.fill = hdrFill; cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 }; cell.border = border; cell.alignment = { horizontal: 'center', vertical: 'middle' }; });
+
+    for (const r of output) {
+      const dataRow = ws.addRow(r);
+      dataRow.eachCell({ includeEmpty: true }, cell => { cell.fill = rowFill; cell.border = border; cell.alignment = { vertical: 'middle' }; });
+    }
+
+    const now = new Date();
+    const mm = String(now.getMonth()+1).padStart(2,'0'), dd = String(now.getDate()).padStart(2,'0'), yyyy = now.getFullYear();
+    const filename = `PI_Status_${mm}-${dd}-${yyyy}.xlsx`;
+    const buf = await wb.xlsx.writeBuffer();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('X-Filename', filename);
+    res.send(Buffer.from(buf));
+  } catch (e) {
+    console.error('[pi-status-excel]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── PO Weekly SUP Report — Excel download ───────────────────────────────────
 app.get('/api/susan/weekly-sup-excel', async (req, res) => {
   try {
