@@ -3310,6 +3310,7 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
   }
 });
 
+
 // ─── PO Weekly SUP Report — writes sheet + creates Gmail drafts per supplier ──
 app.post('/api/susan/weekly-sup-report', async (req, res) => {
   try {
@@ -3318,8 +3319,14 @@ app.post('/api/susan/weekly-sup-report', async (req, res) => {
     if (!token?.refreshToken) return res.status(401).json({ error: 'Gmail not connected for this user' });
     const sender = TEAM_USERS.find(u => u.id === sendingAs);
 
+    const COL = {
+      style: 2, status: 3, supplier: 6, category: 7, subcat: 8,
+      freight: 35, cost: 36, proto: 17, sms: 25, ship: 51, tp: 14
+    };
+
     const EXCLUDED = ["Canceled","On Hold","Other Supplier","PO'd + production ok","PO'd","Waiting PO","Changed supplier after tariffs","Other supplier"];
     const REPORT_HEADER = ["Style#","Status","Supplier","Category","Subcategory","Freight","Cost","Proto sent","SMS sent","Ship Date","TP sent"];
+
     const SUPPLIER_CONTACTS = {
       "GAIA":       { email: "gburan@fama-sourcing.com", name: "Gozde" },
       "HS FASHION": { email: ["miya.lin@hsfashion.cn","aindy.wang@hsfashion.cn"], name: "Miya" },
@@ -3333,53 +3340,42 @@ app.post('/api/susan/weekly-sup-report', async (req, res) => {
     };
     const CC_LIST = ["paula@creativetwotwelve.com","ozan.guruscu@creativetwotwelve.com","rafaela@showroom212.com","kamilla@creativetwotwelve.com"];
 
-    // Read sheet via CSV export — same path as all other Susan endpoints
     const csvRes = await fetch(csvUrl(0));
     if (!csvRes.ok) throw new Error('Could not fetch production sheet');
     const rows = parseCSV(await csvRes.text());
     if (rows.length < 2) return res.json({ ok: true, sheetName: '', draftsCreated: [] });
 
-    const H = rows[0].map(h => (h || '').trim().toLowerCase());
-    const findCol = (...kws) => { for (const kw of kws) { const i = H.findIndex(h => h.includes(kw.toLowerCase())); if (i >= 0) return i; } return -1; };
-    const get = (r, i) => i >= 0 ? (r[i] || '').trim() : '';
-
-    const C = {
-      style:    findCol('style #', 'style#', 'style'),
-      status:   findCol('status'),
-      supplier: findCol('supplier'),
-      category: findCol('category'),
-      subcat:   findCol('sub-category', 'subcategory'),
-      freight:  findCol('freight'),
-      cost:     findCol('cost'),
-      proto:    findCol('proto'),
-      sms:      findCol('sms sent', 'sms'),
-      ship:     findCol('ship date', 'ex factory', 'flight date'),
-      tp:       findCol('tp sent', 'top sent', 'sms sent to anthro'),
-    };
+    const get = (r, i) => (r[i] != null ? r[i].toString().trim() : '');
+    const cleanStyle = raw => { const m = raw.toString().trim().match(/(\d.*)/); return m ? m[1] : raw.toString().trim(); };
 
     const reportMap = {};
     const emailMap  = {};
 
     for (let i = 1; i < rows.length; i++) {
       const row      = rows[i];
-      const styleRaw = get(row, C.style);
-      const status   = get(row, C.status);
-      const supplier = get(row, C.supplier);
+      const styleRaw = get(row, COL.style);
+      const status   = get(row, COL.status);
+      const supplier = get(row, COL.supplier);
       if (!styleRaw || !status || !supplier) continue;
       if (EXCLUDED.includes(status)) continue;
 
-      const style = styleRaw.match(/(\d.*)/)?.[1] || styleRaw;
-      const cost  = get(row, C.cost);
-      const proto = get(row, C.proto);
-      const sms   = get(row, C.sms);
-      const ship  = get(row, C.ship);
-      const tp    = get(row, C.tp);
+      const proto = get(row, COL.proto);
+      const sms   = get(row, COL.sms);
+      const ship  = get(row, COL.ship);
+      const tp    = get(row, COL.tp);
+      const cost  = get(row, COL.cost);
 
+      // Sheet report: any style missing proto, sms, ship, or tp
       if (!proto || !sms || !ship || !tp) {
         if (!reportMap[supplier]) reportMap[supplier] = [];
-        reportMap[supplier].push([style, status, supplier, get(row,C.category), get(row,C.subcat), get(row,C.freight), cost ? `$${Number(cost).toFixed(2)}` : '', proto, sms, ship, tp]);
+        reportMap[supplier].push([
+          cleanStyle(styleRaw), status, supplier,
+          get(row, COL.category), get(row, COL.subcat), get(row, COL.freight),
+          cost ? `$${Number(cost).toFixed(2)}` : '', proto, sms, ship, tp
+        ]);
       }
 
+      // Email drafts: only known suppliers, must have at least one comment
       if (!SUPPLIER_CONTACTS[supplier]) continue;
       const comments = [];
       if (!cost) comments.push("Waiting Price");
@@ -3392,17 +3388,20 @@ app.post('/api/susan/weekly-sup-report', async (req, res) => {
       }
       if (!comments.length) continue;
       if (!emailMap[supplier]) emailMap[supplier] = [];
-      emailMap[supplier].push([style, get(row,C.category), comments.join(', '), tpFmt, '']);
+      emailMap[supplier].push([cleanStyle(styleRaw), get(row, COL.category), comments.join(', '), tpFmt, '']);
     }
 
-    // Write report tab via Sheets API (service account)
+    // Write sheet tab via Sheets API
     const sa = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
     const sheetsAuth = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
     const sheets = google.sheets({ version: 'v4', auth: sheetsAuth });
 
-    // Write sheet report
-    const now = new Date();
-    const sheetName = `PO Weekly SUP - ${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}-${now.getFullYear()}`;
+    const now  = new Date();
+    const mm   = String(now.getMonth()+1).padStart(2,'0');
+    const dd   = String(now.getDate()).padStart(2,'0');
+    const yyyy = now.getFullYear();
+    const sheetName = `PO Weekly SUP - ${mm}-${dd}-${yyyy}`;
+
     const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
     const existing = spreadsheet.data.sheets.find(s => s.properties.title === sheetName);
     const setupReqs = [];
@@ -3411,34 +3410,34 @@ app.post('/api/susan/weekly-sup-report', async (req, res) => {
     const batchRes = await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { requests: setupReqs } });
     const newSheetId = batchRes.data.replies.find(r => r.addSheet).addSheet.properties.sheetId;
 
-    const values = []; const headerRows = []; let ri = 0;
+    const values = []; const headerRowIdxs = []; let ri = 0;
     for (const sup of Object.keys(reportMap).sort()) {
-      values.push(REPORT_HEADER); headerRows.push(ri++);
+      values.push(REPORT_HEADER); headerRowIdxs.push(ri++);
       for (const r of reportMap[sup]) { values.push(r); ri++; }
       values.push([]); ri++;
     }
     await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID, range: `'${sheetName}'!A1`, valueInputOption: 'USER_ENTERED', requestBody: { values } });
-    await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { requests: headerRows.map(hr => ({ repeatCell: { range: { sheetId: newSheetId, startRowIndex: hr, endRowIndex: hr+1, startColumnIndex: 0, endColumnIndex: REPORT_HEADER.length }, cell: { userEnteredFormat: { backgroundColor: { red:0.812, green:0.886, blue:0.953 }, textFormat: { bold:true } } }, fields: 'userEnteredFormat(backgroundColor,textFormat)' } })) } });
+    await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { requests: headerRowIdxs.map(hr => ({ repeatCell: { range: { sheetId: newSheetId, startRowIndex: hr, endRowIndex: hr+1, startColumnIndex: 0, endColumnIndex: REPORT_HEADER.length }, cell: { userEnteredFormat: { backgroundColor: { red:0.812, green:0.886, blue:0.953 }, textFormat: { bold:true } } }, fields: 'userEnteredFormat(backgroundColor,textFormat)' } })) } });
 
-    // Create Gmail drafts (same pattern as PO Breakdown)
+    // Create Gmail drafts
     const authClient = makeOAuth2Client();
     authClient.setCredentials({ refresh_token: token.refreshToken });
     const gmail = google.gmail({ version: 'v1', auth: authClient });
-    const todaySlash = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
+    const todaySlash = `${mm}/${dd}`;
     const draftsCreated = [];
 
     for (const sup of Object.keys(emailMap).sort()) {
-      const contact = SUPPLIER_CONTACTS[sup];
-      const rows    = emailMap[sup];
-      if (!rows.length) continue;
+      const contact   = SUPPLIER_CONTACTS[sup];
+      const emailRows = emailMap[sup];
+      if (!emailRows.length) continue;
       const to = Array.isArray(contact.email) ? contact.email.join(', ') : contact.email;
       let html = `Hi ${contact.name}!<br><br>I hope all is well!<br><br>Please pay special attention to the styles below. The following styles updates are urgent!<br><br>We need them by Monday:<br><br><table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;"><tr style="background-color:#cfe2f3;font-weight:bold;"><th>Style #</th><th>Category</th><th>Comments</th><th>TP sent</th><th>Updates</th></tr>`;
-      for (const r of rows) html += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td></tr>`;
+      for (const r of emailRows) html += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td></tr>`;
       html += `</table><br>Best regards,<br>${sender?.name || ''}`;
       const rawMime = await buildRawMime({ from: `"${sender?.name || ''}" <${sender?.email || ''}>`, to, cc: CC_LIST.join(','), subject: `URGENT FUP - Development Status - ${sup} - ${todaySlash}`, html });
       const encoded = rawMime.toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
       await gmail.users.drafts.create({ userId: 'me', requestBody: { message: { raw: encoded } } });
-      draftsCreated.push({ supplier: sup, styles: rows.length });
+      draftsCreated.push({ supplier: sup, styles: emailRows.length });
     }
 
     res.json({ ok: true, sheetName, draftsCreated });

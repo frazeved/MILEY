@@ -401,12 +401,13 @@
             <div><div class="card-name">TOP STATUS</div><div class="card-type">Email</div></div>
           </div>
         </div>
-        <div class="card email-card" onclick="runWeeklySupReport()" style="cursor:pointer;" id="weekly-sup-card">
+
+        <div class="card email-card" onclick="runWeeklySupReport()" style="cursor:pointer;">
           <div class="card-icon-row">
             <div class="icon-email">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
             </div>
-            <div><div class="card-name">PO WEEKLY SUP REPORT</div><div class="card-type" id="weekly-sup-status">Email</div></div>
+            <div><div class="card-name">PO WEEKLY SUP REPORT</div><div class="card-type">Email</div></div>
           </div>
         </div>
         <div class="card email-card">
@@ -798,16 +799,6 @@
   </div>
 </div>
 
-<!-- PO WEEKLY SUP REPORT — sender selection modal -->
-<div class="modal-overlay" id="weekly-sup-sender-modal" onclick="closeModalOnOverlay(event)">
-  <div class="modal" style="max-width:380px;">
-    <div class="modal-header">
-      <div class="modal-title">PO WEEKLY SUP REPORT — Send As</div>
-      <button class="modal-close" onclick="closeModal('weekly-sup-sender-modal')">×</button>
-    </div>
-    <div id="weekly-sup-sender-list" style="padding:16px 20px 20px;display:flex;flex-direction:column;gap:8px;"></div>
-  </div>
-</div>
 
 <!-- TOP STATUS — sender selection modal -->
 <div class="modal-overlay" id="top-status-sender-modal" onclick="closeModalOnOverlay(event)">
@@ -817,6 +808,17 @@
       <button class="modal-close" onclick="closeModal('top-status-sender-modal')">×</button>
     </div>
     <div id="top-status-sender-list" style="padding:16px 20px 20px;display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
+<!-- PO WEEKLY SUP REPORT — sender selection modal -->
+<div class="modal-overlay" id="weekly-sup-sender-modal" onclick="closeModalOnOverlay(event)">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-header">
+      <div class="modal-title">PO WEEKLY SUP REPORT — Send As</div>
+      <button class="modal-close" onclick="closeModal('weekly-sup-sender-modal')">×</button>
+    </div>
+    <div id="weekly-sup-sender-list" style="padding:16px 20px 20px;display:flex;flex-direction:column;gap:8px;"></div>
   </div>
 </div>
 
@@ -1298,52 +1300,6 @@ async function downloadBreakdownReport() {
   }
 }
 
-async function runWeeklySupReport() {
-  const users = await fetch('/api/users').then(r => r.json());
-  const list = document.getElementById('weekly-sup-sender-list');
-  list.innerHTML = users.map(u => `
-    <button class="sender-btn" onclick="selectWeeklySupSender('${u.id}', ${u.connected})">
-      <span class="sender-dot ${u.connected ? 'dot-green' : 'dot-orange'}"></span>
-      <span class="sender-name">${u.name}</span>
-      ${u.connected
-        ? '<span class="sender-status">Connected</span>'
-        : '<span class="sender-connect">Connect Gmail →</span>'}
-    </button>`).join('');
-  document.getElementById('weekly-sup-sender-modal').classList.add('open');
-}
-
-function selectWeeklySupSender(userId, connected) {
-  if (!connected) {
-    const popup = window.open(`/auth/google?userId=${userId}&return=popup`, 'gmail-oauth', 'width=520,height=640,left=200,top=80');
-    if (!popup) { showToast('Allow popups for this site and try again'); return; }
-    const onMsg = async (e) => {
-      if (e.data?.type !== 'gmailConnected' || e.data?.userId !== userId) return;
-      window.removeEventListener('message', onMsg);
-      await executeWeeklySupReport(userId);
-    };
-    window.addEventListener('message', onMsg);
-    return;
-  }
-  executeWeeklySupReport(userId);
-}
-
-async function executeWeeklySupReport(userId) {
-  document.getElementById('weekly-sup-sender-modal').classList.remove('open');
-  showToast('Running PO Weekly SUP Report — creating drafts...');
-  try {
-    const res  = await fetch('/api/susan/weekly-sup-report', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sendingAs: userId }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Unknown error');
-    const count = data.draftsCreated?.length || 0;
-    showToast(`✅ Sheet created & ${count} draft${count !== 1 ? 's' : ''} ready in Gmail`);
-  } catch (e) {
-    showToast('Error: ' + e.message);
-  }
-}
 
 async function runTopStatus() {
   const users = await fetch('/api/users').then(r => r.json());
@@ -1393,6 +1349,55 @@ async function executeTopStatus(userId) {
     }
   } catch (e) {
     showToast('Error running TOP STATUS script');
+  }
+}
+
+async function runWeeklySupReport() {
+  const users = await fetch('/api/users').then(r => r.json());
+  const list = document.getElementById('weekly-sup-sender-list');
+  list.innerHTML = users.map(u => `
+    <button class="sender-btn" onclick="selectWeeklySupSender('${u.id}', ${u.connected})">
+      <span class="sender-dot ${u.connected ? 'dot-green' : 'dot-orange'}"></span>
+      <span class="sender-name">${u.name}</span>
+      ${u.connected ? '<span class="sender-status">Connected</span>' : '<span class="sender-connect">Connect Gmail →</span>'}
+    </button>`).join('');
+  document.getElementById('weekly-sup-sender-modal').classList.add('open');
+}
+
+function selectWeeklySupSender(userId, connected) {
+  if (!connected) {
+    const popup = window.open(`/auth/google?userId=${userId}&return=popup`, 'gmail-oauth', 'width=520,height=640,left=200,top=80');
+    if (!popup) { showToast('Allow popups for this site and try again'); return; }
+    const onMsg = async (e) => {
+      if (e.data?.type !== 'gmailConnected' || e.data?.userId !== userId) return;
+      window.removeEventListener('message', onMsg);
+      await executeWeeklySupReport(userId);
+    };
+    window.addEventListener('message', onMsg);
+    return;
+  }
+  executeWeeklySupReport(userId);
+}
+
+async function executeWeeklySupReport(userId) {
+  document.getElementById('weekly-sup-sender-modal').classList.remove('open');
+  showToast('Running PO Weekly SUP Report — creating drafts...');
+  try {
+    const res = await fetch('/api/susan/weekly-sup-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sendingAs: userId }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Failed'); return; }
+    if (data.draftsCreated?.length) {
+      const names = data.draftsCreated.map(d => `${d.supplier} (${d.styles})`).join(', ');
+      showToast(`✅ Sheet created & drafts ready: ${names}`);
+    } else {
+      showToast('✅ Sheet created. No qualifying styles for email drafts today.');
+    }
+  } catch (e) {
+    showToast('Error: ' + e.message);
   }
 }
 
