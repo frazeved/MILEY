@@ -3524,10 +3524,31 @@ app.post('/api/susan/weekly-sup-report', async (req, res) => {
       const emailRows = emailMap[sup];
       if (!emailRows.length) continue;
       const to = Array.isArray(contact.email) ? contact.email.join(', ') : contact.email;
-      let html = `Hi ${contact.name}!<br><br>I hope all is well!<br><br>Please pay special attention to the styles below. The following styles updates are urgent!<br><br>We need them by Monday:<br><br><table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;"><tr style="background-color:#cfe2f3;font-weight:bold;"><th>Style #</th><th>Category</th><th>Comments</th><th>TP sent</th><th>Updates</th></tr>`;
-      for (const r of emailRows) html += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td></tr>`;
+
+      // Fetch CAD images for each style (same pattern as TOP STATUS)
+      const attachments = [];
+      const rowsWithCad = await Promise.all(emailRows.map(async (r, idx) => {
+        const style = r[0];
+        let cad = await getCadImage(style);
+        if (!cad.found) {
+          const norm = style.replace(/^[A-Za-z]+-?/, '').trim();
+          if (norm && norm !== style) cad = await getCadImage(norm);
+        }
+        const cid = `cad-${idx}`;
+        if (cad.found) {
+          attachments.push({ filename: `${style}.jpg`, content: Buffer.from(cad.imageData, 'base64'), encoding: 'base64', cid, contentType: cad.mimeType || 'image/jpeg' });
+        }
+        return { r, hasCad: cad.found, cid };
+      }));
+
+      let html = `Hi ${contact.name}!<br><br>I hope all is well!<br><br>Please pay special attention to the styles below. The following styles updates are urgent!<br><br>We need them by Monday:<br><br><table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;"><tr style="background-color:#cfe2f3;font-weight:bold;"><th>CAD</th><th>Style #</th><th>Category</th><th>Comments</th><th>TP sent</th><th>Updates</th></tr>`;
+      for (const { r, hasCad, cid } of rowsWithCad) {
+        const cadCell = hasCad ? `<img src="cid:${cid}" width="70" style="display:block;border:0;">` : '';
+        html += `<tr><td style="text-align:center;">${cadCell}</td><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td></tr>`;
+      }
       html += `</table><br>Best regards,<br>${sender?.name || ''}`;
-      const rawMime = await buildRawMime({ from: `"${sender?.name || ''}" <${sender?.email || ''}>`, to, cc: CC_LIST.join(','), subject: `URGENT FUP - Development Status - ${sup} - ${todaySlash}`, html });
+
+      const rawMime = await buildRawMime({ from: `"${sender?.name || ''}" <${sender?.email || ''}>`, to, cc: CC_LIST.join(','), subject: `URGENT FUP - Development Status - ${sup} - ${todaySlash}`, html, attachments });
       const encoded = rawMime.toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
       await gmail.users.drafts.create({ userId: 'me', requestBody: { message: { raw: encoded } } });
       draftsCreated.push({ supplier: sup, styles: emailRows.length });
