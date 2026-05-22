@@ -3351,29 +3351,34 @@ app.get('/api/susan/weekly-sup-excel', async (req, res) => {
 
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('PO Weekly SUP Report');
-    ws.columns = HEADERS.map((h, i) => ({ header: h, key: String(i), width: Math.max(h.length + 4, 14) }));
+    ws.columns = HEADERS.map(h => ({ width: Math.max(h.length + 4, 14) }));
 
-    const hdrFill   = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCFE2F3' } };
-    const thinBorder = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+    const hdrFill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2E75B6' } };
+    const rowFill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDEEAF1' } };
+    const border   = { top:{style:'thin',color:{argb:'FFB8CCE4'}}, left:{style:'thin',color:{argb:'FFB8CCE4'}}, bottom:{style:'thin',color:{argb:'FFB8CCE4'}}, right:{style:'thin',color:{argb:'FFB8CCE4'}} };
 
     for (const supplier of Object.keys(reportMap).sort()) {
-      // Supplier header row
+      // Header row — dark blue bg, white bold text
       const hdrRow = ws.addRow(HEADERS);
+      hdrRow.height = 18;
       hdrRow.eachCell(cell => {
-        cell.fill   = hdrFill;
-        cell.font   = { bold: true };
-        cell.border = thinBorder;
+        cell.fill      = hdrFill;
+        cell.font      = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+        cell.border    = border;
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
       });
-      hdrRow.height = 18;
 
-      // Data rows
+      // Data rows — light blue
       for (const r of reportMap[supplier]) {
         const dataRow = ws.addRow(r);
-        dataRow.eachCell({ includeEmpty: true }, cell => { cell.border = thinBorder; });
+        dataRow.eachCell({ includeEmpty: true }, cell => {
+          cell.fill   = rowFill;
+          cell.border = border;
+          cell.alignment = { vertical: 'middle' };
+        });
       }
 
-      // Blank spacer row
+      // Blank spacer
       ws.addRow([]);
     }
 
