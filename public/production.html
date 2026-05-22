@@ -418,7 +418,7 @@
             <div><div class="card-name">PI STATUS REPORT</div><div class="card-type">Email</div></div>
           </div>
         </div>
-        <div class="card email-card">
+        <div class="card email-card" onclick="runFarmAnthroWeekly()" style="cursor:pointer;">
           <div class="card-icon-row">
             <div class="icon-email">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
@@ -830,6 +830,17 @@
       <button class="modal-close" onclick="closeModal('pi-status-sender-modal')">×</button>
     </div>
     <div id="pi-status-sender-list" style="padding:16px 20px 20px;display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
+<!-- FARM x ANTHRO WEEKLY STATUS — sender selection modal -->
+<div class="modal-overlay" id="farm-anthro-sender-modal" onclick="closeModalOnOverlay(event)">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-header">
+      <div class="modal-title">[Farm x Anthro] Weekly Status — Send As</div>
+      <button class="modal-close" onclick="closeModal('farm-anthro-sender-modal')">×</button>
+    </div>
+    <div id="farm-anthro-sender-list" style="padding:16px 20px 20px;display:flex;flex-direction:column;gap:8px;"></div>
   </div>
 </div>
 
@@ -1476,6 +1487,54 @@ async function downloadPiStatusExcel() {
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 200);
     showToast('✅ Excel file downloaded');
+  } catch (e) {
+    showToast('Error: ' + e.message);
+  }
+}
+
+async function runFarmAnthroWeekly() {
+  const users = await fetch('/api/users').then(r => r.json());
+  const list = document.getElementById('farm-anthro-sender-list');
+  list.innerHTML = users.map(u => `
+    <button class="sender-btn" onclick="selectFarmAnthroSender('${u.id}', ${u.connected})">
+      <span class="sender-dot ${u.connected ? 'dot-green' : 'dot-orange'}"></span>
+      <span class="sender-name">${u.name}</span>
+      ${u.connected ? '<span class="sender-status">Connected</span>' : '<span class="sender-connect">Connect Gmail →</span>'}
+    </button>`).join('');
+  document.getElementById('farm-anthro-sender-modal').classList.add('open');
+}
+
+function selectFarmAnthroSender(userId, connected) {
+  if (!connected) {
+    window.open(`/auth/google?userId=${userId}&return=/production`, '_blank', 'width=500,height=600');
+    const onMsg = async (e) => {
+      if (e.data?.type !== 'gmailConnected' || e.data?.userId !== userId) return;
+      window.removeEventListener('message', onMsg);
+      await executeFarmAnthroWeekly(userId);
+    };
+    window.addEventListener('message', onMsg);
+    return;
+  }
+  executeFarmAnthroWeekly(userId);
+}
+
+async function executeFarmAnthroWeekly(userId) {
+  document.getElementById('farm-anthro-sender-modal').classList.remove('open');
+  showToast('[Farm x Anthro] Weekly Status — creating drafts...');
+  try {
+    const res = await fetch('/api/susan/farm-anthro-weekly-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sendingAs: userId }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Failed'); return; }
+    if (data.draftsCreated?.length) {
+      const names = data.draftsCreated.map(d => `${d.class} (${d.styles})`).join(', ');
+      showToast(`✅ Drafts created: ${names}`);
+    } else {
+      showToast('No qualifying styles found today.');
+    }
   } catch (e) {
     showToast('Error: ' + e.message);
   }

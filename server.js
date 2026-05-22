@@ -3510,6 +3510,163 @@ app.get('/api/susan/pi-status-excel', async (req, res) => {
   }
 });
 
+// ─── [Farm x Anthro] Weekly Status — Gmail drafts per class group ─────────────
+app.post('/api/susan/farm-anthro-weekly-email', async (req, res) => {
+  try {
+    const { sendingAs } = req.body;
+    const token = userTokens[sendingAs];
+    if (!token?.refreshToken) return res.status(401).json({ error: 'Gmail not connected for this user' });
+    const sender = TEAM_USERS.find(u => u.id === sendingAs);
+
+    const CC_LIST = ["paula@creativetwotwelve.com","kamilla@creativetwotwelve.com","ozan.guruscu@creativetwotwelve.com","rafaela.neves@farmrio.com"];
+    const SHEET_LINK = "https://docs.google.com/spreadsheets/d/1Z0ekHVSDZkainyLifwJI4fpuna76bmRp/edit?gid=1580130442#gid=1580130442";
+    const ELIGIBLE_STATUSES = ["PO'd", "Waiting SMS approval", "Waiting PO"];
+
+    const CLASS_GROUPS = [
+      { name: 'Blouse',   keywords: ['BLOUSE','SHIRT'],           greetingName: 'Aly, Kate and Sophia', to: ['akauffman@anthropologie.com','kcreswell@anthropologie.com','sgarino@anthropologie.com'] },
+      { name: 'Dress',    keywords: ['DRESS','ROMPER'],           greetingName: 'Lizzy',                to: ['ebarrett@anthropologie.com','jstampone@anthropologie.com','nmicchia@anthropologie.com'] },
+      { name: 'Bottoms',  keywords: ['PANT','JUMPSUIT','BOTTOM'], greetingName: 'Caroline',             to: ['smurphy@anthropologie.com','criley4@anthropologie.com'] },
+      { name: 'Lounge',   keywords: ['LOUNGE'],                   greetingName: 'Simone',               to: ['sbutler@anthropologie.com','mkroh@anthropologie.com','oschwann@anthropologie.com','rrum@anthropologie.com'] },
+      { name: 'Skirt',    keywords: ['SKIRT','SHORT'],            greetingName: 'Abby and Bella',       to: ['apodolsky@anthropologie.com','bkese@anthropologie.com'] },
+      { name: 'Swimwear', keywords: ['SWIM'],                     greetingName: 'Ivy',                  to: ['iheilman@anthropologie.com','cterral@anthropologie.com','rlongenderfer@anthropologie.com','mweston@anthropologie.com'] },
+    ];
+
+    const csvRes = await fetch(csvUrl(0));
+    if (!csvRes.ok) throw new Error('Could not fetch production sheet');
+    const rows = parseCSV(await csvRes.text());
+    if (rows.length < 2) return res.json({ ok: true, draftsCreated: [] });
+
+    const H = rows[0].map(h => (h || '').trim().toLowerCase());
+    const findCol = (...kws) => { for (const kw of kws) { const i = H.findIndex(h => h.includes(kw.toLowerCase())); if (i >= 0) return i; } return -1; };
+    const COL = {
+      style:    findCol('style #', 'style#', 'style'),
+      status:   findCol('status'),
+      class:    findCol('class'),
+      fabric:   findCol('fabric'),
+      sms:      findCol('sms sent to anthro', 'sms anthro'),
+      fit:      findCol('fit comment', 'fit'),
+      poInfo:   findCol('po info', 'po information'),
+      ndc:      findCol('final ndc', 'ndc'),
+      poIssued: findCol('po issued by anthro', 'po issued'),
+    };
+    const get = (r, i) => (i >= 0 && r[i] != null ? r[i].toString().trim() : '');
+
+    const grouped = {};
+    for (let i = 1; i < rows.length; i++) {
+      const row      = rows[i];
+      const styleRaw = get(row, COL.style);
+      const status   = get(row, COL.status);
+      const fit      = get(row, COL.fit);
+      const poIssued = get(row, COL.poIssued);
+
+      if (!ELIGIBLE_STATUSES.includes(status)) continue;
+      if (poIssued && !fit) continue;
+      if (!styleRaw) continue;
+
+      const styleMatch = styleRaw.match(/(\d{5,}[A-Za-z0-9\-]*)$/);
+      const style = styleMatch ? styleMatch[1] : styleRaw;
+
+      const rawClass     = get(row, COL.class).toUpperCase();
+      const matchedGroup = CLASS_GROUPS.find(g => g.keywords.some(kw => rawClass.includes(kw)));
+      if (!matchedGroup) continue;
+
+      const key = matchedGroup.name;
+      if (!grouped[key]) grouped[key] = { entries: [], group: matchedGroup };
+
+      const ndcVal = get(row, COL.ndc);
+      const smsVal = get(row, COL.sms);
+      const poInfo = get(row, COL.poInfo);
+      const fabric = get(row, COL.fabric);
+
+      const msg = [];
+      if (!fit)      msg.push('Waiting Fit Comment');
+      if (!poInfo)   msg.push('Waiting PO Info');
+      if (!poIssued) msg.push('Waiting PO Issued');
+      if (smsVal)    msg.push(`SMS sent on ${smsVal}`);
+
+      const ndcDate = ndcVal ? new Date(ndcVal) : null;
+
+      grouped[key].entries.push({ style, fabric, ndc: ndcVal, statusMsg: msg.join(', '), ndcDate: (ndcDate && !isNaN(ndcDate)) ? ndcDate : null });
+    }
+
+    const authClient = makeOAuth2Client();
+    authClient.setCredentials({ refresh_token: token.refreshToken });
+    const gmail = google.gmail({ version: 'v1', auth: authClient });
+    const now = new Date();
+    const todaySlash = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
+    const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const MONTH_FULL  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const draftsCreated = [];
+
+    for (const key of Object.keys(grouped).sort()) {
+      const { entries, group } = grouped[key];
+
+      // NDC period
+      const ndcDates = entries.map(e => e.ndcDate).filter(Boolean).sort((a, b) => a - b);
+      let ndcPeriod = 'N/A';
+      if (ndcDates.length) {
+        const first = ndcDates[0], last = ndcDates[ndcDates.length - 1];
+        ndcPeriod = first.getMonth() === last.getMonth()
+          ? `${MONTH_SHORT[first.getMonth()]}${String(last.getFullYear()).slice(2)}`
+          : `${MONTH_SHORT[first.getMonth()]} - ${MONTH_FULL[last.getMonth()]}${String(last.getFullYear()).slice(2)}`;
+      }
+
+      // Fetch CAD images (data URIs — no attachment so no MIME conflict, but consistent with other emails)
+      const entriesWithCad = await Promise.all(entries.map(async (e) => {
+        let cad = await getCadImage(e.style);
+        if (!cad.found) {
+          const norm = e.style.replace(/^[A-Za-z]+-?/, '').trim();
+          if (norm && norm !== e.style) cad = await getCadImage(norm);
+        }
+        return { ...e, hasCad: cad.found, imageData: cad.imageData || null, mimeType: cad.mimeType || 'image/jpeg' };
+      }));
+
+      const tableRows = entriesWithCad.map(e => {
+        const cadCell = e.hasCad ? `<img src="data:${e.mimeType};base64,${e.imageData}" width="60" style="display:block;border:0;">` : '';
+        return `<tr>
+          <td style="padding:4px 8px;text-align:center;">${cadCell}</td>
+          <td style="padding:4px 8px;">${e.style}</td>
+          <td style="padding:4px 8px;">${e.fabric}</td>
+          <td style="padding:4px 8px;">${e.ndc}</td>
+          <td style="padding:4px 8px;">${e.statusMsg}</td>
+        </tr>`;
+      }).join('');
+
+      const html = `Hi ${group.greetingName},<br><br>
+Please check below our status of the week regarding styles from <b>${ndcPeriod}</b>.<br>
+Feel free to insert comments, doubts and/or suggestions on the Anthro Comments column.<br><br>
+<a href="${SHEET_LINK}" target="_blank">Click here to see the weekly updates!</a><br><br>
+We kindly ask you a special attention to the styles below:<br><br>
+<table border="1" cellpadding="5" cellspacing="0" style="border-collapse:collapse;">
+  <tr style="background-color:#D9EAF7;font-weight:bold;">
+    <th style="padding:4px 8px;">CAD</th>
+    <th style="padding:4px 8px;">Style#</th>
+    <th style="padding:4px 8px;">Fabric</th>
+    <th style="padding:4px 8px;">NDC</th>
+    <th style="padding:4px 8px;">Status</th>
+  </tr>
+  ${tableRows}
+</table><br>Best regards,<br>${sender?.name || ''}`;
+
+      const rawMime = await buildRawMime({
+        from:    `"${sender?.name || ''}" <${sender?.email || ''}>`,
+        to:      group.to.join(', '),
+        cc:      CC_LIST.join(','),
+        subject: `[Farm x Anthro] Weekly Status - ${key} - ${todaySlash}`,
+        html,
+      });
+      const encoded = rawMime.toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+      await gmail.users.drafts.create({ userId: 'me', requestBody: { message: { raw: encoded } } });
+      draftsCreated.push({ class: key, styles: entries.length });
+    }
+
+    res.json({ ok: true, draftsCreated });
+  } catch (e) {
+    console.error('[farm-anthro-weekly-email]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── PO Weekly SUP Report — Excel download ───────────────────────────────────
 app.get('/api/susan/weekly-sup-excel', async (req, res) => {
   try {
