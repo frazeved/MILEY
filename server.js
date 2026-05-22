@@ -3565,18 +3565,21 @@ app.post('/api/susan/urgent-fup-email', async (req, res) => {
       const entries     = grouped[sup];
       const contactName = suppliers.mainContact[sup] || sup;
 
-      let tableRows = '';
-      for (const e of entries) {
-        let cadCell = '';
-        try {
-          let cad = await getCadImage(e.style);
-          if (!cad.found) {
-            const norm = e.style.replace(/^[A-Za-z]+-?/, '').trim();
-            if (norm && norm !== e.style) cad = await getCadImage(norm);
-          }
-          if (cad.found) cadCell = `<img src="data:${cad.mimeType};base64,${cad.imageData}" width="35" style="display:block;border:0;">`;
-        } catch (_) {}
-        tableRows += `<tr>
+      const attachments = [];
+      const entriesWithCad = await Promise.all(entries.map(async (e, idx) => {
+        let cad = await getCadImage(e.style);
+        if (!cad.found) {
+          const norm = e.style.replace(/^[A-Za-z]+-?/, '').trim();
+          if (norm && norm !== e.style) cad = await getCadImage(norm);
+        }
+        const cid = `cad-${idx}`;
+        if (cad.found) attachments.push({ filename: `${e.style}.jpg`, content: Buffer.from(cad.imageData, 'base64'), encoding: 'base64', cid, contentType: cad.mimeType || 'image/jpeg' });
+        return { ...e, hasCad: cad.found, cid };
+      }));
+
+      const tableRows = entriesWithCad.map(e => {
+        const cadCell = e.hasCad ? `<img src="cid:${e.cid}" width="70" style="display:block;border:0;">` : '';
+        return `<tr>
           <td style="border:1px solid #ccc;padding:6px;text-align:center;">${cadCell}</td>
           <td style="border:1px solid #ccc;padding:6px;">${e.style}</td>
           <td style="border:1px solid #ccc;padding:6px;">${e.category}</td>
@@ -3584,7 +3587,7 @@ app.post('/api/susan/urgent-fup-email', async (req, res) => {
           <td style="border:1px solid #ccc;padding:6px;">${e.tpSent}</td>
           <td style="border:1px solid #ccc;padding:6px;"></td>
         </tr>`;
-      }
+      }).join('');
 
       const html = `<p>Hi ${contactName}!<br>I hope all is well!</p>
 <p>Please pay special attention to the styles below. The following samples are urgent!</p>
@@ -3603,11 +3606,12 @@ app.post('/api/susan/urgent-fup-email', async (req, res) => {
 <br>Thank you,<br>${sender?.name || ''}`;
 
       const rawMime = await buildRawMime({
-        from:    `"${sender?.name || ''}" <${sender?.email || ''}>`,
-        to:      suppliers.emails[sup].join(', '),
-        cc:      CC_LIST.join(','),
-        subject: `URGENT FUP - Development Status - ${sup} - ${todayFmt}`,
+        from:        `"${sender?.name || ''}" <${sender?.email || ''}>`,
+        to:          suppliers.emails[sup].join(', '),
+        cc:          CC_LIST.join(','),
+        subject:     `URGENT FUP - Development Status - ${sup} - ${todayFmt}`,
         html,
+        attachments,
       });
       const encoded = rawMime.toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
       await gmail.users.drafts.create({ userId: 'me', requestBody: { message: { raw: encoded } } });
