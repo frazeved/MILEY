@@ -3311,6 +3311,89 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
 });
 
 
+// ─── PO Weekly SUP Report — Excel download ───────────────────────────────────
+app.get('/api/susan/weekly-sup-excel', async (req, res) => {
+  try {
+    const COL = {
+      style: 2, status: 3, supplier: 6, category: 7, subcat: 8,
+      freight: 35, cost: 36, proto: 17, sms: 25, ship: 51, tp: 14
+    };
+    const EXCLUDED = ["Canceled","On Hold","Other Supplier","PO'd + production ok","PO'd","Waiting PO","Changed supplier after tariffs","Other supplier"];
+    const HEADERS  = ["Style#","Status","Supplier","Category","Subcategory","Freight","Cost","Proto sent","SMS sent","Ship Date","TP sent"];
+
+    const csvRes = await fetch(csvUrl(0));
+    if (!csvRes.ok) throw new Error('Could not fetch production sheet');
+    const rows = parseCSV(await csvRes.text());
+
+    const get = (r, i) => (r[i] != null ? r[i].toString().trim() : '');
+    const cleanStyle = raw => { const m = raw.toString().trim().match(/(\d.*)/); return m ? m[1] : raw.toString().trim(); };
+
+    const reportMap = {};
+    for (let i = 1; i < rows.length; i++) {
+      const row      = rows[i];
+      const styleRaw = get(row, COL.style);
+      const status   = get(row, COL.status);
+      const supplier = get(row, COL.supplier);
+      if (!styleRaw || !status || !supplier) continue;
+      if (EXCLUDED.includes(status)) continue;
+      const proto = get(row, COL.proto), sms = get(row, COL.sms);
+      const ship  = get(row, COL.ship),  tp  = get(row, COL.tp);
+      const cost  = get(row, COL.cost);
+      if (!proto || !sms || !ship || !tp) {
+        if (!reportMap[supplier]) reportMap[supplier] = [];
+        reportMap[supplier].push([
+          cleanStyle(styleRaw), status, supplier,
+          get(row, COL.category), get(row, COL.subcat), get(row, COL.freight),
+          cost ? `$${Number(cost).toFixed(2)}` : '', proto, sms, ship, tp
+        ]);
+      }
+    }
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('PO Weekly SUP Report');
+    ws.columns = HEADERS.map((h, i) => ({ header: h, key: String(i), width: Math.max(h.length + 4, 14) }));
+
+    const hdrFill   = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCFE2F3' } };
+    const thinBorder = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+
+    for (const supplier of Object.keys(reportMap).sort()) {
+      // Supplier header row
+      const hdrRow = ws.addRow(HEADERS);
+      hdrRow.eachCell(cell => {
+        cell.fill   = hdrFill;
+        cell.font   = { bold: true };
+        cell.border = thinBorder;
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      });
+      hdrRow.height = 18;
+
+      // Data rows
+      for (const r of reportMap[supplier]) {
+        const dataRow = ws.addRow(r);
+        dataRow.eachCell({ includeEmpty: true }, cell => { cell.border = thinBorder; });
+      }
+
+      // Blank spacer row
+      ws.addRow([]);
+    }
+
+    const now = new Date();
+    const mm = String(now.getMonth()+1).padStart(2,'0');
+    const dd = String(now.getDate()).padStart(2,'0');
+    const yyyy = now.getFullYear();
+    const filename = `PO_Weekly_SUP_${mm}-${dd}-${yyyy}.xlsx`;
+
+    const buf = await wb.xlsx.writeBuffer();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('X-Filename', filename);
+    res.send(Buffer.from(buf));
+  } catch (e) {
+    console.error('[weekly-sup-excel]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── PO Weekly SUP Report — writes sheet + creates Gmail drafts per supplier ──
 app.post('/api/susan/weekly-sup-report', async (req, res) => {
   try {

@@ -458,7 +458,7 @@
             <div><div class="card-name">PO OFFICIAL REPORT</div><div class="card-type">Excel File</div></div>
           </div>
         </div>
-        <div class="card excel-card">
+        <div class="card excel-card" onclick="downloadWeeklySupExcel()" style="cursor:pointer;">
           <div class="card-icon-row">
             <div class="icon-excel">X</div>
             <div><div class="card-name">PO WEEKLY SUP REPORT</div><div class="card-type">Excel File</div></div>
@@ -1396,6 +1396,24 @@ async function executeWeeklySupReport(userId) {
     } else {
       showToast('✅ Sheet created. No qualifying styles for email drafts today.');
     }
+  } catch (e) {
+    showToast('Error: ' + e.message);
+  }
+}
+
+async function downloadWeeklySupExcel() {
+  showToast('Generating Excel file...');
+  try {
+    const res = await fetch('/api/susan/weekly-sup-excel');
+    if (!res.ok) { const d = await res.json(); showToast(d.error || 'Failed'); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = res.headers.get('X-Filename') || 'PO_Weekly_SUP_Report.xlsx';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('✅ Excel file downloaded');
   } catch (e) {
     showToast('Error: ' + e.message);
   }
