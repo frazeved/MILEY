@@ -1411,8 +1411,10 @@ async function downloadWeeklySupExcel() {
     const a = document.createElement('a');
     a.href = url;
     a.download = res.headers.get('X-Filename') || 'PO_Weekly_SUP_Report.xlsx';
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 200);
     showToast('✅ Excel file downloaded');
   } catch (e) {
     showToast('Error: ' + e.message);

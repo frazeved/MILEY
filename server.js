@@ -3356,7 +3356,7 @@ app.get('/api/susan/weekly-sup-excel', async (req, res) => {
         reportMap[supplier].push([
           cleanStyle(styleRaw), status, supplier,
           get(row, COL.category), get(row, COL.subcat), get(row, COL.freight),
-          cost ? `$${Number(cost).toFixed(2)}` : '', proto, sms, ship, tp
+          cost ? `$${Number(cost.replace(/[^0-9.]/g,'')).toFixed(2)}` : '', proto, sms, ship, tp
         ]);
       }
     }
@@ -3482,7 +3482,7 @@ app.post('/api/susan/weekly-sup-report', async (req, res) => {
         reportMap[supplier].push([
           cleanStyle(styleRaw), status, supplier,
           get(row, COL.category), get(row, COL.subcat), get(row, COL.freight),
-          cost ? `$${Number(cost).toFixed(2)}` : '', proto, sms, ship, tp
+          cost ? `$${Number(cost.replace(/[^0-9.]/g,'')).toFixed(2)}` : '', proto, sms, ship, tp
         ]);
       }
 
