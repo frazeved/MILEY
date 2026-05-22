@@ -3565,37 +3565,19 @@ app.post('/api/susan/urgent-fup-email', async (req, res) => {
       const entries     = grouped[sup];
       const contactName = suppliers.mainContact[sup] || sup;
 
-      const entriesWithCad = [];
-      for (const e of entries) {
-        let cad = { found: false };
-        try {
-          cad = await getCadImage(e.style);
-          if (!cad.found) {
-            const norm = e.style.replace(/^[A-Za-z]+-?/, '').trim();
-            if (norm && norm !== e.style) cad = await getCadImage(norm);
-          }
-        } catch (_) {}
-        entriesWithCad.push({ ...e, hasCad: cad.found, imageData: cad.imageData || null, mimeType: cad.mimeType || 'image/jpeg' });
-      }
-
-      const tableRows = entriesWithCad.map(e => {
-        const cadCell = e.hasCad ? `<img src="data:${e.mimeType};base64,${e.imageData}" width="35" style="display:block;border:0;">` : '';
-        return `<tr>
-          <td style="border:1px solid #ccc;padding:6px;text-align:center;">${cadCell}</td>
+      const tableRows = entries.map(e => `<tr>
           <td style="border:1px solid #ccc;padding:6px;">${e.style}</td>
           <td style="border:1px solid #ccc;padding:6px;">${e.category}</td>
           <td style="border:1px solid #ccc;padding:6px;">${e.comments}</td>
           <td style="border:1px solid #ccc;padding:6px;">${e.tpSent}</td>
           <td style="border:1px solid #ccc;padding:6px;"></td>
-        </tr>`;
-      }).join('');
+        </tr>`).join('');
 
       const html = `<p>Hi ${contactName}!<br>I hope all is well!</p>
 <p>Please pay special attention to the styles below. The following samples are urgent!</p>
 <p><strong>We need the styles updates by Monday:</strong></p>
 <table style="border-collapse:collapse;font-family:Arial,sans-serif;">
   <tr style="background-color:#d9eafd;font-weight:bold;">
-    <td style="border:1px solid #ccc;padding:6px;">CAD</td>
     <td style="border:1px solid #ccc;padding:6px;">Style #</td>
     <td style="border:1px solid #ccc;padding:6px;">Category</td>
     <td style="border:1px solid #ccc;padding:6px;">Comments</td>
