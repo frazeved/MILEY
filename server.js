@@ -3564,14 +3564,18 @@ app.post('/api/susan/urgent-fup-email', async (req, res) => {
       const entries     = grouped[sup];
       const contactName = suppliers.mainContact[sup] || sup;
 
-      const entriesWithCad = await Promise.all(entries.map(async (e) => {
-        let cad = await getCadImage(e.style);
-        if (!cad.found) {
-          const norm = e.style.replace(/^[A-Za-z]+-?/, '').trim();
-          if (norm && norm !== e.style) cad = await getCadImage(norm);
-        }
-        return { ...e, hasCad: cad.found, imageData: cad.imageData || null, mimeType: cad.mimeType || 'image/jpeg' };
-      }));
+      const entriesWithCad = [];
+      for (const e of entries) {
+        let cad = { found: false };
+        try {
+          cad = await getCadImage(e.style);
+          if (!cad.found) {
+            const norm = e.style.replace(/^[A-Za-z]+-?/, '').trim();
+            if (norm && norm !== e.style) cad = await getCadImage(norm);
+          }
+        } catch (_) {}
+        entriesWithCad.push({ ...e, hasCad: cad.found, imageData: cad.imageData || null, mimeType: cad.mimeType || 'image/jpeg' });
+      }
 
       const tableRows = entriesWithCad.map(e => {
         const cadCell = e.hasCad ? `<img src="data:${e.mimeType};base64,${e.imageData}" width="35" style="display:block;border:0;">` : '';
