@@ -3349,7 +3349,7 @@ app.post('/api/susan/pi-status-email', async (req, res) => {
       status:     findCol('status'),
       supplier:   findCol('supplier'),
       category:   findCol('category'),
-      piReceived: findCol('pi received', 'pi status', 'pi rec'),
+      piReceived: findCol('pi received'),
     };
     const get = (r, i) => (i >= 0 && r[i] != null ? r[i].toString().trim() : '');
 
@@ -3420,7 +3420,7 @@ app.get('/api/susan/pi-status-excel', async (req, res) => {
       supplier:   findCol('supplier'),
       category:   findCol('category'),
       ndc:        findCol('ndc', 'needed date', 'need by'),
-      piReceived: findCol('pi received', 'pi status', 'pi rec'),
+      piReceived: findCol('pi received'),
     };
     const get = (r, i) => (i >= 0 && r[i] != null ? r[i].toString().trim() : '');
 
