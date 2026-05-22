@@ -3314,10 +3314,6 @@ app.post('/api/gabriel/map-sync', async (req, res) => {
 // ─── PO Weekly SUP Report — Excel download ───────────────────────────────────
 app.get('/api/susan/weekly-sup-excel', async (req, res) => {
   try {
-    const COL = {
-      style: 2, status: 3, supplier: 6, category: 7, subcat: 8,
-      freight: 35, cost: 36, proto: 17, sms: 25, ship: 51, tp: 14
-    };
     const EXCLUDED = ["Canceled","On Hold","Other Supplier","PO'd + production ok","PO'd","Waiting PO","Changed supplier after tariffs","Other supplier"];
     const HEADERS  = ["Style#","Status","Supplier","Category","Subcategory","Freight","Cost","Proto sent","SMS sent","Ship Date","TP sent"];
 
@@ -3325,7 +3321,23 @@ app.get('/api/susan/weekly-sup-excel', async (req, res) => {
     if (!csvRes.ok) throw new Error('Could not fetch production sheet');
     const rows = parseCSV(await csvRes.text());
 
-    const get = (r, i) => (r[i] != null ? r[i].toString().trim() : '');
+    const H = rows[0].map(h => (h || '').trim().toLowerCase());
+    const findCol = (...kws) => { for (const kw of kws) { const i = H.findIndex(h => h.includes(kw.toLowerCase())); if (i >= 0) return i; } return -1; };
+    const COL = {
+      style:    findCol('style #', 'style#', 'style'),
+      status:   findCol('status'),
+      supplier: findCol('supplier'),
+      category: findCol('category'),
+      subcat:   findCol('sub-category', 'subcategory'),
+      freight:  findCol('freight'),
+      cost:     findCol('cost'),
+      proto:    findCol('proto'),
+      sms:      findCol('sms sent', 'sms'),
+      ship:     findCol('ship date', 'ex factory', 'flight date'),
+      tp:       findCol('tp sent', 'top sent', 'sms sent to anthro'),
+    };
+
+    const get = (r, i) => (i >= 0 && r[i] != null ? r[i].toString().trim() : '');
     const cleanStyle = raw => { const m = raw.toString().trim().match(/(\d.*)/); return m ? m[1] : raw.toString().trim(); };
 
     const reportMap = {};
@@ -3407,11 +3419,6 @@ app.post('/api/susan/weekly-sup-report', async (req, res) => {
     if (!token?.refreshToken) return res.status(401).json({ error: 'Gmail not connected for this user' });
     const sender = TEAM_USERS.find(u => u.id === sendingAs);
 
-    const COL = {
-      style: 2, status: 3, supplier: 6, category: 7, subcat: 8,
-      freight: 35, cost: 36, proto: 17, sms: 25, ship: 51, tp: 14
-    };
-
     const EXCLUDED = ["Canceled","On Hold","Other Supplier","PO'd + production ok","PO'd","Waiting PO","Changed supplier after tariffs","Other supplier"];
     const REPORT_HEADER = ["Style#","Status","Supplier","Category","Subcategory","Freight","Cost","Proto sent","SMS sent","Ship Date","TP sent"];
 
@@ -3433,7 +3440,23 @@ app.post('/api/susan/weekly-sup-report', async (req, res) => {
     const rows = parseCSV(await csvRes.text());
     if (rows.length < 2) return res.json({ ok: true, sheetName: '', draftsCreated: [] });
 
-    const get = (r, i) => (r[i] != null ? r[i].toString().trim() : '');
+    const H = rows[0].map(h => (h || '').trim().toLowerCase());
+    const findCol = (...kws) => { for (const kw of kws) { const i = H.findIndex(h => h.includes(kw.toLowerCase())); if (i >= 0) return i; } return -1; };
+    const COL = {
+      style:    findCol('style #', 'style#', 'style'),
+      status:   findCol('status'),
+      supplier: findCol('supplier'),
+      category: findCol('category'),
+      subcat:   findCol('sub-category', 'subcategory'),
+      freight:  findCol('freight'),
+      cost:     findCol('cost'),
+      proto:    findCol('proto'),
+      sms:      findCol('sms sent', 'sms'),
+      ship:     findCol('ship date', 'ex factory', 'flight date'),
+      tp:       findCol('tp sent', 'top sent', 'sms sent to anthro'),
+    };
+
+    const get = (r, i) => (i >= 0 && r[i] != null ? r[i].toString().trim() : '');
     const cleanStyle = raw => { const m = raw.toString().trim().match(/(\d.*)/); return m ? m[1] : raw.toString().trim(); };
 
     const reportMap = {};
