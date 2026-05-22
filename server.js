@@ -3331,10 +3331,10 @@ app.get('/api/susan/weekly-sup-excel', async (req, res) => {
       subcat:   findCol('sub-category', 'subcategory'),
       freight:  findCol('freight'),
       cost:     findCol('cost'),
-      proto:    findCol('proto'),
-      sms:      findCol('sms sent', 'sms'),
-      ship:     findCol('ship date', 'ex factory', 'flight date'),
-      tp:       findCol('tp sent', 'top sent', 'sms sent to anthro'),
+      proto:    findCol('proto sent by supplier', 'proto sent', 'proto'),
+      sms:      findCol('sms sent from supplier', 'sms sent', 'sms'),
+      ship:     findCol('ex factory / flight date', 'flight date', 'ex factory'),
+      tp:       findCol('tp sent to supplier', 'tp sent', 'top sent'),
     };
 
     const get = (r, i) => (i >= 0 && r[i] != null ? r[i].toString().trim() : '');
@@ -3450,10 +3450,10 @@ app.post('/api/susan/weekly-sup-report', async (req, res) => {
       subcat:   findCol('sub-category', 'subcategory'),
       freight:  findCol('freight'),
       cost:     findCol('cost'),
-      proto:    findCol('proto'),
-      sms:      findCol('sms sent', 'sms'),
-      ship:     findCol('ship date', 'ex factory', 'flight date'),
-      tp:       findCol('tp sent', 'top sent', 'sms sent to anthro'),
+      proto:    findCol('proto sent by supplier', 'proto sent', 'proto'),
+      sms:      findCol('sms sent from supplier', 'sms sent', 'sms'),
+      ship:     findCol('ex factory / flight date', 'flight date', 'ex factory'),
+      tp:       findCol('tp sent to supplier', 'tp sent', 'top sent'),
     };
 
     const get = (r, i) => (i >= 0 && r[i] != null ? r[i].toString().trim() : '');
