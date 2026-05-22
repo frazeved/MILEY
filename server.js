@@ -3391,33 +3391,43 @@ app.post('/api/susan/weekly-sup-report', async (req, res) => {
       emailMap[supplier].push([cleanStyle(styleRaw), get(row, COL.category), comments.join(', '), tpFmt, '']);
     }
 
-    // Write sheet tab via Sheets API
-    const sa = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-    const sheetsAuth = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
-    const sheets = google.sheets({ version: 'v4', auth: sheetsAuth });
-
     const now  = new Date();
     const mm   = String(now.getMonth()+1).padStart(2,'0');
     const dd   = String(now.getDate()).padStart(2,'0');
     const yyyy = now.getFullYear();
     const sheetName = `PO Weekly SUP - ${mm}-${dd}-${yyyy}`;
 
-    const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
-    const existing = spreadsheet.data.sheets.find(s => s.properties.title === sheetName);
-    const setupReqs = [];
-    if (existing) setupReqs.push({ deleteSheet: { sheetId: existing.properties.sheetId } });
-    setupReqs.push({ addSheet: { properties: { title: sheetName } } });
-    const batchRes = await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { requests: setupReqs } });
-    const newSheetId = batchRes.data.replies.find(r => r.addSheet).addSheet.properties.sheetId;
+    // Write sheet tab — non-blocking, email drafts proceed even if this fails
+    let sheetCreated = false;
+    try {
+      const sa = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+      const sheetsAuth = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+      const sheets = google.sheets({ version: 'v4', auth: sheetsAuth });
 
-    const values = []; const headerRowIdxs = []; let ri = 0;
-    for (const sup of Object.keys(reportMap).sort()) {
-      values.push(REPORT_HEADER); headerRowIdxs.push(ri++);
-      for (const r of reportMap[sup]) { values.push(r); ri++; }
-      values.push([]); ri++;
+      const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
+      const existing = spreadsheet.data.sheets.find(s => s.properties.title === sheetName);
+      const setupReqs = [];
+      if (existing) setupReqs.push({ deleteSheet: { sheetId: existing.properties.sheetId } });
+      setupReqs.push({ addSheet: { properties: { title: sheetName } } });
+      const batchRes = await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { requests: setupReqs } });
+      const newSheetId = batchRes.data.replies.find(r => r.addSheet).addSheet.properties.sheetId;
+
+      const values = []; const headerRowIdxs = []; let ri = 0;
+      for (const sup of Object.keys(reportMap).sort()) {
+        values.push(REPORT_HEADER); headerRowIdxs.push(ri++);
+        for (const r of reportMap[sup]) { values.push(r); ri++; }
+        values.push(['']); ri++;
+      }
+      if (values.length > 0) {
+        await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID, range: `'${sheetName}'!A1`, valueInputOption: 'USER_ENTERED', requestBody: { values } });
+      }
+      if (headerRowIdxs.length > 0) {
+        await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { requests: headerRowIdxs.map(hr => ({ repeatCell: { range: { sheetId: newSheetId, startRowIndex: hr, endRowIndex: hr+1, startColumnIndex: 0, endColumnIndex: REPORT_HEADER.length }, cell: { userEnteredFormat: { backgroundColor: { red:0.812, green:0.886, blue:0.953 }, textFormat: { bold:true } } }, fields: 'userEnteredFormat(backgroundColor,textFormat)' } })) } });
+      }
+      sheetCreated = true;
+    } catch (sheetErr) {
+      console.error('[weekly-sup-report] sheet write failed (non-fatal):', sheetErr.message);
     }
-    await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID, range: `'${sheetName}'!A1`, valueInputOption: 'USER_ENTERED', requestBody: { values } });
-    await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { requests: headerRowIdxs.map(hr => ({ repeatCell: { range: { sheetId: newSheetId, startRowIndex: hr, endRowIndex: hr+1, startColumnIndex: 0, endColumnIndex: REPORT_HEADER.length }, cell: { userEnteredFormat: { backgroundColor: { red:0.812, green:0.886, blue:0.953 }, textFormat: { bold:true } } }, fields: 'userEnteredFormat(backgroundColor,textFormat)' } })) } });
 
     // Create Gmail drafts
     const authClient = makeOAuth2Client();
@@ -3440,7 +3450,7 @@ app.post('/api/susan/weekly-sup-report', async (req, res) => {
       draftsCreated.push({ supplier: sup, styles: emailRows.length });
     }
 
-    res.json({ ok: true, sheetName, draftsCreated });
+    res.json({ ok: true, sheetName: sheetCreated ? sheetName : null, draftsCreated });
   } catch (e) {
     console.error('[weekly-sup-report]', e.message);
     res.status(500).json({ error: e.message });
