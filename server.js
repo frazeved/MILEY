@@ -2531,6 +2531,7 @@ async function getCadImage(style) {
   const fileRes = await drive.files.get({ fileId, alt: 'media', supportsAllDrives: true }, { responseType: 'arraybuffer' });
   const mimeType  = fileRes.headers['content-type'] || 'image/jpeg';
   const imageData = Buffer.from(fileRes.data).toString('base64');
+  if (_cadImageCache.size >= 30) _cadImageCache.delete(_cadImageCache.keys().next().value);
   _cadImageCache.set(fileId, { imageData, mimeType });
 
   return { found: true, imageData, mimeType };
