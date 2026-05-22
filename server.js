@@ -932,9 +932,17 @@ app.post('/api/po/breakdown-email', async (req, res) => {
     const greetName = suppliers.mainContact[supplierKey] || supplierKey;
     const subject   = `BREAKDOWN STYLE# ${displayStyle} - PO ${poSubject.join(' ')} - ${supplierKey}`;
 
+    let cad = await getCadImage(displayStyle);
+    if (!cad.found) {
+      const norm = displayStyle.replace(/^[A-Za-z]+-?/, '').trim();
+      if (norm && norm !== displayStyle) cad = await getCadImage(norm);
+    }
+    const cadImg = cad.found ? `<img src="data:${cad.mimeType};base64,${cad.imageData}" width="120" style="display:block;border:0;margin:8px 0;">` : '';
+
     const htmlBody = `
 <p><b><span style="font-size:12pt;">Hi ${greetName} and ${supplierKey} team,</span></b></p>
 <p>Please find attached the breakdown of<br><b>STYLE# ${displayStyle}</b></p>
+${cadImg}
 <p><b>HTS# ${hts||'xxxxxx'}</b> | <b>${freight||'xxxxxx'} $${cost||'xxxxxx'}</b> | <b>INVOICE/PACKING LIST WITH FLAVIO: ${invoiceFormatted}</b> | <b>AGREED HANDOVER DATE: ${handoverFormatted}</b></p>
 <p>${poLines.join('<br>')}</p>
 <p>Could you please confirm this style fabric composition?</p>
