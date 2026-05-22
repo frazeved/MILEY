@@ -3667,6 +3667,79 @@ We kindly ask you a special attention to the styles below:<br><br>
   }
 });
 
+// ─── [Farm x Anthro] Weekly Status — Excel download ──────────────────────────
+app.get('/api/susan/farm-anthro-weekly-excel', async (req, res) => {
+  try {
+    const ELIGIBLE_STATUSES = ["PO'd", "Waiting SMS approval", "Waiting PO"];
+    const HEADERS = ["Style#","Fabric","Status","Class","Fit Comments","PO Info","SMS Sent to Anthro","Final NDC","PO Issued by Anthro"];
+
+    const csvRes = await fetch(csvUrl(0));
+    if (!csvRes.ok) throw new Error('Could not fetch production sheet');
+    const rows = parseCSV(await csvRes.text());
+
+    const H = rows[0].map(h => (h || '').trim().toLowerCase());
+    const findCol = (...kws) => { for (const kw of kws) { const i = H.findIndex(h => h.includes(kw.toLowerCase())); if (i >= 0) return i; } return -1; };
+    const COL = {
+      style:    findCol('style #', 'style#', 'style'),
+      status:   findCol('status'),
+      class:    findCol('class'),
+      fabric:   findCol('fabric'),
+      sms:      findCol('sms sent to anthro', 'sms anthro'),
+      fit:      findCol('fit comment', 'fit'),
+      poInfo:   findCol('po info', 'po information'),
+      ndc:      findCol('final ndc', 'ndc'),
+      poIssued: findCol('po issued by anthro', 'po issued'),
+    };
+    const get = (r, i) => (i >= 0 && r[i] != null ? r[i].toString().trim() : '');
+
+    const output = [];
+    for (let i = 1; i < rows.length; i++) {
+      const row      = rows[i];
+      const styleRaw = get(row, COL.style);
+      const status   = get(row, COL.status);
+      const fit      = get(row, COL.fit);
+      const poIssued = get(row, COL.poIssued);
+      if (!ELIGIBLE_STATUSES.includes(status)) continue;
+      if (poIssued && !fit) continue;
+      if (!styleRaw) continue;
+      const styleMatch = styleRaw.match(/(\d{5,}[A-Za-z0-9\-]*)$/);
+      const style = styleMatch ? styleMatch[1] : styleRaw;
+      output.push([style, get(row, COL.fabric), status, get(row, COL.class), fit, get(row, COL.poInfo), get(row, COL.sms), get(row, COL.ndc), poIssued]);
+    }
+
+    output.sort((a, b) => (a[3] || '').localeCompare(b[3] || ''));
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Farm x Anthro Weekly Status');
+    ws.columns = HEADERS.map((h, i) => ({ width: [12, 18, 18, 14, 22, 16, 20, 14, 20][i] || 16 }));
+
+    const hdrFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9EAF7' } };
+    const rowFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF5FB' } };
+    const border  = { top:{style:'thin',color:{argb:'FFB8CCE4'}}, left:{style:'thin',color:{argb:'FFB8CCE4'}}, bottom:{style:'thin',color:{argb:'FFB8CCE4'}}, right:{style:'thin',color:{argb:'FFB8CCE4'}} };
+
+    const hdrRow = ws.addRow(HEADERS);
+    hdrRow.height = 18;
+    hdrRow.eachCell(cell => { cell.fill = hdrFill; cell.font = { bold: true, size: 11 }; cell.border = border; cell.alignment = { horizontal: 'center', vertical: 'middle' }; });
+
+    for (const r of output) {
+      const dataRow = ws.addRow(r);
+      dataRow.eachCell({ includeEmpty: true }, cell => { cell.fill = rowFill; cell.border = border; cell.alignment = { vertical: 'middle', wrapText: true }; });
+    }
+
+    const now = new Date();
+    const mm = String(now.getMonth()+1).padStart(2,'0'), dd = String(now.getDate()).padStart(2,'0'), yyyy = now.getFullYear();
+    const filename = `Farm_Anthro_Weekly_${mm}-${dd}-${yyyy}.xlsx`;
+    const buf = await wb.xlsx.writeBuffer();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('X-Filename', filename);
+    res.send(Buffer.from(buf));
+  } catch (e) {
+    console.error('[farm-anthro-weekly-excel]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── PO Weekly SUP Report — Excel download ───────────────────────────────────
 app.get('/api/susan/weekly-sup-excel', async (req, res) => {
   try {

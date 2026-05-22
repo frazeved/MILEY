@@ -482,7 +482,7 @@
             <div><div class="card-name">TOP STATUS REPORT</div><div class="card-type">Excel File</div></div>
           </div>
         </div>
-        <div class="card excel-card">
+        <div class="card excel-card" onclick="downloadFarmAnthroExcel()" style="cursor:pointer;">
           <div class="card-icon-row">
             <div class="icon-excel">X</div>
             <div><div class="card-name">[Farm x Anthro] Weekly Status</div><div class="card-type">Excel File</div></div>
@@ -1506,10 +1506,11 @@ async function runFarmAnthroWeekly() {
 
 function selectFarmAnthroSender(userId, connected) {
   if (!connected) {
-    window.open(`/auth/google?userId=${userId}&return=/production`, '_blank', 'width=500,height=600');
+    const popup = window.open(`/auth/google?userId=${userId}&return=popup`, 'gmail-oauth', 'width=520,height=640,left=200,top=80');
     const onMsg = async (e) => {
       if (e.data?.type !== 'gmailConnected' || e.data?.userId !== userId) return;
       window.removeEventListener('message', onMsg);
+      popup?.close();
       await executeFarmAnthroWeekly(userId);
     };
     window.addEventListener('message', onMsg);
@@ -1535,6 +1536,26 @@ async function executeFarmAnthroWeekly(userId) {
     } else {
       showToast('No qualifying styles found today.');
     }
+  } catch (e) {
+    showToast('Error: ' + e.message);
+  }
+}
+
+async function downloadFarmAnthroExcel() {
+  showToast('Generating Excel file...');
+  try {
+    const res = await fetch('/api/susan/farm-anthro-weekly-excel');
+    if (!res.ok) { const d = await res.json(); showToast(d.error || 'Failed'); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = res.headers.get('X-Filename') || 'Farm_Anthro_Weekly.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 200);
+    showToast('✅ Excel file downloaded');
   } catch (e) {
     showToast('Error: ' + e.message);
   }
