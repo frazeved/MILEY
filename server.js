@@ -3351,14 +3351,14 @@ app.post('/api/susan/pi-status-email', async (req, res) => {
       if (status !== "PO'd + production ok" || piRec || !styleRaw) continue;
       if (!suppliers.emails[supplier]) continue;
 
-      // Only NDC month/year today or in the future
+      // Only NDC year >= current year
       const ndcRaw = get(row, COL.ndc);
       if (!ndcRaw) continue;
-      const ndcDate = new Date(ndcRaw);
-      if (isNaN(ndcDate) || ndcDate < today) continue;
+      const ndcYear = parseInt(ndcRaw.match(/\b(20\d{2})\b/)?.[1]);
+      if (!ndcYear || ndcYear < today.getFullYear()) continue;
 
       const style    = styleRaw.match(/(\d.*)/)?.[1] || styleRaw;
-      const ndcMonth = ndcDate.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+      const ndcMonth = ndcRaw;
       if (!supplierMap[supplier]) supplierMap[supplier] = [];
       supplierMap[supplier].push({ style, category: get(row, COL.category), ndcMonth });
     }
@@ -3448,10 +3448,10 @@ app.get('/api/susan/pi-status-excel', async (req, res) => {
       if (status !== "PO'd + production ok" || piRec || !styleRaw) continue;
       const ndcRaw = get(row, COL.ndc);
       if (!ndcRaw) continue;
-      const ndcDate = new Date(ndcRaw);
-      if (isNaN(ndcDate) || ndcDate < today2) continue;
+      const ndcYear2 = parseInt(ndcRaw.match(/\b(20\d{2})\b/)?.[1]);
+      if (!ndcYear2 || ndcYear2 < today2.getFullYear()) continue;
       const style    = styleRaw.match(/(\d.*)/)?.[1] || styleRaw;
-      const ndcMonth = ndcDate.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+      const ndcMonth = ndcRaw;
       output.push([style, get(row, COL.category), supplier, 'Pending', ndcMonth]);
     }
 
