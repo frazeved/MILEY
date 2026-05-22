@@ -946,10 +946,10 @@ ${cadImg ? `<td style="padding-right:16px;vertical-align:top;">${cadImg}</td>` :
 <td style="vertical-align:top;">
 <p style="margin:0;">Please find attached the breakdown of<br><b>STYLE# ${displayStyle}</b></p>
 <p style="margin:8px 0 0;"><b>HTS# ${hts||'xxxxxx'}</b> | <b>${freight||'xxxxxx'} $${cost||'xxxxxx'}</b> | <b>INVOICE/PACKING LIST WITH FLAVIO: ${invoiceFormatted}</b> | <b>AGREED HANDOVER DATE: ${handoverFormatted}</b></p>
-</td></tr></table>
 <p>${poLines.join('<br>')}</p>
 <p>Could you please confirm this style fabric composition?</p>
 <p><b><span style="color:red;">IMPORTANT:</span></b><br>Please, send the Invoice and Packing list before shipping for validation, also the custom description, HTS#, TAX ID on it. AWB when available.</p>
+</td></tr></table>
 <p>Any delay or new agreed ship date on this Style#, please answer this email chain immediately!</p>
 ${message?`<p>${message}</p>`:''}
 <p>Best,<br>${sender?.name||sendingAs}<br>Production Team<br>305 CONSULTING AND PRODUCTION</p>`;
