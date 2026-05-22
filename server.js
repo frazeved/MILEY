@@ -3319,21 +3319,6 @@ app.post('/api/susan/pi-status-email', async (req, res) => {
     if (!token?.refreshToken) return res.status(401).json({ error: 'Gmail not connected for this user' });
     const sender = TEAM_USERS.find(u => u.id === sendingAs);
 
-    const SUPPLIER_CONTACTS = {
-      "ECICO":     ["Elin@ecicogroup.com","Hyacinth@ecicogroup.com","Helen@ecicogroup.com","Daphne@ecicogroup.com"],
-      "H&F":       ["Anthony.Wang@hfourwing.com.cn","hayley.wu@hfourwing.com.cn","Chloe.Yang@hfourwing.com.cn","jean.zhang@hfourwing.com.cn","abby.hu@hfourwing.com.cn"],
-      "HS FASHION":["miya.lin@hsfashion.cn","sendy.sheng@hsfashion.cn","aindy.wang@hsfashion.cn"],
-      "S&S":       ["saintsandseers@gmail.com","Info@saintsandseers.com"],
-      "KON":       ["neha.shashi@konceptiondesigns.com","kaveri.das@konceptiondesigns.com","pradeep.mishra1@konceptiondesigns.com"],
-      "GAIA":      ["gozdeb@gaia-sourcing.com","YesimO@gaia-sourcing.com","CerenT@gaia-sourcing.com","IremE@gaia-sourcing.com","BesteK@gaia-sourcing.com"],
-      "JJ":        ["vivek@cmsassociates.net","anjanisinghania@hotmail.com","pd@jjexpoimpo.com","taran@cmsassociates.net","sanjana@cmsassociates.net"],
-      "PQSWIM":    ["paola@pqswim.com","headofdesign@pqswim.com","pldesign@pqswim.com","anne@pqswim.com","internationaltrade@pqswim.com","planning@pqswim.com"],
-      "CASCADE":   ["shilparawal@cascadenterprises.com","nanditachauhan@cascadenterprises.com","simranbhateja@cascadenterprises.com","Dolphy@cascadenterprises.com"],
-    };
-    const MAIN_CONTACTS = {
-      "ECICO":"Elin","H&F":"Anthony","HS FASHION":"Miya","S&S":"Ravi",
-      "KON":"Neha","GAIA":"Gozde","JJ":"Vivek","PQSWIM":"Paola","CASCADE":"Shilpa",
-    };
     const CC_LIST = ["paula@creativetwotwelve.com","kamilla@creativetwotwelve.com","ozan.guruscu@creativetwotwelve.com","rafaela.neves@farmrio.com"];
     const CSV_HEADERS = ["Style#","Knit or woven :","Type of garment/accessory :","1. Material Content","2. Lining Content","3. Care wash instruction","4. Country of Origin","5. Length from HPS (High Point Shoulder)","6. Back Length (if different)","7. Inseam (Jumpsuits only)","8. Leg Opening (Jumpsuits only)","9. Closure (Snap, Open Front, Pullover, Zipper)","10. Pockets (if any)","11. Label"];
 
@@ -3349,9 +3334,12 @@ app.post('/api/susan/pi-status-email', async (req, res) => {
       status:     findCol('status'),
       supplier:   findCol('supplier'),
       category:   findCol('category'),
+      ndc:        findCol('ndc month/year', 'ndc month', 'ndc'),
       piReceived: findCol('pi received'),
     };
     const get = (r, i) => (i >= 0 && r[i] != null ? r[i].toString().trim() : '');
+
+    const today = new Date(); today.setHours(0, 0, 0, 0);
 
     const supplierMap = {};
     for (let i = 1; i < rows.length; i++) {
@@ -3361,10 +3349,18 @@ app.post('/api/susan/pi-status-email', async (req, res) => {
       const supplier = get(row, COL.supplier);
       const piRec    = get(row, COL.piReceived);
       if (status !== "PO'd + production ok" || piRec || !styleRaw) continue;
-      if (!SUPPLIER_CONTACTS[supplier]) continue;
-      const style = styleRaw.match(/(\d.*)/)?.[1] || styleRaw;
+      if (!suppliers.emails[supplier]) continue;
+
+      // Only NDC month/year today or in the future
+      const ndcRaw = get(row, COL.ndc);
+      if (!ndcRaw) continue;
+      const ndcDate = new Date(ndcRaw);
+      if (isNaN(ndcDate) || ndcDate < today) continue;
+
+      const style    = styleRaw.match(/(\d.*)/)?.[1] || styleRaw;
+      const ndcMonth = ndcDate.toLocaleString('en-US', { month: 'long', year: 'numeric' });
       if (!supplierMap[supplier]) supplierMap[supplier] = [];
-      supplierMap[supplier].push({ style, category: get(row, COL.category) });
+      supplierMap[supplier].push({ style, category: get(row, COL.category), ndcMonth });
     }
 
     const authClient = makeOAuth2Client();
@@ -3376,22 +3372,39 @@ app.post('/api/susan/pi-status-email', async (req, res) => {
 
     for (const sup of Object.keys(supplierMap).sort()) {
       const entries     = supplierMap[sup];
-      const contactName = MAIN_CONTACTS[sup] || sup;
-      const styleList   = entries.map(e => e.style).join('\n');
+      const contactName = suppliers.mainContact[sup] || sup;
 
-      const textBody = `Hi ${contactName} and ${sup} team,\n\nI hope you're doing well!\n\nCould you please send the PI for the styles listed below asap? Kindly use the attached Excel template to provide the information.\n\nStyle#\n${styleList}\n\nBest regards,\n${sender?.name || ''}`;
+      // Fetch CAD images (same pattern as TOP STATUS)
+      const attachments = [];
+      const entriesWithCad = await Promise.all(entries.map(async (e, idx) => {
+        let cad = await getCadImage(e.style);
+        if (!cad.found) {
+          const norm = e.style.replace(/^[A-Za-z]+-?/, '').trim();
+          if (norm && norm !== e.style) cad = await getCadImage(norm);
+        }
+        const cid = `cad-${idx}`;
+        if (cad.found) attachments.push({ filename: `${e.style}.jpg`, content: Buffer.from(cad.imageData, 'base64'), encoding: 'base64', cid, contentType: cad.mimeType || 'image/jpeg' });
+        return { ...e, hasCad: cad.found, cid };
+      }));
 
-      const csvRows  = entries.map(e => [e.style, '', e.category, '', '', '', '', '', '', '', '', '', '', '']);
-      const csvContent = [CSV_HEADERS, ...csvRows].map(row => row.map(c => `"${c}"`).join(',')).join('\n');
-      const csvBuf   = Buffer.from(csvContent, 'utf-8');
+      let html = `Hi ${contactName} and ${sup} team,<br><br>I hope you're doing well!<br><br>Could you please send the PI for the styles listed below asap? Kindly use the attached template to provide the information.<br><br><table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;"><tr style="background-color:#cfe2f3;font-weight:bold;"><th>CAD</th><th>Style #</th><th>Category</th><th>NDC Month</th></tr>`;
+      for (const e of entriesWithCad) {
+        const cadCell = e.hasCad ? `<img src="cid:${e.cid}" width="70" style="display:block;border:0;">` : '';
+        html += `<tr><td style="text-align:center;">${cadCell}</td><td>${e.style}</td><td>${e.category}</td><td>${e.ndcMonth}</td></tr>`;
+      }
+      html += `</table><br>Best regards,<br>${sender?.name || ''}`;
+
+      const csvRows    = entries.map(e => [e.style, '', e.category, '', '', '', '', '', '', '', '', '', '', '']);
+      const csvContent = [CSV_HEADERS, ...csvRows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+      attachments.push({ filename: `${sup}_PI_Status.csv`, content: Buffer.from(csvContent, 'utf-8'), contentType: 'text/csv' });
 
       const rawMime = await buildRawMime({
         from:        `"${sender?.name || ''}" <${sender?.email || ''}>`,
-        to:          SUPPLIER_CONTACTS[sup].join(', '),
+        to:          suppliers.emails[sup].join(', '),
         cc:          CC_LIST.join(','),
         subject:     `PI Needed - ${todaySlash}`,
-        text:        textBody,
-        attachments: [{ filename: `${sup}_PI_Status.csv`, content: csvBuf, contentType: 'text/csv' }],
+        html,
+        attachments,
       });
       const encoded = rawMime.toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
       await gmail.users.drafts.create({ userId: 'me', requestBody: { message: { raw: encoded } } });
@@ -3424,6 +3437,7 @@ app.get('/api/susan/pi-status-excel', async (req, res) => {
     };
     const get = (r, i) => (i >= 0 && r[i] != null ? r[i].toString().trim() : '');
 
+    const today2 = new Date(); today2.setHours(0, 0, 0, 0);
     const output = [];
     for (let i = 1; i < rows.length; i++) {
       const row      = rows[i];
@@ -3432,10 +3446,12 @@ app.get('/api/susan/pi-status-excel', async (req, res) => {
       const supplier = get(row, COL.supplier);
       const piRec    = get(row, COL.piReceived);
       if (status !== "PO'd + production ok" || piRec || !styleRaw) continue;
-      const style = styleRaw.match(/(\d.*)/)?.[1] || styleRaw;
       const ndcRaw = get(row, COL.ndc);
-      let ndcMonth = '';
-      if (ndcRaw) { const d = new Date(ndcRaw); if (!isNaN(d)) ndcMonth = d.toLocaleString('en-US', { month: 'long' }); }
+      if (!ndcRaw) continue;
+      const ndcDate = new Date(ndcRaw);
+      if (isNaN(ndcDate) || ndcDate < today2) continue;
+      const style    = styleRaw.match(/(\d.*)/)?.[1] || styleRaw;
+      const ndcMonth = ndcDate.toLocaleString('en-US', { month: 'long', year: 'numeric' });
       output.push([style, get(row, COL.category), supplier, 'Pending', ndcMonth]);
     }
 
