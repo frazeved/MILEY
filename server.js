@@ -3352,11 +3352,21 @@ app.post('/api/susan/pi-status-email', async (req, res) => {
       if (status !== "PO'd + production ok" || piRec || !styleRaw) continue;
       if (!suppliers.emails[supplier]) continue;
 
-      // Only YEAR >= current year
       const yearVal = get(row, COL.year);
       if (!yearVal) continue;
       const yr = parseInt(yearVal);
       if (isNaN(yr) || yr < today.getFullYear()) continue;
+
+      // Month-level filter: same year → NDC month must be >= current month
+      if (yr === today.getFullYear()) {
+        const ndcVal = get(row, COL.ndc);
+        const MONTH_MAP = { jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12 };
+        const monthMatch = ndcVal.toLowerCase().match(/[a-z]+/);
+        if (monthMatch) {
+          const m = MONTH_MAP[monthMatch[0].slice(0,3)];
+          if (m && m < today.getMonth() + 1) continue;
+        }
+      }
 
       const style    = styleRaw.match(/(\d.*)/)?.[1] || styleRaw;
       const ndcMonth = get(row, COL.ndc);
@@ -3375,22 +3385,20 @@ app.post('/api/susan/pi-status-email', async (req, res) => {
       const entries     = supplierMap[sup];
       const contactName = suppliers.mainContact[sup] || sup;
 
-      // Fetch CAD images (same pattern as TOP STATUS)
+      // Fetch CAD images — use data URIs so CSV attachment doesn't break inline images
       const attachments = [];
-      const entriesWithCad = await Promise.all(entries.map(async (e, idx) => {
+      const entriesWithCad = await Promise.all(entries.map(async (e) => {
         let cad = await getCadImage(e.style);
         if (!cad.found) {
           const norm = e.style.replace(/^[A-Za-z]+-?/, '').trim();
           if (norm && norm !== e.style) cad = await getCadImage(norm);
         }
-        const cid = `cad-${idx}`;
-        if (cad.found) attachments.push({ filename: `${e.style}.jpg`, content: Buffer.from(cad.imageData, 'base64'), encoding: 'base64', cid, contentType: cad.mimeType || 'image/jpeg' });
-        return { ...e, hasCad: cad.found, cid };
+        return { ...e, hasCad: cad.found, imageData: cad.imageData || null, mimeType: cad.mimeType || 'image/jpeg' };
       }));
 
       let html = `Hi ${contactName} and ${sup} team,<br><br>I hope you're doing well!<br><br>Could you please send the PI for the styles listed below asap? Kindly use the attached template to provide the information.<br><br><table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;"><tr style="background-color:#cfe2f3;font-weight:bold;"><th>CAD</th><th>Style #</th><th>Category</th><th>NDC Month</th></tr>`;
       for (const e of entriesWithCad) {
-        const cadCell = e.hasCad ? `<img src="cid:${e.cid}" width="70" style="display:block;border:0;">` : '';
+        const cadCell = e.hasCad ? `<img src="data:${e.mimeType};base64,${e.imageData}" width="70" style="display:block;border:0;">` : '';
         html += `<tr><td style="text-align:center;">${cadCell}</td><td>${e.style}</td><td>${e.category}</td><td>${e.ndcMonth}</td></tr>`;
       }
       html += `</table><br>Best regards,<br>${sender?.name || ''}`;
