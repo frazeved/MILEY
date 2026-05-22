@@ -3334,7 +3334,8 @@ app.post('/api/susan/pi-status-email', async (req, res) => {
       status:     findCol('status'),
       supplier:   findCol('supplier'),
       category:   findCol('category'),
-      ndc:        findCol('ndc month/year', 'ndc month', 'ndc'),
+      year:       findCol('year'),
+      ndc:        findCol('ndc month/year', 'ndc month'),
       piReceived: findCol('pi received'),
     };
     const get = (r, i) => (i >= 0 && r[i] != null ? r[i].toString().trim() : '');
@@ -3351,14 +3352,14 @@ app.post('/api/susan/pi-status-email', async (req, res) => {
       if (status !== "PO'd + production ok" || piRec || !styleRaw) continue;
       if (!suppliers.emails[supplier]) continue;
 
-      // Only NDC year >= current year
-      const ndcRaw = get(row, COL.ndc);
-      if (!ndcRaw) continue;
-      const ndcYear = parseInt(ndcRaw.match(/\b(20\d{2})\b/)?.[1]);
-      if (!ndcYear || ndcYear < today.getFullYear()) continue;
+      // Only YEAR >= current year
+      const yearVal = get(row, COL.year);
+      if (!yearVal) continue;
+      const yr = parseInt(yearVal);
+      if (isNaN(yr) || yr < today.getFullYear()) continue;
 
       const style    = styleRaw.match(/(\d.*)/)?.[1] || styleRaw;
-      const ndcMonth = ndcRaw;
+      const ndcMonth = get(row, COL.ndc);
       if (!supplierMap[supplier]) supplierMap[supplier] = [];
       supplierMap[supplier].push({ style, category: get(row, COL.category), ndcMonth });
     }
@@ -3432,7 +3433,8 @@ app.get('/api/susan/pi-status-excel', async (req, res) => {
       status:     findCol('status'),
       supplier:   findCol('supplier'),
       category:   findCol('category'),
-      ndc:        findCol('ndc', 'needed date', 'need by'),
+      year:       findCol('year'),
+      ndc:        findCol('ndc month/year', 'ndc month'),
       piReceived: findCol('pi received'),
     };
     const get = (r, i) => (i >= 0 && r[i] != null ? r[i].toString().trim() : '');
@@ -3446,12 +3448,12 @@ app.get('/api/susan/pi-status-excel', async (req, res) => {
       const supplier = get(row, COL.supplier);
       const piRec    = get(row, COL.piReceived);
       if (status !== "PO'd + production ok" || piRec || !styleRaw) continue;
-      const ndcRaw = get(row, COL.ndc);
-      if (!ndcRaw) continue;
-      const ndcYear2 = parseInt(ndcRaw.match(/\b(20\d{2})\b/)?.[1]);
-      if (!ndcYear2 || ndcYear2 < today2.getFullYear()) continue;
+      const yearVal = get(row, COL.year);
+      if (!yearVal) continue;
+      const yr = parseInt(yearVal);
+      if (isNaN(yr) || yr < today2.getFullYear()) continue;
       const style    = styleRaw.match(/(\d.*)/)?.[1] || styleRaw;
-      const ndcMonth = ndcRaw;
+      const ndcMonth = get(row, COL.ndc);
       output.push([style, get(row, COL.category), supplier, 'Pending', ndcMonth]);
     }
 
