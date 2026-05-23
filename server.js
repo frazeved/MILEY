@@ -4,57 +4,86 @@ const path     = require('path');
 const fs       = require('fs');
 
 // ─── Activity logger ──────────────────────────────────────────────────────────
-const LOG_FILE       = path.join(__dirname, 'logs', 'activity.log');
-const LOG_STATE_FILE = path.join(__dirname, 'logs', 'log_state.json');
+// Logs write to Google Sheets "ACTIVITY LOG" tab (persists across redeploys)
+// and also to a local file (current session only — ephemeral on Render).
+const ACTIVITY_LOG_TAB = 'ACTIVITY LOG';
 const DRIVE_LOG_FOLDER = '19xF4aaAq7x5senbzr0gl8Arf2lH99jcQ';
+const LOG_FILE = path.join(__dirname, 'logs', 'activity.log');
 fs.mkdirSync(path.join(__dirname, 'logs'), { recursive: true });
 
 function logAction(email, name, action, detail = '') {
   const ts   = new Date().toISOString().replace('T', ' ').slice(0, 19);
   const line = `[${ts}] ${name || email} (${email}) — ${action}${detail ? ' — ' + detail : ''}\n`;
   fs.appendFile(LOG_FILE, line, () => {});
+  // Persist to Sheets (async, non-blocking)
+  if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+    (async () => {
+      try {
+        const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+        const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+        const sheets = google.sheets({ version: 'v4', auth });
+        await sheets.spreadsheets.values.append({
+          spreadsheetId: SHEET_ID,
+          range: `'${ACTIVITY_LOG_TAB}'!A:D`,
+          valueInputOption: 'RAW',
+          insertDataOption: 'INSERT_ROWS',
+          requestBody: { values: [[ts, name || '', email, action + (detail ? ' — ' + detail : '')]] },
+        });
+      } catch (_) {}
+    })();
+  }
 }
-
-function getLogState() {
-  try { return JSON.parse(fs.readFileSync(LOG_STATE_FILE, 'utf8')); } catch (_) { return { lastBackup: 0, lastRotation: 0 }; }
-}
-function saveLogState(state) { try { fs.writeFileSync(LOG_STATE_FILE, JSON.stringify(state)); } catch (_) {} }
 
 async function backupLogToDrive() {
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) return;
   try {
-    const logContent = fs.existsSync(LOG_FILE) ? fs.readFileSync(LOG_FILE, 'utf8') : '';
-    if (!logContent.trim()) return;
-    const sa    = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-    const auth  = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/drive.file'] });
-    const drive = google.drive({ version: 'v3', auth });
-    const date  = new Date().toISOString().slice(0, 10);
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly', 'https://www.googleapis.com/auth/drive.file'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+    const drive  = google.drive({ version: 'v3', auth });
+    const r = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${ACTIVITY_LOG_TAB}'!A:D` });
+    const rows = (r.data.values || []);
+    if (rows.length === 0) { console.log('[log] No activity rows to backup'); return; }
+    const content = rows.map(row => `[${row[0] || ''}] ${row[1] || ''} (${row[2] || ''}) — ${row[3] || ''}`).join('\n') + '\n';
     const { Readable } = require('stream');
+    const date = new Date().toISOString().slice(0, 10);
     await drive.files.create({
       requestBody: { name: `activity_backup_${date}.log`, parents: [DRIVE_LOG_FOLDER] },
-      media: { mimeType: 'text/plain', body: Readable.from([logContent]) },
+      media: { mimeType: 'text/plain', body: Readable.from([content]) },
     });
-    console.log('[log] Backed up to Drive:', date);
+    console.log('[log] Backed up to Drive:', date, `(${rows.length} rows)`);
   } catch (e) { console.error('[log] Drive backup failed:', e.message); }
 }
 
-async function checkLogSchedule() {
-  const state = getLogState();
-  const now   = Date.now();
-  const TEN_DAYS    = 10 * 24 * 60 * 60 * 1000;
-  const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
-  if (now - state.lastRotation >= THIRTY_DAYS) {
-    await backupLogToDrive();
-    fs.writeFileSync(LOG_FILE, '');
-    saveLogState({ lastBackup: now, lastRotation: now });
-    console.log('[log] Rotated (30-day cycle)');
-  } else if (now - state.lastBackup >= TEN_DAYS) {
-    await backupLogToDrive();
-    saveLogState({ ...state, lastBackup: now });
-  }
+async function clearOldLogs() {
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) return;
+  try {
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ');
+    const r      = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${ACTIVITY_LOG_TAB}'!A:D` });
+    const rows   = r.data.values || [];
+    const keep   = rows.filter(row => (row[0] || '') >= cutoff);
+    if (keep.length === rows.length) return;
+    await sheets.spreadsheets.values.clear({ spreadsheetId: SHEET_ID, range: `'${ACTIVITY_LOG_TAB}'!A:D` });
+    if (keep.length > 0) {
+      await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID, range: `'${ACTIVITY_LOG_TAB}'!A1`, valueInputOption: 'RAW', requestBody: { values: keep } });
+    }
+    console.log(`[log] Cleared ${rows.length - keep.length} old rows`);
+  } catch (e) { console.error('[log] clearOldLogs failed:', e.message); }
 }
-checkLogSchedule();
-setInterval(checkLogSchedule, 24 * 60 * 60 * 1000);
+
+// Check schedule daily: backup every 10 days, clear >30-day rows
+let _logLastBackup = 0;
+setInterval(async () => {
+  const now = Date.now();
+  if (now - _logLastBackup >= 10 * 24 * 60 * 60 * 1000) {
+    await backupLogToDrive();
+    await clearOldLogs();
+    _logLastBackup = now;
+  }
+}, 24 * 60 * 60 * 1000);
 const nodemailer = require('nodemailer');
 const XLSX     = require('xlsx');
 const ExcelJS  = require('exceljs');
@@ -368,6 +397,14 @@ function buildRawMime(mailOptions) {
     t.sendMail(mailOptions, (err, info) => err ? reject(err) : resolve(info.message));
   });
 }
+
+// ─── Admin: manual log backup ─────────────────────────────────────────────────
+app.post('/api/admin/backup-log', async (req, res) => {
+  if (!req.session?.user || req.session.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+  await backupLogToDrive();
+  logAction(req.session.user.email, req.session.user.name, 'MANUAL LOG BACKUP', 'triggered by admin');
+  res.json({ ok: true });
+});
 
 // ─── Auth routes ──────────────────────────────────────────────────────────────
 app.get('/setup', (req, res) => res.sendFile(path.join(__dirname, 'public', 'setup.html')));
