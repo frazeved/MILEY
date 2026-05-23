@@ -2572,20 +2572,29 @@ app.get('/api/jhonny/po-detail/:po', async (req, res) => {
 });
 
 // ─── Jhonny: CAD image cache ──────────────────────────────────────────────────
-const _cadSheetCache  = { rows: null, ts: 0 };          // sheet rows, 10-min TTL
-const _cadImageCache  = new Map();                       // fileId → { imageData, mimeType }
+const _cadSheetCache   = { rows: null, ts: 0 };          // sheet rows, 10-min TTL
+const _cadImageCache   = new Map();                       // fileId → { imageData, mimeType }
+let   _cadSheetPending = null;                            // in-flight promise — deduplicates concurrent calls
 
 async function getCadSheetRows() {
   if (_cadSheetCache.rows && Date.now() - _cadSheetCache.ts < 10 * 60 * 1000) return _cadSheetCache.rows;
-  const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-  const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly', 'https://www.googleapis.com/auth/drive.readonly'] });
-  const sheets = google.sheets({ version: 'v4', auth });
-  const result = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: "'Production & PO DataBase'" });
-  const rows   = result.data.values || [];
-  _cadSheetCache.rows = rows;
-  _cadSheetCache.ts   = Date.now();
-  _cadSheetCache.auth = auth;
-  return rows;
+  if (_cadSheetPending) return _cadSheetPending;          // wait for the already-running read
+  _cadSheetPending = (async () => {
+    try {
+      const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+      const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly', 'https://www.googleapis.com/auth/drive.readonly'] });
+      const sheets = google.sheets({ version: 'v4', auth });
+      const result = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: "'Production & PO DataBase'" });
+      const rows   = result.data.values || [];
+      _cadSheetCache.rows = rows;
+      _cadSheetCache.ts   = Date.now();
+      _cadSheetCache.auth = auth;
+      return rows;
+    } finally {
+      _cadSheetPending = null;
+    }
+  })();
+  return _cadSheetPending;
 }
 
 async function getCadImage(style) {

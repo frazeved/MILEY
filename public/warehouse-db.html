@@ -936,19 +936,22 @@ function openCadLightbox(img) {
 }
 
 async function loadCadImages() {
-  const imgs  = [...document.querySelectorAll('.card-cad[data-style]')];
-  const cache = new Map();
-  await Promise.all(imgs.map(async img => {
-    const style = img.dataset.style;
-    if (!style) return;
-    try {
-      if (!cache.has(style)) cache.set(style, fetch(`/api/jhonny/cad-image/${encodeURIComponent(style)}`).then(r => r.json()));
-      const d = await cache.get(style);
-      if (!d.found) return;
+  const imgs = [...document.querySelectorAll('.card-cad[data-style]')];
+  if (!imgs.length) return;
+  const styles = [...new Set(imgs.map(i => i.dataset.style).filter(Boolean))];
+  try {
+    const res  = await fetch('/api/jhonny/cad-images-batch', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ styles }),
+    });
+    const { results: map } = await res.json();
+    imgs.forEach(img => {
+      const d = map?.[img.dataset.style];
+      if (!d?.found) return;
       img.src = `data:${d.mimeType};base64,${d.imageData}`;
       img.classList.add('loaded');
-    } catch {}
-  }));
+    });
+  } catch {}
 }
 </script>
 </body>
