@@ -383,7 +383,7 @@ const SHEET_ID = '1y0iL7PJldbVQmPIAnJi9wvA2hvjB8_aK2bU2kxvUf5Q';
 const CSV_URL  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=99866922`;
 
 
-let activeFilter = 'all';
+let activeFilter = 'wh';
 
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
@@ -485,6 +485,7 @@ function filterCards() {
   });
   const total = cards.length;
   document.getElementById('status-text').textContent = `${visible} of ${total} POs`;
+  loadCadImages();
 }
 
 function build(rows) {
@@ -711,7 +712,6 @@ function build(rows) {
 
   const total = data.length;
   document.getElementById('pills').innerHTML = `
-    <div class="pill all active" data-f="all"  onclick="activeFilter='all';filterCards()"><div class="dot" style="background:#6b7280"></div><span>All <span class="cnt">(${total})</span></span></div>
     <div class="pill wh"  data-f="wh"   onclick="activeFilter='wh';filterCards()"><div class="dot"></div><span>In Warehouse <span class="cnt">(${counts.wh})</span></span></div>
     ${counts.rts ? `<div class="pill rts" data-f="rts" onclick="activeFilter='rts';filterCards()"><div class="dot"></div><span>Ready to Ship <span class="cnt">(${counts.rts})</span></span></div>` : ''}
     <div class="pill tr"  data-f="tr"   onclick="activeFilter='tr';filterCards()"><div class="dot"></div><span>In Transit <span class="cnt">(${counts.tr})</span></span></div>
@@ -881,7 +881,6 @@ async function loadData() {
     build(rows);
     initSwipes();
     filterCards();
-    loadCadImages();
   } catch(e) {
     document.getElementById('grid').innerHTML = `<div class="msg-box">âš ï¸ Could not load data.<br><small style="color:#9ca3af">${esc(e.message)}</small></div>`;
     document.getElementById('status-text').textContent = 'Error';
@@ -936,7 +935,7 @@ function openCadLightbox(img) {
 }
 
 async function loadCadImages() {
-  const imgs = [...document.querySelectorAll('.card-cad[data-style]')];
+  const imgs = [...document.querySelectorAll('.card:not(.hidden) .card-cad[data-style]:not(.loaded)')];
   if (!imgs.length) return;
   const styles = [...new Set(imgs.map(i => i.dataset.style).filter(Boolean))];
   try {
