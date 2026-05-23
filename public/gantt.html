@@ -70,6 +70,43 @@
     .btn-database { background: #ede9fe; color: #6d28d9; border: 1px solid #c4b5fd; border-radius: 8px; padding: 8px 18px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: not-allowed; display: flex; align-items: center; gap: 7px; }
     .toast { position: fixed; bottom: 24px; right: 24px; background: var(--text); color: #fff; font-size: 13px; font-weight: 500; padding: 10px 16px; border-radius: 8px; opacity: 0; transform: translateY(8px); transition: all 0.2s; pointer-events: none; z-index: 100; }
     .toast.show { opacity: 1; transform: translateY(0); }
+
+    /* ── TIMELINE PANEL ── */
+    .tl-panel { display: none; }
+    .tl-panel.open { display: block; }
+    .tl-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .tl-back { background: none; border: none; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 5px; padding: 0; }
+    .tl-back:hover { color: var(--accent); }
+    .tl-title { font-size: 14px; font-weight: 700; color: var(--text); flex: 1; }
+    .btn-update { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 9px 20px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: background 0.15s; }
+    .btn-update:hover { background: var(--accent-hover); }
+    .btn-update:disabled { opacity: 0.6; cursor: not-allowed; }
+    .tl-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+    .tl-table { border-collapse: collapse; width: 100%; font-size: 12px; min-width: 1100px; }
+    .tl-table th { background: #e0f2fe; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #0369a1; padding: 9px 10px; text-align: left; border-bottom: 1.5px solid #bae6fd; white-space: nowrap; position: sticky; top: 0; z-index: 2; }
+    .tl-table th.month { text-align: center; min-width: 82px; }
+    .tl-table td { padding: 6px 8px; border-bottom: 1px solid #e0f2fe; vertical-align: middle; }
+    .tl-table tr:last-child td { border-bottom: none; }
+    .tl-table tr:hover td { background: #f0f9ff; }
+    .step-num { font-size: 10px; font-weight: 700; color: var(--text-muted); width: 28px; text-align: center; }
+    .step-name { font-weight: 600; color: var(--text); max-width: 220px; line-height: 1.35; }
+    .step-resp { font-size: 11px; color: var(--text-secondary); white-space: nowrap; }
+    .phase-tag { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 20px; white-space: nowrap; display: inline-block; margin-top: 2px; }
+    .phase-design   { background: #fff1f2; color: var(--accent); }
+    .phase-both     { background: #fff7ed; color: #c2410c; }
+    .phase-prod     { background: #eff6ff; color: #1d4ed8; }
+    .tl-input { font-family: inherit; font-size: 12px; color: var(--text); background: transparent; border: 1.5px solid transparent; border-radius: 6px; padding: 4px 7px; width: 78px; text-align: center; transition: border-color 0.15s, background 0.15s; }
+    .tl-input:hover { border-color: #bae6fd; background: #f0f9ff; }
+    .tl-input:focus { border-color: #0891b2; background: #fff; outline: none; }
+    .tl-input.formula { color: var(--text-muted); font-style: italic; }
+    .tl-loading { padding: 40px; text-align: center; color: var(--text-muted); font-size: 13px; }
+    .tl-spinner { width: 28px; height: 28px; border: 3px solid #bae6fd; border-top-color: #0891b2; border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 10px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 640px) {
+      .tl-header { gap: 8px; }
+      .tl-title { font-size: 13px; }
+      .btn-update { font-size: 12px; padding: 8px 14px; }
+    }
     .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--text-secondary); line-height: 1; }
     .nav-hamburger:hover { color: var(--text); }
     @media (max-width: 768px) {
@@ -232,13 +269,53 @@
       <button class="btn-database" disabled><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg><span>Database</span><span class="soon-label">Coming Soon</span></button>
       </div>
     </div>
-    <div class="grid">
-      <div class="card">
+    <!-- TIMELINE PANEL (replaces grid when open) -->
+    <div class="tl-panel" id="tl-panel">
+      <div class="tl-header">
+        <button class="tl-back" onclick="closeTimeline()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Back
+        </button>
+        <span class="tl-title">2026 URBN Timeline — Production Deadlines</span>
+        <button class="btn-update" id="tl-save-btn" onclick="saveTimeline()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Update Timeline
+        </button>
+      </div>
+      <div class="tl-scroll">
+        <div class="tl-loading" id="tl-loading"><div class="tl-spinner"></div>Loading timeline…</div>
+        <table class="tl-table" id="tl-table" style="display:none">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Process Step</th>
+              <th>Responsible</th>
+              <th class="month">Jan</th>
+              <th class="month">Feb</th>
+              <th class="month">Mar</th>
+              <th class="month">Apr</th>
+              <th class="month">May</th>
+              <th class="month">Jun</th>
+              <th class="month">Jul</th>
+              <th class="month">Aug</th>
+              <th class="month">Sep</th>
+              <th class="month">Oct</th>
+              <th class="month">Nov</th>
+              <th class="month">Dec</th>
+            </tr>
+          </thead>
+          <tbody id="tl-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid" id="tasks-grid">
+      <div class="card" onclick="openTimeline()" style="cursor:pointer">
         <div class="card-header">
           <div><div class="card-title">PRODUCTION TIMELINE UPDATE</div><div class="card-dest">&#x2192; Google Sheets</div></div>
-          <span class="soon-label">Coming Soon</span>
+          <span class="soon-label" style="background:#dcfce7;color:#15803d;border-color:#86efac">Open</span>
         </div>
-        <div class="card-body"><div class="card-desc">Refreshes the master Gantt chart with current production dates per order â€" cut, sew, finish, QC, and ex-factory â€" pulled from factory confirmations.</div></div>
+        <div class="card-body"><div class="card-desc">Edit the 2026 URBN deadline calendar — all process steps with monthly target dates. Click to open the editable timeline.</div></div>
       </div>
       <div class="card">
         <div class="card-header">
@@ -287,6 +364,113 @@ async function sendChat() {
     document.getElementById('chat-body').style.display = 'none';
     document.getElementById('chat-success').style.display = 'block';
   } catch { btn.disabled = false; btn.textContent = 'Send Message'; alert('Could not send. Please try again.'); }
+}
+
+// ── Timeline ──────────────────────────────────────────────────────────────────
+let _tlRows = [];   // full raw rows from sheet (preserved for save)
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+// Sheet column indexes (0-based): 0=Step,1=ProcessStep,2=Info,3=Condition,4=Responsible,5-16=Jan-Dec,17=Database,18=PowerBI
+
+function phaseClass(db) {
+  const d = (db || '').toUpperCase();
+  if (d === 'DESIGN') return 'phase-design';
+  if (d.includes('PRODUCTION') && d.includes('DESIGN')) return 'phase-both';
+  if (d.includes('PRODUCTION')) return 'phase-prod';
+  return '';
+}
+function phaseLabel(db) {
+  const d = (db || '').toUpperCase();
+  if (d === 'DESIGN') return 'Design';
+  if (d.includes('PRODUCTION') && d.includes('DESIGN')) return 'Design & Prod';
+  if (d.includes('PRODUCTION')) return 'Production';
+  return db || '';
+}
+
+async function openTimeline() {
+  document.getElementById('tasks-grid').style.display = 'none';
+  document.getElementById('tl-panel').classList.add('open');
+  document.getElementById('tl-loading').style.display = 'block';
+  document.getElementById('tl-table').style.display = 'none';
+  try {
+    const res = await fetch('/api/miley/timeline');
+    const { rows } = await res.json();
+    _tlRows = rows || [];
+    buildTable(_tlRows);
+  } catch(e) {
+    document.getElementById('tl-loading').innerHTML = '⚠ Could not load timeline.';
+  }
+}
+
+function buildTable(rows) {
+  if (rows.length < 2) { document.getElementById('tl-loading').textContent = 'No data found.'; return; }
+  const data = rows.slice(1); // skip header row
+  const tbody = document.getElementById('tl-body');
+  tbody.innerHTML = data.map((r, ri) => {
+    const step = r[0] || '';
+    const name = r[1] || '';
+    const resp = r[4] || '';
+    const db   = r[17] || '';
+    const pc   = phaseClass(db);
+    const pl   = phaseLabel(db);
+    const monthCells = MONTHS.map((_, mi) => {
+      const val = (r[5 + mi] || '').trim();
+      const isFormula = val.toLowerCase().includes('formula');
+      return `<td><input class="tl-input${isFormula?' formula':''}" data-ri="${ri}" data-mi="${mi}" value="${esc(val)}" placeholder="—" ${isFormula?'title="Calculated by PowerBI formula"':''}></td>`;
+    }).join('');
+    return `<tr>
+      <td class="step-num">${esc(step)}</td>
+      <td><div class="step-name">${esc(name)}</div>${pc?`<span class="phase-tag ${pc}">${pl}</span>`:''}</td>
+      <td class="step-resp">${esc(resp)}</td>
+      ${monthCells}
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tl-loading').style.display = 'none';
+  document.getElementById('tl-table').style.display = '';
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function closeTimeline() {
+  document.getElementById('tl-panel').classList.remove('open');
+  document.getElementById('tasks-grid').style.display = '';
+}
+
+async function saveTimeline() {
+  const btn = document.getElementById('tl-save-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  // Collect edits back into _tlRows
+  document.querySelectorAll('.tl-input').forEach(inp => {
+    const ri = +inp.dataset.ri;
+    const mi = +inp.dataset.mi;
+    if (!_tlRows[ri + 1]) return;   // +1 to skip header
+    _tlRows[ri + 1][5 + mi] = inp.value;
+  });
+
+  try {
+    const res = await fetch('/api/miley/timeline/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rows: _tlRows }),
+    });
+    const d = await res.json();
+    if (!d.ok) throw new Error(d.error || 'Failed');
+    showToast('Timeline updated ✓');
+  } catch(e) {
+    showToast('Error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Update Timeline';
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
 }
 </script>
 <script src="/auth.js"></script>

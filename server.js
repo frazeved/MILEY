@@ -4253,6 +4253,53 @@ app.post('/api/susan/weekly-sup-report', async (req, res) => {
   }
 });
 
+// ─── Miley: Timeline Calendar ────────────────────────────────────────────────
+const MILEY_TAB = '2026 URBN Timeline';
+
+app.get('/api/miley/timeline', async (req, res) => {
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON)
+    return res.status(500).json({ error: 'Google credentials not configured' });
+  try {
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+    const r = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: `'${MILEY_TAB}'`,
+      valueRenderOption: 'FORMATTED_VALUE',
+    });
+    res.json({ rows: r.data.values || [] });
+  } catch (e) {
+    console.error('[miley/timeline]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/miley/timeline/update', async (req, res) => {
+  if (!req.session?.user) return res.status(401).json({ error: 'Not authenticated' });
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON)
+    return res.status(500).json({ error: 'Google credentials not configured' });
+  const { rows } = req.body;
+  if (!Array.isArray(rows) || rows.length === 0)
+    return res.status(400).json({ error: 'rows required' });
+  try {
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SHEET_ID,
+      range: `'${MILEY_TAB}'`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: rows },
+    });
+    logAction(req.session.user.email, req.session.user.name, 'MILEY — Update Timeline');
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[miley/timeline/update]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`\n  305 WORKSPACE TEAM`);
