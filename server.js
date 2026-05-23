@@ -2,6 +2,59 @@ require('dotenv').config();
 const express  = require('express');
 const path     = require('path');
 const fs       = require('fs');
+
+// ─── Activity logger ──────────────────────────────────────────────────────────
+const LOG_FILE       = path.join(__dirname, 'logs', 'activity.log');
+const LOG_STATE_FILE = path.join(__dirname, 'logs', 'log_state.json');
+const DRIVE_LOG_FOLDER = '19xF4aaAq7x5senbzr0gl8Arf2lH99jcQ';
+fs.mkdirSync(path.join(__dirname, 'logs'), { recursive: true });
+
+function logAction(email, name, action, detail = '') {
+  const ts   = new Date().toISOString().replace('T', ' ').slice(0, 19);
+  const line = `[${ts}] ${name || email} (${email}) — ${action}${detail ? ' — ' + detail : ''}\n`;
+  fs.appendFile(LOG_FILE, line, () => {});
+}
+
+function getLogState() {
+  try { return JSON.parse(fs.readFileSync(LOG_STATE_FILE, 'utf8')); } catch (_) { return { lastBackup: 0, lastRotation: 0 }; }
+}
+function saveLogState(state) { try { fs.writeFileSync(LOG_STATE_FILE, JSON.stringify(state)); } catch (_) {} }
+
+async function backupLogToDrive() {
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) return;
+  try {
+    const logContent = fs.existsSync(LOG_FILE) ? fs.readFileSync(LOG_FILE, 'utf8') : '';
+    if (!logContent.trim()) return;
+    const sa    = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth  = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/drive.file'] });
+    const drive = google.drive({ version: 'v3', auth });
+    const date  = new Date().toISOString().slice(0, 10);
+    const { Readable } = require('stream');
+    await drive.files.create({
+      requestBody: { name: `activity_backup_${date}.log`, parents: [DRIVE_LOG_FOLDER] },
+      media: { mimeType: 'text/plain', body: Readable.from([logContent]) },
+    });
+    console.log('[log] Backed up to Drive:', date);
+  } catch (e) { console.error('[log] Drive backup failed:', e.message); }
+}
+
+async function checkLogSchedule() {
+  const state = getLogState();
+  const now   = Date.now();
+  const TEN_DAYS    = 10 * 24 * 60 * 60 * 1000;
+  const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+  if (now - state.lastRotation >= THIRTY_DAYS) {
+    await backupLogToDrive();
+    fs.writeFileSync(LOG_FILE, '');
+    saveLogState({ lastBackup: now, lastRotation: now });
+    console.log('[log] Rotated (30-day cycle)');
+  } else if (now - state.lastBackup >= TEN_DAYS) {
+    await backupLogToDrive();
+    saveLogState({ ...state, lastBackup: now });
+  }
+}
+checkLogSchedule();
+setInterval(checkLogSchedule, 24 * 60 * 60 * 1000);
 const nodemailer = require('nodemailer');
 const XLSX     = require('xlsx');
 const ExcelJS  = require('exceljs');
@@ -43,27 +96,31 @@ async function loadPasswords() {
 }
 
 async function savePassword(email, newPwd) {
-  const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-  const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
-  const sheets = google.sheets({ version: 'v4', auth });
-  // Ensure tab exists
-  try {
-    const info = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
-    if (!info.data.sheets?.some(s => s.properties?.title === AUTH_SHEET_TAB)) {
-      await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { requests: [{ addSheet: { properties: { title: AUTH_SHEET_TAB } } }] } });
-      await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID, range: `'${AUTH_SHEET_TAB}'!A1`, valueInputOption: 'RAW', requestBody: { values: [['EMAIL', 'PASSWORD']] } });
-    }
-  } catch (_) {}
-  // Upsert row
-  const r = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${AUTH_SHEET_TAB}'!A:B` });
-  const rows = r.data.values || [];
-  const idx  = rows.slice(1).findIndex(row => (row[0] || '').toLowerCase() === email.toLowerCase());
-  if (idx >= 0) {
-    await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID, range: `'${AUTH_SHEET_TAB}'!B${idx + 2}`, valueInputOption: 'RAW', requestBody: { values: [[newPwd]] } });
-  } else {
-    await sheets.spreadsheets.values.append({ spreadsheetId: SHEET_ID, range: `'${AUTH_SHEET_TAB}'!A:B`, valueInputOption: 'RAW', insertDataOption: 'INSERT_ROWS', requestBody: { values: [[email, newPwd]] } });
-  }
+  // Update in-memory first — new password works immediately regardless of Sheets result
   passwordMap[email.toLowerCase()] = newPwd;
+  // Persist to Sheets (non-fatal — memory update already guarantees login works)
+  try {
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+    try {
+      const info = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
+      if (!info.data.sheets?.some(s => s.properties?.title === AUTH_SHEET_TAB)) {
+        await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { requests: [{ addSheet: { properties: { title: AUTH_SHEET_TAB } } }] } });
+        await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID, range: `'${AUTH_SHEET_TAB}'!A1`, valueInputOption: 'RAW', requestBody: { values: [['EMAIL', 'PASSWORD']] } });
+      }
+    } catch (_) {}
+    const r    = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${AUTH_SHEET_TAB}'!A:B` });
+    const rows = r.data.values || [];
+    const idx  = rows.slice(1).findIndex(row => (row[0] || '').toLowerCase() === email.toLowerCase());
+    if (idx >= 0) {
+      await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID, range: `'${AUTH_SHEET_TAB}'!B${idx + 2}`, valueInputOption: 'RAW', requestBody: { values: [[newPwd]] } });
+    } else {
+      await sheets.spreadsheets.values.append({ spreadsheetId: SHEET_ID, range: `'${AUTH_SHEET_TAB}'!A:B`, valueInputOption: 'RAW', insertDataOption: 'INSERT_ROWS', requestBody: { values: [[email, newPwd]] } });
+    }
+  } catch (e) {
+    console.error('[savePassword sheets]', e.message);
+  }
 }
 
 async function loadTokensFromSheets() {
@@ -135,10 +192,12 @@ app.post('/api/login', (req, res) => {
   if (stored !== password) return res.status(401).json({ error: 'Incorrect password' });
   const mustChangePassword = stored === DEFAULT_PASSWORD;
   req.session.user = { email: user.email, name: user.name, role: user.role };
+  logAction(user.email, user.name, 'LOGIN', 'success');
   res.json({ ok: true, name: user.name, mustChangePassword });
 });
 
 app.get('/api/logout', (req, res) => {
+  if (req.session?.user) logAction(req.session.user.email, req.session.user.name, 'LOGOUT', '');
   req.session.destroy(() => res.redirect('/login'));
 });
 
@@ -160,13 +219,9 @@ app.post('/api/change-password', async (req, res) => {
   const stored = passwordMap[email.toLowerCase()] || user.password;
   if (stored !== currentPassword) return res.status(401).json({ error: 'Current password is incorrect' });
 
-  try {
-    await savePassword(email, newPassword);
-    res.json({ ok: true });
-  } catch (e) {
-    console.error('[change-password]', e.message);
-    res.status(500).json({ error: 'Failed to save new password. Try again.' });
-  }
+  await savePassword(email, newPassword);
+  logAction(email, req.session.user.name, 'CHANGE PASSWORD', 'success');
+  res.json({ ok: true });
 });
 
 app.use(express.static(path.join(__dirname, 'public'), {
