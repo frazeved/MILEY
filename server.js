@@ -3671,8 +3671,11 @@ app.post('/api/susan/farm-anthro-weekly-email', async (req, res) => {
       const row      = rows[i];
       const styleRaw = get(row, COL.style);
       const status   = get(row, COL.status);
+      const fit      = get(row, COL.fit);
+      const poIssued = get(row, COL.poIssued);
 
       if (!ELIGIBLE_STATUSES.includes(status)) continue;
+      if (poIssued && !fit) continue;
       if (!styleRaw) continue;
 
       const styleMatch = styleRaw.match(/(\d{5,}[A-Za-z0-9\-]*)$/);
@@ -3689,8 +3692,6 @@ app.post('/api/susan/farm-anthro-weekly-email', async (req, res) => {
       const smsVal  = get(row, COL.sms);
       const poInfo  = get(row, COL.poInfo);
       const fabric  = get(row, COL.fabric);
-      const fit     = get(row, COL.fit);
-      const poIssued = get(row, COL.poIssued);
 
       const msg = [];
       if (!fit)      msg.push('Waiting Fit Comment');
