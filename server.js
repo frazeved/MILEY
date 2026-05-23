@@ -4,24 +4,32 @@ const path     = require('path');
 const fs       = require('fs');
 
 // ─── Activity logger ──────────────────────────────────────────────────────────
-// Logs write to Google Sheets "ACTIVITY LOG" tab (persists across redeploys)
-// and also to a local file (current session only — ephemeral on Render).
 const ACTIVITY_LOG_TAB = 'ACTIVITY LOG';
 const DRIVE_LOG_FOLDER = '19xF4aaAq7x5senbzr0gl8Arf2lH99jcQ';
 const LOG_FILE = path.join(__dirname, 'logs', 'activity.log');
 fs.mkdirSync(path.join(__dirname, 'logs'), { recursive: true });
 
+async function ensureActivityLogTab(sheets) {
+  try {
+    const info = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
+    if (!info.data.sheets?.some(s => s.properties?.title === ACTIVITY_LOG_TAB)) {
+      await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { requests: [{ addSheet: { properties: { title: ACTIVITY_LOG_TAB } } }] } });
+      await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID, range: `'${ACTIVITY_LOG_TAB}'!A1`, valueInputOption: 'RAW', requestBody: { values: [['TIMESTAMP', 'NAME', 'EMAIL', 'ACTION']] } });
+    }
+  } catch (_) {}
+}
+
 function logAction(email, name, action, detail = '') {
   const ts   = new Date().toISOString().replace('T', ' ').slice(0, 19);
   const line = `[${ts}] ${name || email} (${email}) — ${action}${detail ? ' — ' + detail : ''}\n`;
   fs.appendFile(LOG_FILE, line, () => {});
-  // Persist to Sheets (async, non-blocking)
   if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
     (async () => {
       try {
         const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
         const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
         const sheets = google.sheets({ version: 'v4', auth });
+        await ensureActivityLogTab(sheets);
         await sheets.spreadsheets.values.append({
           spreadsheetId: SHEET_ID,
           range: `'${ACTIVITY_LOG_TAB}'!A:D`,
@@ -29,30 +37,34 @@ function logAction(email, name, action, detail = '') {
           insertDataOption: 'INSERT_ROWS',
           requestBody: { values: [[ts, name || '', email, action + (detail ? ' — ' + detail : '')]] },
         });
-      } catch (_) {}
+      } catch (e) { console.error('[logAction]', e.message); }
     })();
   }
 }
 
 async function backupLogToDrive() {
-  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) return;
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) return { ok: false, message: 'No service account' };
   try {
     const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly', 'https://www.googleapis.com/auth/drive.file'] });
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive'] });
     const sheets = google.sheets({ version: 'v4', auth });
     const drive  = google.drive({ version: 'v3', auth });
-    const r = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${ACTIVITY_LOG_TAB}'!A:D` });
-    const rows = (r.data.values || []);
-    if (rows.length === 0) { console.log('[log] No activity rows to backup'); return; }
-    const content = rows.map(row => `[${row[0] || ''}] ${row[1] || ''} (${row[2] || ''}) — ${row[3] || ''}`).join('\n') + '\n';
+    const r    = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${ACTIVITY_LOG_TAB}'!A:D` });
+    const rows = r.data.values || [];
+    if (rows.length <= 1) return { ok: true, message: 'No log rows to backup', rowCount: 0 };
+    const content = rows.slice(1).map(row => `[${row[0]||''}] ${row[1]||''} (${row[2]||''}) — ${row[3]||''}`).join('\n') + '\n';
     const { Readable } = require('stream');
     const date = new Date().toISOString().slice(0, 10);
-    await drive.files.create({
+    const file = await drive.files.create({
       requestBody: { name: `activity_backup_${date}.log`, parents: [DRIVE_LOG_FOLDER] },
       media: { mimeType: 'text/plain', body: Readable.from([content]) },
     });
-    console.log('[log] Backed up to Drive:', date, `(${rows.length} rows)`);
-  } catch (e) { console.error('[log] Drive backup failed:', e.message); }
+    console.log('[log] Backed up to Drive:', date, `(${rows.length - 1} rows)`);
+    return { ok: true, message: `Backed up ${rows.length - 1} rows`, fileId: file.data.id };
+  } catch (e) {
+    console.error('[log] Drive backup failed:', e.message);
+    return { ok: false, message: e.message };
+  }
 }
 
 async function clearOldLogs() {
@@ -401,9 +413,9 @@ function buildRawMime(mailOptions) {
 // ─── Admin: manual log backup ─────────────────────────────────────────────────
 app.post('/api/admin/backup-log', async (req, res) => {
   if (!req.session?.user || req.session.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
-  await backupLogToDrive();
-  logAction(req.session.user.email, req.session.user.name, 'MANUAL LOG BACKUP', 'triggered by admin');
-  res.json({ ok: true });
+  const result = await backupLogToDrive();
+  if (result.ok) logAction(req.session.user.email, req.session.user.name, 'MANUAL LOG BACKUP', result.message);
+  res.json(result);
 });
 
 // ─── Auth routes ──────────────────────────────────────────────────────────────
