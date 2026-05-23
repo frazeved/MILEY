@@ -3658,8 +3658,8 @@ app.post('/api/susan/farm-anthro-weekly-email', async (req, res) => {
       status:   findCol('status'),
       class:    findCol('category'),
       fabric:   findCol('fabric'),
-      sms:      findCol('sms sent to anthro', 'sms anthro'),
-      fit:      findCol('fit comment', 'fit'),
+      sms:      findCol('sms images approval', 'sms sent to anthro', 'sms anthro'),
+      fit:      findCol('1st fit comments', 'fit comment', 'fit'),
       poInfo:   findCol('po info anthro', 'po info', 'po information'),
       ndc:      findCol('final ndc', 'ndc'),
       poIssued: findCol('po issued by anthro', 'po issued'),
@@ -3671,11 +3671,8 @@ app.post('/api/susan/farm-anthro-weekly-email', async (req, res) => {
       const row      = rows[i];
       const styleRaw = get(row, COL.style);
       const status   = get(row, COL.status);
-      const fit      = get(row, COL.fit);
-      const poIssued = get(row, COL.poIssued);
 
       if (!ELIGIBLE_STATUSES.includes(status)) continue;
-      if (poIssued && !fit) continue;
       if (!styleRaw) continue;
 
       const styleMatch = styleRaw.match(/(\d{5,}[A-Za-z0-9\-]*)$/);
@@ -3688,10 +3685,12 @@ app.post('/api/susan/farm-anthro-weekly-email', async (req, res) => {
       const key = matchedGroup.name;
       if (!grouped[key]) grouped[key] = { entries: [], group: matchedGroup };
 
-      const ndcVal = get(row, COL.ndc);
-      const smsVal = get(row, COL.sms);
-      const poInfo = get(row, COL.poInfo);
-      const fabric = get(row, COL.fabric);
+      const ndcVal  = get(row, COL.ndc);
+      const smsVal  = get(row, COL.sms);
+      const poInfo  = get(row, COL.poInfo);
+      const fabric  = get(row, COL.fabric);
+      const fit     = get(row, COL.fit);
+      const poIssued = get(row, COL.poIssued);
 
       const msg = [];
       if (!fit)      msg.push('Waiting Fit Comment');
@@ -3799,8 +3798,8 @@ app.get('/api/susan/farm-anthro-weekly-excel', async (req, res) => {
       status:   findCol('status'),
       class:    findCol('category'),
       fabric:   findCol('fabric'),
-      sms:      findCol('sms sent to anthro', 'sms anthro'),
-      fit:      findCol('fit comment', 'fit'),
+      sms:      findCol('sms images approval', 'sms sent to anthro', 'sms anthro'),
+      fit:      findCol('1st fit comments', 'fit comment', 'fit'),
       poInfo:   findCol('po info anthro', 'po info', 'po information'),
       ndc:      findCol('final ndc', 'ndc'),
       poIssued: findCol('po issued by anthro', 'po issued'),
