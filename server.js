@@ -2970,6 +2970,15 @@ app.post('/api/jhonny/ready-to-ship', async (req, res) => {
     let rtsIdx = H.findIndex(h => h.toLowerCase().includes('ready to ship'));
     if (rtsIdx < 0) {
       rtsIdx = H.length;
+      // Expand the sheet by one column before writing the new header
+      const sheetMeta = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
+      const sheetProp = sheetMeta.data.sheets?.find(s => s.properties?.title === TAB);
+      if (sheetProp) {
+        await sheets.spreadsheets.batchUpdate({
+          spreadsheetId: SHEET_ID,
+          requestBody: { requests: [{ appendDimension: { sheetId: sheetProp.properties.sheetId, dimension: 'COLUMNS', length: 1 } }] },
+        });
+      }
       await sheets.spreadsheets.values.update({
         spreadsheetId: SHEET_ID,
         range: `'${TAB}'!${colLetter(rtsIdx)}1`,
