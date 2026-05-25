@@ -313,11 +313,17 @@
     .nav-menu-item:hover { background: var(--bg); color: var(--text); }
     .nav-menu-item.active { background: var(--accent-light); color: var(--accent); font-weight: 600; }
     @media (max-width: 640px) { nav { padding: 0 16px; } .nav-brand { position: static; transform: none; left: auto; font-size: 14px; } }
-  </style>
+  .nav-back { display:flex;align-items:center;gap:5px;font-family:inherit;font-size:12px;font-weight:600;color:var(--text-secondary);background:none;border:none;cursor:pointer;padding:5px 8px;border-radius:6px;transition:background .15s,color .15s; }
+.nav-back:hover { background:var(--bg);color:var(--text); }
+</style>
 </head>
 <body>
 <nav>
-  <div class="nav-brand">305 <span>Workspace</span></div>
+    <button class="nav-back" onclick="history.length>1?history.back():location.href='/'">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Back
+  </button>
+<div class="nav-brand">305 <span>Workspace</span></div>
   <div class="nav-dropdown" id="nav-dropdown">
     <button class="nav-menu-btn" onclick="toggleNav()">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -552,7 +558,7 @@
               <th>Category</th>
               <th>NDC</th>
               <th class="ms-hdr"><span>INT PRES</span></th><th class="ms-hdr"><span>BYER PRES</span></th><th class="ms-hdr"><span>BYER APP</span></th><th class="ms-hdr"><span>TP SUP</span></th><th class="ms-hdr"><span>PRINT SUP</span></th>
-              <th class="ms-hdr g-ph-div"><span>PROT SUP</span></th><th class="ms-hdr"><span>PROT COMM</span></th><th class="ms-hdr"><span>PROT CANAN</span></th><th class="ms-hdr"><span>SMS IMAG</span></th><th class="ms-hdr"><span>SMS IMAG APP</span></th><th class="ms-hdr"><span>SMS SUP</span></th><th class="ms-hdr"><span>SMS NYC</span></th><th class="ms-hdr"><span>SMS SENT ANTHRO</span></th><th class="ms-hdr"><span>TOP BY SUP</span></th><th class="ms-hdr"><span>TOP SENT ANTHRO</span></th><th class="ms-hdr"><span>TOP APPROVAL</span></th><th class="ms-hdr"><span>PHOTO SAMP ANTHRO</span></th>
+              <th class="ms-hdr g-ph-div"><span>PROT SUP</span></th><th class="ms-hdr"><span>PROT COMM</span></th><th class="ms-hdr"><span>PROT CANAN</span></th><th class="ms-hdr"><span>SMS IMAG</span></th><th class="ms-hdr"><span>SMS IMAG APP</span></th><th class="ms-hdr"><span>SMS SUP</span></th><th class="ms-hdr"><span>SMS NYC</span></th><th class="ms-hdr"><span>SMS SENT ANT</span></th><th class="ms-hdr"><span>TOP BY SUP</span></th><th class="ms-hdr"><span>TOP SENT ANT</span></th><th class="ms-hdr"><span>TOP APPROVAL</span></th><th class="ms-hdr"><span>PHOTO SAMP ANT</span></th>
               <th class="ms-hdr g-ph-div"><span>COST</span></th><th class="ms-hdr"><span>DUTY</span></th><th class="ms-hdr"><span>PRICE WS</span></th><th class="ms-hdr"><span>FINAL NDC</span></th><th class="ms-hdr"><span>EX FACTORY</span></th>
               <th class="ms-hdr g-ph-div"><span>PO ISSUED</span></th><th class="ms-hdr"><span>OFF PO</span></th><th class="ms-hdr"><span>1ST FIT</span></th><th class="ms-hdr"><span>2ND FIT</span></th><th class="ms-hdr"><span>PHOTO</span></th><th class="ms-hdr"><span>PI</span></th>
             </tr>
@@ -566,16 +572,23 @@
       <div class="card" onclick="openTimeline()" style="cursor:pointer">
         <div class="card-header">
           <div><div class="card-title">PRODUCTION TIMELINE UPDATE</div><div class="card-dest">&#x2192; Google Sheets</div></div>
-          <span class="soon-label" style="background:#dcfce7;color:#15803d;border-color:#86efac">Open</span>
+          <span class="soon-label" style="background:#dcfce7;color:#15803d;border-color:#86efac">Online</span>
         </div>
         <div class="card-body"><div class="card-desc">Edit the 2026 URBN deadline calendar — all process steps with monthly target dates. Click to open the editable timeline.</div></div>
+      </div>
+      <div class="card" onclick="openGantt()" style="cursor:pointer">
+        <div class="card-header">
+          <div><div class="card-title">GANTT CHART</div><div class="card-dest">&#x2192; Visual Timeline</div></div>
+          <span class="soon-label" style="background:#dcfce7;color:#15803d;border-color:#86efac">Online</span>
+        </div>
+        <div class="card-body"><div class="card-desc">Visual Gantt chart tracking all styles across every production milestone — see at a glance what's on time, at risk, or delayed across the full collection.</div></div>
       </div>
       <div class="card">
         <div class="card-header">
           <div><div class="card-title">MILESTONE STATUS TRACKER</div><div class="card-dest">&#x2192; Google Sheets</div></div>
           <span class="soon-label">Coming Soon</span>
         </div>
-        <div class="card-body"><div class="card-desc">Tracks completion of each production milestone per PO â€" shows what's on time, at risk, or already delayed across all active orders.</div></div>
+        <div class="card-body"><div class="card-desc">Tracks completion of each production milestone per PO — shows what's on time, at risk, or already delayed across all active orders.</div></div>
       </div>
       <div class="card">
         <div class="card-header">
@@ -590,13 +603,6 @@
           <span class="soon-label">Coming Soon</span>
         </div>
         <div class="card-body"><div class="card-desc">Weekly email listing all orders with deadlines in the next 14 days, grouped by urgency and vendor, so nothing gets missed.</div></div>
-      </div>
-      <div class="card" style="border: 1.5px dashed #bae6fd; background: #f0f9ff; cursor: pointer;" onclick="openGantt()">
-        <div class="card-header">
-          <div><div class="card-title" style="color:#0369a1">GANTT CHART</div><div class="card-dest">&#x2192; Visual Timeline</div></div>
-          <span class="soon-label" style="background:#dcfce7;color:#15803d;border-color:#86efac">Open</span>
-        </div>
-        <div class="card-body"><div class="card-desc">Visual Gantt chart tracking all styles across every production milestone — see at a glance what's on time, at risk, or delayed across the full collection.</div></div>
       </div>
     </div>
   </div>
