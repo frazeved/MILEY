@@ -2762,9 +2762,10 @@ async function getCadImage(style) {
   const H   = rows[0].map(h => (h || '').trim());
   const get = (row, i) => i >= 0 ? (row[i] || '').trim() : '';
 
-  // Use the same flexible column finder as the Gantt route so renamed headers still match
+  const idxH = (...keys) => H.findIndex(h => keys.some(k => h.toLowerCase().includes(k.toLowerCase())));
   const styleCol    = ganttFindCol(H, 'original style#', 'original style', 'style #', 'style#', 'style');
-  const cadImageCol = ganttFindCol(H, 'cad image', 'cad link', 'cad url', 'image link', 'image url', 'cad');
+  // Strict idxH (header must include key) — prevents 'CAD DUE DATE'/'CAD STATUS' from matching
+  const cadImageCol = idxH('cad image', 'cad url', 'cad link');
   if (styleCol < 0 || cadImageCol < 0) {
     console.error('[getCadImage] column not found — styleCol:', styleCol, 'cadImageCol:', cadImageCol, '| headers:', H.slice(0, 20));
     return { found: false };
