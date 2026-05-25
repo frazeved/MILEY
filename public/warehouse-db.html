@@ -327,11 +327,17 @@
     .nav-menu-item:hover { background: var(--bg); color: var(--text); }
     .nav-menu-item.active { background: var(--accent-light); color: var(--accent); font-weight: 600; }
     @media (max-width: 640px) { nav { padding: 0 16px; } .nav-brand { position: static; transform: none; left: auto; font-size: 14px; } }
-  </style>
+  .nav-back { display:flex;align-items:center;gap:5px;font-family:inherit;font-size:12px;font-weight:600;color:var(--text-secondary);background:none;border:none;cursor:pointer;padding:5px 8px;border-radius:6px;transition:background .15s,color .15s; }
+.nav-back:hover { background:var(--bg);color:var(--text); }
+</style>
 </head>
 <body>
 <nav>
-  <div class="nav-brand">305 <span>Workspace</span></div>
+    <button class="nav-back" onclick="history.length>1?history.back():location.href='/'">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Back
+  </button>
+<div class="nav-brand">305 <span>Workspace</span></div>
   <div class="nav-dropdown" id="nav-dropdown">
     <button class="nav-menu-btn" onclick="toggleNav()">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -951,6 +957,11 @@ async function loadCadImages() {
     });
   } catch {}
 }
+function toggleNav() { document.getElementById('nav-panel').classList.toggle('open'); }
+document.addEventListener('click', function(e) {
+  if (!document.getElementById('nav-dropdown').contains(e.target))
+    document.getElementById('nav-panel').classList.remove('open');
+});
 </script>
 </body>
 </html>
