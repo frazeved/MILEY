@@ -198,7 +198,15 @@
     .det-val { font-size:11px;color:var(--text);background:var(--bg);border-radius:6px;padding:5px 8px;min-height:28px;line-height:1.4;word-break:break-word; }
     .det-val:empty::before { content:'—';color:var(--text-muted); }
     .det-sect { font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text-secondary);padding-top:4px;border-top:1px solid var(--border);margin-top:2px; }
-    @media(max-width:640px) { .det-mod{flex-direction:column;max-width:400px} .det-cad-side{width:100%;height:200px;border-radius:18px 18px 0 0} .det-g2{grid-template-columns:1fr 1fr} .det-g3{grid-template-columns:1fr 1fr} .gf-btn{min-width:80px;font-size:11px} }
+    @media(max-width:640px) {
+      .det-mod{flex-direction:column;max-width:400px} .det-cad-side{width:100%;height:200px;border-radius:18px 18px 0 0} .det-g2{grid-template-columns:1fr 1fr} .det-g3{grid-template-columns:1fr 1fr} .gf-btn{min-width:80px;font-size:11px}
+      /* Gantt: full-width horizontal scroll on mobile — no squishing */
+      .layout.gantt-open { padding-left: 0; padding-right: 0; }
+      .gantt-panel { padding: 0; }
+      .gantt-topbar, .gantt-legend { padding-left: 12px; padding-right: 12px; }
+      .gantt-wrap { border-radius: 0; border-left: none; border-right: none; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .g-tbl { table-layout: auto; min-width: 960px; width: max-content; }
+    }
 
     /* ── PHASE EDIT MODAL ── */
     .ph-ov { display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;align-items:center;justify-content:center;padding:12px; }
