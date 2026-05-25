@@ -200,6 +200,40 @@
     .det-sect { font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text-secondary);padding-top:4px;border-top:1px solid var(--border);margin-top:2px; }
     @media(max-width:640px) { .det-mod{flex-direction:column;max-width:400px} .det-cad-side{width:100%;height:200px;border-radius:18px 18px 0 0} .det-g2{grid-template-columns:1fr 1fr} .det-g3{grid-template-columns:1fr 1fr} .gf-btn{min-width:80px;font-size:11px} }
 
+    /* ── PHASE EDIT MODAL ── */
+    .ph-ov { display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;align-items:center;justify-content:center;padding:12px; }
+    .ph-ov.open { display:flex; }
+    .ph-mod { background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.22);animation:det-in .22s cubic-bezier(.34,1.56,.64,1) both; }
+    .ph-head { display:flex;align-items:flex-start;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid var(--border);flex-shrink:0; }
+    .ph-phase-tag { font-size:14px;font-weight:800;color:var(--text);letter-spacing:-.2px; }
+    .ph-style-tag { font-size:11px;color:var(--text-secondary);margin-top:3px;font-weight:600; }
+    .ph-close { background:none;border:none;font-size:17px;cursor:pointer;color:var(--text-secondary);width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0; }
+    .ph-close:hover { background:var(--bg); }
+    .ph-col-hdr { display:grid;grid-template-columns:1fr 90px 150px;gap:10px;padding:6px 18px;background:var(--bg);border-bottom:1px solid var(--border);flex-shrink:0; }
+    .ph-col-hdr span { font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text-secondary); }
+    .ph-ms-list { flex:1;overflow-y:auto; }
+    .ph-ms-row { display:grid;grid-template-columns:1fr 90px 150px;align-items:center;gap:10px;padding:9px 18px;border-bottom:1px solid #f3f4f7; }
+    .ph-ms-row:last-child { border-bottom:none; }
+    .ph-ms-lbl { font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .ph-ms-dl { font-size:10px;color:var(--text-secondary);white-space:nowrap; }
+    .ph-ms-na { font-size:9px;color:#9ca3af;font-style:italic; }
+    .ph-ms-input input { font-family:inherit;font-size:11px;border:1.5px solid var(--border);border-radius:7px;padding:5px 8px;color:var(--text);background:#fff;outline:none;width:100%;box-sizing:border-box;transition:border-color .15s; }
+    .ph-ms-input input:focus { border-color:var(--accent); }
+    .ph-actions { display:flex;gap:8px;justify-content:flex-end;padding:14px 18px;border-top:1px solid var(--border);flex-shrink:0; }
+    .ph-btn-cancel { background:#f1f5f9;color:#555;border:none;border-radius:8px;padding:10px 20px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer; }
+    .ph-btn-cancel:hover { background:#e2e8f0; }
+    .ph-btn-save { background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 22px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s; }
+    .ph-btn-save:hover { background:var(--accent-hover); }
+    .ph-btn-save:disabled { opacity:.6;cursor:not-allowed; }
+    @media(max-width:640px) {
+      .ph-ov { align-items:flex-end;padding:0; }
+      .ph-mod { max-width:100%;border-radius:16px 16px 0 0;max-height:88vh; }
+      .ph-col-hdr,.ph-ms-row { grid-template-columns:1fr 1fr; }
+      .ph-ms-dl { display:none; }
+      .ph-col-hdr span:nth-child(2) { display:none; }
+      .ph-ms-input input { font-size:16px; }
+    }
+
     /* ── ADD STEP MODAL ── */
     .add-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; align-items:center; justify-content:center; padding:16px; }
     .add-overlay.open { display:flex; }
@@ -830,6 +864,29 @@ function showToast(msg) {
 </div>
 
 <!-- DETAILS MODAL -->
+<!-- Phase Edit Modal -->
+<div class="ph-ov" id="ph-ov" onclick="if(event.target===this)closePhaseModal()">
+  <div class="ph-mod">
+    <div class="ph-head">
+      <div>
+        <div class="ph-phase-tag" id="ph-phase-tag">Design Phase</div>
+        <div class="ph-style-tag" id="ph-style-tag"></div>
+      </div>
+      <button class="ph-close" onclick="closePhaseModal()">&#x2715;</button>
+    </div>
+    <div class="ph-col-hdr">
+      <span>Milestone</span>
+      <span>Deadline</span>
+      <span>Date Completed / Value</span>
+    </div>
+    <div class="ph-ms-list" id="ph-ms-list"></div>
+    <div class="ph-actions">
+      <button class="ph-btn-cancel" onclick="closePhaseModal()">Cancel</button>
+      <button class="ph-btn-save" id="ph-save-btn" onclick="savePhaseModal()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <div class="det-ov" id="det-ov" onclick="if(event.target===this)closeDet()">
   <div class="det-mod">
     <div class="det-cad-side" id="det-hero">
@@ -1065,17 +1122,18 @@ function renderGantt() {
   const PROD_MS     = ['PO ISSUED','OFF PO','1ST FIT','2ND FIT','PHOTO','PI'];
   const PL          = ['COST','DUTY','PRICE WHOLESALE','FINAL NDC','EX FACTORY / FLIGHT DATE'];
 
-  function makeMsCell(ms, m, firstInGroup) {
-    const div = firstInGroup ? ' g-ph-div' : '';
-    if (m.status === 'unknown') return `<td class="${div}"></td>`;
-    if (m.status === 'proto-no') return `<td class="${div}"><span class="g-ms g-ms-e" style="opacity:.45;font-size:6px;letter-spacing:-.5px;line-height:1" title="Proto not required for this style">N/A</span></td>`;
+  function makeMsCell(ms, m, firstInGroup, phase, si) {
+    const div  = firstInGroup ? ' g-ph-div' : '';
+    const click = `onclick="openPhaseModal(${si},'${phase}',event)"`;
+    if (m.status === 'unknown') return `<td class="${div}" ${click} style="cursor:pointer"></td>`;
+    if (m.status === 'proto-no') return `<td class="${div}" ${click} style="cursor:pointer"><span class="g-ms g-ms-e" style="opacity:.45;font-size:6px;letter-spacing:-.5px;line-height:1" title="Proto not required for this style">N/A</span></td>`;
     let cls = 'g-ms-e', icon = '&#183;', title = ms;
     if      (m.status === 'done')     { cls='g-ms-d'; icon='&#10003;'; title=`${ms}\nDone: ${m.actual}${m.deadline ? '\nDeadline: '+m.deadline : ''}`; }
     else if (m.status === 'late')     { cls='g-ms-l'; icon='!';        title=`${ms}\nDone late: ${m.actual}\nDeadline: ${m.deadline}`; }
     else if (m.status === 'overdue')  { cls='g-ms-o'; icon='&#10007;'; title=`${ms}\nOVERDUE\nDeadline: ${m.deadline}`; }
     else if (m.status === 'upcoming') { cls='g-ms-u'; icon='&#8594;';  title=`${ms}\nUpcoming — due: ${m.deadline}`; }
     else                              {               icon='&#183;';   title=`${ms}\nNot started`; }
-    return `<td class="${div}"><span class="g-ms ${cls}" title="${esc(title)}">${icon}</span></td>`;
+    return `<td class="${div}" ${click} style="cursor:pointer"><span class="g-ms ${cls}" title="${esc(title)}">${icon}</span></td>`;
   }
 
   document.getElementById('gantt-body').innerHTML = filtered.map((s, idx) => {
@@ -1084,17 +1142,17 @@ function renderGantt() {
     const pgColor = s.progress >= 80 ? '#16a34a,#4ade80'
                   : s.progress >= 50 ? '#ea580c,#fb923c' : '#dc2626,#f87171';
 
-    const designCells   = DESIGN_MS.map((ms, i)   => makeMsCell(ms, s.milestones[ms]||{}, false)).join('');
-    const samplingCells = SAMPLING_MS.map((ms, i)  => makeMsCell(ms, s.milestones[ms]||{}, i===0)).join('');
+    const designCells   = DESIGN_MS.map((ms, i)   => makeMsCell(ms, s.milestones[ms]||{}, false, 'design', idx)).join('');
+    const samplingCells = SAMPLING_MS.map((ms, i)  => makeMsCell(ms, s.milestones[ms]||{}, i===0, 'sampling', idx)).join('');
     const plCells = PL.map((pk, i) => {
       const p = (s.planning || {})[pk] || {};
       const div = i === 0 ? ' g-ph-div' : '';
       const cls = p.status === 'filled' ? 'g-ms-d' : 'g-ms-e';
       const icon = p.status === 'filled' ? '&#10003;' : '&#183;';
       const tip = p.status === 'filled' ? `${pk}\nValue: ${p.value}` : `${pk}\nNot filled`;
-      return `<td class="${div}"><span class="g-ms ${cls}" title="${esc(tip)}">${icon}</span></td>`;
+      return `<td class="${div}" onclick="openPhaseModal(${idx},'planning',event)" style="cursor:pointer"><span class="g-ms ${cls}" title="${esc(tip)}">${icon}</span></td>`;
     }).join('');
-    const prodCells = PROD_MS.map((ms, i) => makeMsCell(ms, s.milestones[ms]||{}, i===0)).join('');
+    const prodCells = PROD_MS.map((ms, i) => makeMsCell(ms, s.milestones[ms]||{}, i===0, 'production', idx)).join('');
 
     const ndcLabel = s.ndcDisplay || s.ndc || '';
 
@@ -1172,6 +1230,117 @@ function openDet(idx) {
 
 function closeDet() {
   document.getElementById('det-ov').classList.remove('open');
+}
+
+// ── Phase Edit Modal ──────────────────────────────────────────────────────────
+const PHASE_CONFIG = {
+  design:     { label: 'Design Phase',       ms: ['INT PRES','BYR PRES','BYR APPROV','TP SENT','PRINT'],                                                                            type: 'milestone' },
+  sampling:   { label: 'Sampling Phase',     ms: ['PROTO','PROTO COMM','PROTO CANAN','SMS IMAG','SMS IMAG APP','SMS SUP','SMS NYC','SMS ANTHRO','TOP SUP','TOP ANTHRO','TOP APPROV','PHOTO SAMP'], type: 'milestone' },
+  planning:   { label: 'Planning & Pricing', ms: ['COST','DUTY','PRICE WHOLESALE','FINAL NDC','EX FACTORY / FLIGHT DATE'],                                                           type: 'planning'  },
+  production: { label: 'PO & Production',    ms: ['PO ISSUED','OFF PO','1ST FIT','2ND FIT','PHOTO','PI'],                                                                            type: 'milestone' },
+};
+
+let _phState = null;
+
+function _toDateInput(val) {
+  if (!val) return '';
+  const m = val.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return `${m[3]}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+  return '';
+}
+
+function _fromDateInput(val) {
+  if (!val) return '';
+  const m = val.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) return `${parseInt(m[2])}/${parseInt(m[3])}/${m[1]}`;
+  return val;
+}
+
+function openPhaseModal(si, phase, event) {
+  event.stopPropagation();
+  const s   = _ganttFiltered[si];
+  const cfg = PHASE_CONFIG[phase];
+  if (!s || !cfg) return;
+  _phState = { si, phase };
+
+  document.getElementById('ph-phase-tag').textContent = cfg.label;
+  document.getElementById('ph-style-tag').textContent = s.style + (s.brand ? ' · ' + s.brand : '');
+
+  const labels = (_ganttData && _ganttData.milestoneLabels) || {};
+  document.getElementById('ph-ms-list').innerHTML = cfg.ms.map(key => {
+    if (cfg.type === 'milestone') {
+      const m = s.milestones[key] || {};
+      if (m.status === 'proto-no') return `
+        <div class="ph-ms-row">
+          <div class="ph-ms-lbl">${esc(labels[key]||key)}</div>
+          <div class="ph-ms-dl">—</div>
+          <div class="ph-ms-na">Proto not required</div>
+        </div>`;
+      return `
+        <div class="ph-ms-row">
+          <div class="ph-ms-lbl">${esc(labels[key]||key)}</div>
+          <div class="ph-ms-dl">${m.deadline ? 'Due '+esc(m.deadline) : '—'}</div>
+          <div class="ph-ms-input">
+            <input type="date" data-ms-key="${esc(key)}" data-ms-type="milestone" value="${_toDateInput(m.actual)}">
+          </div>
+        </div>`;
+    } else {
+      const p = (s.planning || {})[key] || {};
+      return `
+        <div class="ph-ms-row">
+          <div class="ph-ms-lbl">${esc(key)}</div>
+          <div class="ph-ms-dl">—</div>
+          <div class="ph-ms-input">
+            <input type="text" inputmode="decimal" data-ms-key="${esc(key)}" data-ms-type="planning" value="${esc(p.value||'')}" placeholder="—">
+          </div>
+        </div>`;
+    }
+  }).join('');
+
+  const btn = document.getElementById('ph-save-btn');
+  btn.disabled = false; btn.textContent = 'Save Changes';
+  document.getElementById('ph-ov').classList.add('open');
+}
+
+function closePhaseModal() {
+  document.getElementById('ph-ov').classList.remove('open');
+  _phState = null;
+}
+
+async function savePhaseModal() {
+  if (!_phState) return;
+  const s = _ganttFiltered[_phState.si];
+  if (!s) return;
+  const cfg = PHASE_CONFIG[_phState.phase];
+
+  const updates = [];
+  document.querySelectorAll('#ph-ms-list input').forEach(inp => {
+    updates.push({
+      key:   inp.dataset.msKey,
+      type:  inp.dataset.msType,
+      value: inp.dataset.msType === 'milestone' ? _fromDateInput(inp.value) : inp.value.trim(),
+    });
+  });
+
+  const btn = document.getElementById('ph-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  try {
+    const res = await fetch('/api/miley/gantt/update', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ style: s.style, updates }),
+    });
+    const d = await res.json();
+    if (!d.ok) throw new Error(d.error || 'Failed to save');
+    closePhaseModal();
+    showToast(`${cfg ? cfg.label : 'Phase'} saved ✓ — refreshing…`);
+    setTimeout(() => loadGantt(), 700);
+  } catch (e) {
+    showToast('Error: ' + e.message);
+    btn.disabled = false; btn.textContent = 'Save Changes';
+  }
 }
 
 async function loadGanttCadImages() {

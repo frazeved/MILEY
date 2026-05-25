@@ -4586,6 +4586,62 @@ app.get('/api/miley/gantt', async (req, res) => {
   }
 });
 
+// PUT /api/miley/gantt/update — write milestone or planning values back to Google Sheets
+app.put('/api/miley/gantt/update', async (req, res) => {
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON)
+    return res.status(500).json({ error: 'Google credentials not configured' });
+  try {
+    const { style, updates } = req.body || {};
+    if (!style || !Array.isArray(updates) || !updates.length)
+      return res.status(400).json({ error: 'style and updates[] required' });
+
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+    const colL   = i => { let col='',n=i; while(n>=0){col=String.fromCharCode(65+(n%26))+col;n=Math.floor(n/26)-1;} return col; };
+    const TAB    = 'Production & PO DataBase';
+
+    const dbRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID, range: `'${TAB}'`, valueRenderOption: 'FORMATTED_VALUE',
+    });
+    const dbRows = dbRes.data.values || [];
+    if (dbRows.length < 2) return res.status(404).json({ error: 'Sheet empty' });
+
+    const headers  = dbRows[0].map(h => (h || '').trim());
+    const styleCol = ganttFindCol(headers, 'original style#', 'original style', 'style #', 'style#', 'style');
+
+    let rowIndex = -1;
+    for (let i = 1; i < dbRows.length; i++) {
+      if ((dbRows[i][styleCol] || '').trim() === style.trim()) { rowIndex = i + 1; break; }
+    }
+    if (rowIndex < 0) return res.status(404).json({ error: `Style "${style}" not found` });
+
+    const data = [];
+    for (const upd of updates) {
+      let col = -1;
+      if (upd.type === 'milestone') {
+        const msCfg = GANTT_MS_CONFIG.find(c => c.key === upd.key);
+        if (msCfg) col = ganttFindCol(headers, ...msCfg.dbCols, msCfg.key);
+      } else if (upd.type === 'planning') {
+        col = ganttFindCol(headers, upd.key);
+      }
+      if (col >= 0) data.push({ range: `'${TAB}'!${colL(col)}${rowIndex}`, values: [[upd.value]] });
+    }
+
+    if (data.length) {
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: SHEET_ID,
+        requestBody: { valueInputOption: 'USER_ENTERED', data },
+      });
+    }
+
+    res.json({ ok: true, updated: data.length });
+  } catch (e) {
+    console.error('[miley/gantt/update]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`\n  305 WORKSPACE TEAM`);
