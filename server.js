@@ -4329,6 +4329,16 @@ app.post('/api/miley/timeline/update', async (req, res) => {
 const GANTT_MILESTONES = ['INT PRES','BYR PRES','BYR APPROV','TP SENT','PRINT','PROTO','PROTO COMM','SMS SUPP','COLOR','SMS ANTHRO','PO ISSUED','OFF PO','1ST FIT','2ND FIT','PHOTO','PI'];
 const GANTT_PLANNING   = ['COST','DUTY','PRICE WHOLESALE','FINAL NDC','EX FACTORY / FLIGHT DATE'];
 
+// Match a timeline step name to a GANTT_MILESTONE using substring/fuzzy match
+function findMilestoneMatch(stepName) {
+  const sn = stepName.trim().toUpperCase();
+  if (!sn) return null;
+  const exact = GANTT_MILESTONES.find(ms => ms === sn);
+  if (exact) return exact;
+  const sub = GANTT_MILESTONES.find(ms => sn.includes(ms) || ms.includes(sn));
+  return sub || null;
+}
+
 function ganttParseDate(s) {
   if (!s) return null;
   s = String(s).trim();
@@ -4378,17 +4388,19 @@ app.get('/api/miley/gantt', async (req, res) => {
       sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'Production & PO DataBase'`, valueRenderOption: 'FORMATTED_VALUE' }),
     ]);
 
-    // Build timeline deadline map: { STEP_NAME -> { 1..12: Date } }
+    // Build timeline deadline map: { GANTT_MILESTONE -> { 1..12: Date } }
+    // Uses fuzzy matching so timeline step names don't need to be exact
     const tlMap = {};
     const tlRows = tlRes.data.values || [];
     for (let i = 1; i < tlRows.length; i++) {
       const r    = tlRows[i];
       const step = (r[1] || '').trim().toUpperCase();
       if (!step) continue;
-      tlMap[step] = {};
+      const key = findMilestoneMatch(step) || step;
+      tlMap[key] = {};
       for (let m = 0; m < 12; m++) {
         const d = ganttParseDate(r[5 + m]);
-        if (d) tlMap[step][m + 1] = d;
+        if (d) tlMap[key][m + 1] = d;
       }
     }
 
@@ -4451,6 +4463,9 @@ app.get('/api/miley/gantt', async (req, res) => {
       const yearMatch = (yearRaw || ndcRaw).match(/\b(20\d\d)\b/);
       const ndcYear   = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
 
+      const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const ndcDisplay = ndcMonth ? SHORT_MONTHS[ndcMonth - 1] : (ndcRaw || '');
+
       const milestones = {};
       let doneCount = 0;
 
@@ -4458,7 +4473,7 @@ app.get('/api/miley/gantt', async (req, res) => {
         const actual      = g(r, milestoneCols[ms]);
         const deadline    = (ndcMonth && tlMap[ms]) ? (tlMap[ms][ndcMonth] || null) : null;
         const actualDate  = ganttParseDate(actual);
-        let status = 'empty';
+        let status = deadline ? 'empty' : 'unknown'; // 'unknown' when no deadline info at all
 
         if (actualDate) {
           doneCount++;
@@ -4489,6 +4504,7 @@ app.get('/api/miley/gantt', async (req, res) => {
         category:    g(r, categoryCol),
         subCategory: g(r, subCatCol),
         ndc:         ndcRaw,
+        ndcDisplay,
         finalNdc:    g(r, finalNdcCol),
         ndcMonth,
         ndcYear,

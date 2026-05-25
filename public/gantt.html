@@ -527,22 +527,22 @@
         <table class="g-tbl" id="gantt-table" style="display:none">
           <colgroup>
             <col style="width:34px">
-            <col style="width:128px">
-            <col style="width:72px">
-            <col style="width:62px">
-            <col style="width:50px">
+            <col style="width:96px">
+            <col style="width:68px">
+            <col style="width:58px">
+            <col style="width:42px">
+            <col><col><col><col><col>
             <col><col><col><col><col>
             <col><col><col><col><col>
             <col><col><col><col><col><col>
-            <col><col><col><col><col>
           </colgroup>
           <thead>
             <tr class="g-ph-row">
               <th colspan="5" class="g-ph-i"></th>
               <th colspan="5" class="g-ph-d">— Design Phase —</th>
               <th colspan="5" class="g-ph-s g-ph-div">— Sampling —</th>
-              <th colspan="6" class="g-ph-p g-ph-div">— PO &amp; Production —</th>
               <th colspan="5" class="g-ph-pl g-ph-div">— Planning &amp; Pricing —</th>
+              <th colspan="6" class="g-ph-p g-ph-div">— PO &amp; Production —</th>
             </tr>
             <tr>
               <th></th>
@@ -552,8 +552,8 @@
               <th>NDC</th>
               <th class="ms-hdr">INT PRES</th><th class="ms-hdr">BYR PRES</th><th class="ms-hdr">BYR APPROV</th><th class="ms-hdr">TP SENT</th><th class="ms-hdr">PRINT</th>
               <th class="ms-hdr g-ph-div">PROTO</th><th class="ms-hdr">PROTO COMM</th><th class="ms-hdr">SMS SUPP</th><th class="ms-hdr">COLOR</th><th class="ms-hdr">SMS ANTHRO</th>
-              <th class="ms-hdr g-ph-div">PO ISSUED</th><th class="ms-hdr">OFF PO</th><th class="ms-hdr">1ST FIT</th><th class="ms-hdr">2ND FIT</th><th class="ms-hdr">PHOTO</th><th class="ms-hdr">PI</th>
               <th class="ms-hdr g-ph-div">COST</th><th class="ms-hdr">DUTY</th><th class="ms-hdr">PRICE WS</th><th class="ms-hdr">FINAL NDC</th><th class="ms-hdr">EX FACTORY</th>
+              <th class="ms-hdr g-ph-div">PO ISSUED</th><th class="ms-hdr">OFF PO</th><th class="ms-hdr">1ST FIT</th><th class="ms-hdr">2ND FIT</th><th class="ms-hdr">PHOTO</th><th class="ms-hdr">PI</th>
             </tr>
           </thead>
           <tbody id="gantt-body"></tbody>
@@ -1053,8 +1053,22 @@ function renderGantt() {
 
   document.getElementById('gantt-count').textContent = `${filtered.length} Style${filtered.length !== 1 ? 's' : ''}`;
 
-  const MS = ['INT PRES','BYR PRES','BYR APPROV','TP SENT','PRINT','PROTO','PROTO COMM','SMS SUPP','COLOR','SMS ANTHRO','PO ISSUED','OFF PO','1ST FIT','2ND FIT','PHOTO','PI'];
-  const PL = ['COST','DUTY','PRICE WHOLESALE','FINAL NDC','EX FACTORY / FLIGHT DATE'];
+  const DESIGN_MS   = ['INT PRES','BYR PRES','BYR APPROV','TP SENT','PRINT'];
+  const SAMPLING_MS = ['PROTO','PROTO COMM','SMS SUPP','COLOR','SMS ANTHRO'];
+  const PROD_MS     = ['PO ISSUED','OFF PO','1ST FIT','2ND FIT','PHOTO','PI'];
+  const PL          = ['COST','DUTY','PRICE WHOLESALE','FINAL NDC','EX FACTORY / FLIGHT DATE'];
+
+  function makeMsCell(ms, m, firstInGroup) {
+    const div = firstInGroup ? ' g-ph-div' : '';
+    if (m.status === 'unknown') return `<td class="${div}"></td>`;
+    let cls = 'g-ms-e', icon = '&#183;', title = ms;
+    if      (m.status === 'done')     { cls='g-ms-d'; icon='&#10003;'; title=`${ms}\nDone: ${m.actual}${m.deadline ? '\nDeadline: '+m.deadline : ''}`; }
+    else if (m.status === 'late')     { cls='g-ms-l'; icon='!';        title=`${ms}\nDone late: ${m.actual}\nDeadline: ${m.deadline}`; }
+    else if (m.status === 'overdue')  { cls='g-ms-o'; icon='&#10007;'; title=`${ms}\nOVERDUE\nDeadline: ${m.deadline}`; }
+    else if (m.status === 'upcoming') { cls='g-ms-u'; icon='&#8594;';  title=`${ms}\nUpcoming — due: ${m.deadline}`; }
+    else                              {               icon='&#183;';   title=`${ms}\nNot started`; }
+    return `<td class="${div}"><span class="g-ms ${cls}" title="${esc(title)}">${icon}</span></td>`;
+  }
 
   document.getElementById('gantt-body').innerHTML = filtered.map((s, idx) => {
     const stCls = (s.status||'').toUpperCase().includes('CANCEL') ? 'g-sp-c'
@@ -1062,18 +1076,8 @@ function renderGantt() {
     const pgColor = s.progress >= 80 ? '#16a34a,#4ade80'
                   : s.progress >= 50 ? '#ea580c,#fb923c' : '#dc2626,#f87171';
 
-    const msCells = MS.map((ms, i) => {
-      const m   = s.milestones[ms] || {};
-      const div = (i === 5 || i === 10) ? ' g-ph-div' : '';
-      let cls = 'g-ms-e', icon = '&#183;', title = ms;
-      if      (m.status === 'done')     { cls='g-ms-d'; icon='&#10003;'; title=`${ms}\nDone: ${m.actual}${m.deadline ? '\nDeadline: '+m.deadline : ''}`; }
-      else if (m.status === 'late')     { cls='g-ms-l'; icon='!';        title=`${ms}\nDone late: ${m.actual}\nDeadline: ${m.deadline}`; }
-      else if (m.status === 'overdue')  { cls='g-ms-o'; icon='&#10007;'; title=`${ms}\nOVERDUE\nDeadline: ${m.deadline}`; }
-      else if (m.status === 'upcoming') { cls='g-ms-u'; icon='&#8594;';  title=`${ms}\nUpcoming — due: ${m.deadline}`; }
-      else                              {               icon='&#183;';   title=`${ms}\nNot started`; }
-      return `<td class="${div}"><span class="g-ms ${cls}" title="${esc(title)}">${icon}</span></td>`;
-    }).join('');
-
+    const designCells   = DESIGN_MS.map((ms, i)   => makeMsCell(ms, s.milestones[ms]||{}, false)).join('');
+    const samplingCells = SAMPLING_MS.map((ms, i)  => makeMsCell(ms, s.milestones[ms]||{}, i===0)).join('');
     const plCells = PL.map((pk, i) => {
       const p = (s.planning || {})[pk] || {};
       const div = i === 0 ? ' g-ph-div' : '';
@@ -1082,6 +1086,9 @@ function renderGantt() {
       const tip = p.status === 'filled' ? `${pk}\nValue: ${p.value}` : `${pk}\nNot filled`;
       return `<td class="${div}"><span class="g-ms ${cls}" title="${esc(tip)}">${icon}</span></td>`;
     }).join('');
+    const prodCells = PROD_MS.map((ms, i) => makeMsCell(ms, s.milestones[ms]||{}, i===0)).join('');
+
+    const ndcLabel = s.ndcDisplay || s.ndc || '';
 
     return `<tr style="animation-delay:${idx * 0.025}s" onclick="openDet(${idx})">
       <td><img class="g-cad-mini" data-style="${esc(s.style)}" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" /></td>
@@ -1093,9 +1100,8 @@ function renderGantt() {
       </td>
       <td class="tl"><span class="g-sup">${esc(s.supplier)}</span></td>
       <td><span class="g-cat">${esc(s.category)}</span></td>
-      <td><span class="g-ndc">${esc(s.ndc)}</span></td>
-      ${msCells}
-      ${plCells}
+      <td><span class="g-ndc">${esc(ndcLabel)}</span></td>
+      ${designCells}${samplingCells}${plCells}${prodCells}
     </tr>`;
   }).join('');
 
