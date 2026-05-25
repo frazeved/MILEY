@@ -147,7 +147,8 @@
     .g-tbl { border-collapse:collapse;width:100%;table-layout:fixed; }
     .g-tbl thead th { background:#f8f9fc;font-size:8px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.4px;padding:4px 2px;text-align:center;border-bottom:1.5px solid var(--border); }
     .g-tbl thead th.tl { text-align:left;padding-left:8px; }
-    .g-tbl thead th.ms-hdr { writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;height:72px;vertical-align:bottom;padding-bottom:4px;font-size:8px; }
+    .g-tbl thead th.ms-hdr { height:72px;vertical-align:bottom;padding:0 0 4px 0;font-size:8px;text-align:center; }
+    .g-tbl thead th.ms-hdr span { writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;display:block;margin:0 auto; }
     .g-ph-row th { font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;padding:5px 2px; }
     .g-ph-i{background:#fff} .g-ph-d{background:#fff1f2;color:#be123c;border-left:2px solid #fecdd3} .g-ph-s{background:#fef9c3;color:#854d0e;border-left:2px solid #fde68a} .g-ph-p{background:#eff6ff;color:#1d4ed8;border-left:2px solid #bfdbfe} .g-ph-pl{background:#f0fdf4;color:#166534;border-left:2px solid #bbf7d0}
     .g-tbl tbody tr { border-bottom:1px solid #f1f3f7;cursor:pointer;transition:background .1s;animation:row-in .25s ease both; }
@@ -550,10 +551,10 @@
               <th class="tl">Supplier</th>
               <th>Category</th>
               <th>NDC</th>
-              <th class="ms-hdr">INT PRES</th><th class="ms-hdr">BYER PRES</th><th class="ms-hdr">BYER APP</th><th class="ms-hdr">TP SUP</th><th class="ms-hdr">PRINT SUP</th>
-              <th class="ms-hdr g-ph-div">PROT SUP</th><th class="ms-hdr">PROT COMM</th><th class="ms-hdr">PROT CANAN</th><th class="ms-hdr">SMS IMAG</th><th class="ms-hdr">SMS IMAG APP</th><th class="ms-hdr">SMS SUP</th><th class="ms-hdr">SMS NYC</th><th class="ms-hdr">SMS SENT ANTHRO</th><th class="ms-hdr">TOP BY SUP</th><th class="ms-hdr">TOP SENT ANTHRO</th><th class="ms-hdr">TOP APPROVAL</th><th class="ms-hdr">PHOTO SAMP ANTHRO</th>
-              <th class="ms-hdr g-ph-div">COST</th><th class="ms-hdr">DUTY</th><th class="ms-hdr">PRICE WS</th><th class="ms-hdr">FINAL NDC</th><th class="ms-hdr">EX FACTORY</th>
-              <th class="ms-hdr g-ph-div">PO ISSUED</th><th class="ms-hdr">OFF PO</th><th class="ms-hdr">1ST FIT</th><th class="ms-hdr">2ND FIT</th><th class="ms-hdr">PHOTO</th><th class="ms-hdr">PI</th>
+              <th class="ms-hdr"><span>INT PRES</span></th><th class="ms-hdr"><span>BYER PRES</span></th><th class="ms-hdr"><span>BYER APP</span></th><th class="ms-hdr"><span>TP SUP</span></th><th class="ms-hdr"><span>PRINT SUP</span></th>
+              <th class="ms-hdr g-ph-div"><span>PROT SUP</span></th><th class="ms-hdr"><span>PROT COMM</span></th><th class="ms-hdr"><span>PROT CANAN</span></th><th class="ms-hdr"><span>SMS IMAG</span></th><th class="ms-hdr"><span>SMS IMAG APP</span></th><th class="ms-hdr"><span>SMS SUP</span></th><th class="ms-hdr"><span>SMS NYC</span></th><th class="ms-hdr"><span>SMS SENT ANTHRO</span></th><th class="ms-hdr"><span>TOP BY SUP</span></th><th class="ms-hdr"><span>TOP SENT ANTHRO</span></th><th class="ms-hdr"><span>TOP APPROVAL</span></th><th class="ms-hdr"><span>PHOTO SAMP ANTHRO</span></th>
+              <th class="ms-hdr g-ph-div"><span>COST</span></th><th class="ms-hdr"><span>DUTY</span></th><th class="ms-hdr"><span>PRICE WS</span></th><th class="ms-hdr"><span>FINAL NDC</span></th><th class="ms-hdr"><span>EX FACTORY</span></th>
+              <th class="ms-hdr g-ph-div"><span>PO ISSUED</span></th><th class="ms-hdr"><span>OFF PO</span></th><th class="ms-hdr"><span>1ST FIT</span></th><th class="ms-hdr"><span>2ND FIT</span></th><th class="ms-hdr"><span>PHOTO</span></th><th class="ms-hdr"><span>PI</span></th>
             </tr>
           </thead>
           <tbody id="gantt-body"></tbody>
@@ -931,7 +932,7 @@ async function saveNewStep() {
 // ── Gantt Chart ───────────────────────────────────────────────────────────────
 let _ganttData = null;
 let _ganttFiltered = [];
-const EXCLUDED_STATUSES = ['CANCELED','HOLD',"PO'D","PO'D + PRODUCTION OK","PO'D + PRODUCTION ok",'OTHER SUPPLIER'];
+const DEFAULT_STATUSES = ['CHECK PRICE & NDC','MISSING AW','MISSING TP','WAITING PO','WAITING SMS','WAITING SMS APPROVAL'];
 
 function openGantt() {
   document.getElementById('tasks-grid').style.display = 'none';
@@ -985,8 +986,8 @@ function buildGanttFilters(data) {
   document.getElementById('gf-status-dd').innerHTML =
     `<div class="gf-opt all-o" onclick="gfToggleAll('status')"><div class="gf-cb"></div><span>All Statuses</span></div>` +
     statuses.map(st => {
-      const excluded = EXCLUDED_STATUSES.includes(st);
-      return `<div class="gf-opt${excluded ? '' : ' checked'}" data-gfg="status" data-val="${esc(st)}" onclick="gfToggleOpt(this)"><div class="gf-cb"></div><span>${esc(st)}</span></div>`;
+      const isDefault = DEFAULT_STATUSES.includes(st);
+      return `<div class="gf-opt${isDefault ? ' checked' : ''}" data-gfg="status" data-val="${esc(st)}" onclick="gfToggleOpt(this)"><div class="gf-cb"></div><span>${esc(st)}</span></div>`;
     }).join('');
   gfUpdateCount('status');
 }
