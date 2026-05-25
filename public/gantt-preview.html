@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gantt Chart — Preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f6fa; --surface: #fff; --border: #e4e7ed;
+      --text: #1a1d23; --muted: #6b7280;
+      --accent: #e11d48;
+      --green: #16a34a; --green-lt: #dcfce7;
+      --orange: #ea580c; --orange-lt: #fff7ed;
+      --red: #dc2626; --red-lt: #fee2e2;
+      --blue: #0891b2; --blue-lt: #e0f2fe;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      background: #fff; border-bottom: 1px solid var(--border);
+      padding: 12px 24px; display: flex; align-items: center; gap: 12px;
+      flex-wrap: wrap; position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    }
+    .topbar-title { font-size: 15px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; margin-right: 4px; white-space: nowrap; }
+    .topbar-title span { color: var(--accent); }
+    .topbar-divider { width: 1px; height: 24px; background: var(--border); }
+    .badge-count { font-size: 11px; font-weight: 600; background: var(--blue-lt); color: var(--blue); padding: 4px 12px; border-radius: 20px; margin-left: auto; white-space: nowrap; }
+
+    /* ── MULTI-SELECT FILTER ── */
+    .ms-filter { position: relative; }
+    .ms-btn {
+      display: flex; align-items: center; gap: 7px;
+      font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text);
+      background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px;
+      padding: 7px 12px; cursor: pointer; white-space: nowrap; transition: border-color 0.15s, background 0.15s;
+      min-width: 130px;
+    }
+    .ms-btn:hover { border-color: #c9cdd8; background: #eaecf2; }
+    .ms-btn.active { border-color: var(--accent); background: #fff1f2; color: var(--accent); }
+    .ms-btn-label { flex: 1; text-align: left; }
+    .ms-btn-count { font-size: 10px; font-weight: 700; background: var(--accent); color: #fff; border-radius: 20px; padding: 1px 6px; display: none; }
+    .ms-btn.has-selection .ms-btn-count { display: inline; }
+    .ms-caret { opacity: 0.5; transition: transform 0.15s; flex-shrink: 0; }
+    .ms-filter.open .ms-caret { transform: rotate(180deg); }
+
+    .ms-dropdown {
+      display: none; position: absolute; top: calc(100% + 6px); left: 0;
+      background: #fff; border: 1.5px solid var(--border); border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12); min-width: 180px; z-index: 200;
+      padding: 6px; max-height: 280px; overflow-y: auto;
+    }
+    .ms-filter.open .ms-dropdown { display: block; }
+    .ms-option {
+      display: flex; align-items: center; gap: 9px; padding: 8px 10px;
+      border-radius: 7px; cursor: pointer; font-size: 12px; font-weight: 500;
+      color: var(--text); transition: background 0.1s; user-select: none;
+    }
+    .ms-option:hover { background: var(--bg); }
+    .ms-option.all-opt { font-weight: 700; border-bottom: 1px solid var(--border); margin-bottom: 4px; padding-bottom: 10px; color: var(--muted); }
+    .ms-checkbox {
+      width: 15px; height: 15px; border: 2px solid var(--border); border-radius: 4px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      transition: all 0.12s;
+    }
+    .ms-option.checked .ms-checkbox { background: var(--accent); border-color: var(--accent); }
+    .ms-option.checked .ms-checkbox::after { content: ''; width: 5px; height: 3px; border-left: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(-45deg) translateY(-1px); display: block; }
+    .ms-option-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── LEGEND ── */
+    .legend { display: flex; align-items: center; gap: 16px; padding: 8px 24px; background: #fff; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 600; color: var(--muted); }
+    .leg-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .leg-done { background: var(--green); }
+    .leg-late { background: var(--orange); }
+    .leg-over { background: var(--red); }
+    .leg-next { background: var(--blue); }
+    .leg-empty { background: #e5e7eb; }
+
+    /* ── TABLE ── */
+    .wrap { padding: 16px 24px 60px; overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; min-width: 1300px; background: var(--surface); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+
+    thead th { background: #f8f9fc; font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 5px; text-align: center; border-bottom: 1.5px solid var(--border); white-space: nowrap; }
+    thead th.col-left { text-align: left; padding-left: 14px; }
+
+    /* Phase header row */
+    .phase-row th { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; padding: 7px 4px; text-align: center; }
+    .ph-info  { background: #fff; }
+    .ph-design { background: #fff1f2; color: #be123c; border-left: 2px solid #fecdd3; }
+    .ph-sample { background: #fef9c3; color: #854d0e; border-left: 2px solid #fde68a; }
+    .ph-prod   { background: #eff6ff; color: #1d4ed8; border-left: 2px solid #bfdbfe; }
+
+    tbody tr { border-bottom: 1px solid #f1f3f7; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #fafbff; }
+    tbody td { padding: 7px 4px; text-align: center; vertical-align: middle; }
+    tbody td.col-left { text-align: left; padding-left: 14px; }
+    tbody tr.cancelled { opacity: 0.38; }
+
+    .style-num { font-size: 12px; font-weight: 700; }
+    .style-sub { font-size: 10px; color: var(--muted); margin-top: 1px; }
+    .sp { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 20px; display: inline-block; margin-top: 3px; }
+    .sp-active { background: var(--green-lt); color: var(--green); }
+    .sp-cancel { background: #f3f4f6; color: var(--muted); }
+    .sp-hold   { background: var(--orange-lt); color: var(--orange); }
+
+    .ms { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; font-size: 9px; font-weight: 800; cursor: default; }
+    .ms-done  { background: var(--green-lt);  color: var(--green);  border: 1.5px solid #86efac; }
+    .ms-late  { background: var(--orange-lt); color: var(--orange); border: 1.5px solid #fdba74; }
+    .ms-over  { background: var(--red-lt);    color: var(--red);    border: 1.5px solid #fca5a5; animation: pulse-r 1.8s ease-in-out infinite; }
+    .ms-next  { background: var(--blue-lt);   color: var(--blue);   border: 1.5px solid #7dd3fc; }
+    .ms-empty { background: #f3f4f6; color: #d1d5db; border: 1.5px solid #e5e7eb; }
+    @keyframes pulse-r { 0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,0.3)} 50%{box-shadow:0 0 0 4px rgba(220,38,38,0)} }
+
+    .ph-div { border-left: 2px solid var(--border) !important; }
+
+    .ndc-pill { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; background: var(--blue-lt); color: var(--blue); white-space: nowrap; }
+    .sup-txt  { font-size: 10px; color: var(--muted); }
+    .cat-txt  { font-size: 10px; font-weight: 600; }
+
+    /* PROGRESS BAR below style row */
+    .prog-wrap { height: 3px; background: #f1f3f7; border-radius: 2px; margin-top: 4px; overflow: hidden; }
+    .prog-fill  { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--green), #4ade80); }
+
+    @media (max-width: 768px) {
+      .topbar { padding: 10px 14px; gap: 8px; }
+      .wrap { padding: 10px 10px 40px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar" id="topbar">
+  <div class="topbar-title">Miley — <span>Gantt Chart</span></div>
+  <div class="topbar-divider"></div>
+
+  <!-- YEAR -->
+  <div class="ms-filter" id="f-year">
+    <button class="ms-btn has-selection" onclick="toggleFilter('f-year')">
+      <span class="ms-btn-label">Year</span>
+      <span class="ms-btn-count" id="f-year-count">1</span>
+      <svg class="ms-caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="ms-dropdown" id="f-year-dd">
+      <div class="ms-option all-opt" onclick="toggleAll('year')">
+        <div class="ms-checkbox"></div><span>All Years</span>
+      </div>
+      <div class="ms-option checked" data-group="year" data-val="2025" onclick="toggleOpt(this)">
+        <div class="ms-checkbox"></div><span>2025</span>
+      </div>
+      <div class="ms-option checked" data-group="year" data-val="2026" onclick="toggleOpt(this)">
+        <div class="ms-checkbox"></div><span>2026</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MONTH -->
+  <div class="ms-filter" id="f-month">
+    <button class="ms-btn has-selection" onclick="toggleFilter('f-month')">
+      <span class="ms-btn-label">Month</span>
+      <span class="ms-btn-count" id="f-month-count">6</span>
+      <svg class="ms-caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="ms-dropdown" id="f-month-dd">
+      <div class="ms-option all-opt" onclick="toggleAll('month')">
+        <div class="ms-checkbox"></div><span>All Months</span>
+      </div>
+      <!-- Jan–Jun unchecked (past/near), Jul–Dec checked (2 months from now = Jul default) -->
+      <div class="ms-option" data-group="month" data-val="January"   onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>January</span></div>
+      <div class="ms-option" data-group="month" data-val="February"  onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>February</span></div>
+      <div class="ms-option" data-group="month" data-val="March"     onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>March</span></div>
+      <div class="ms-option" data-group="month" data-val="April"     onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>April</span></div>
+      <div class="ms-option" data-group="month" data-val="May"       onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>May</span></div>
+      <div class="ms-option" data-group="month" data-val="June"      onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>June</span></div>
+      <div class="ms-option checked" data-group="month" data-val="July"      onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>July</span></div>
+      <div class="ms-option checked" data-group="month" data-val="August"    onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>August</span></div>
+      <div class="ms-option checked" data-group="month" data-val="September" onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>September</span></div>
+      <div class="ms-option checked" data-group="month" data-val="October"   onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>October</span></div>
+      <div class="ms-option checked" data-group="month" data-val="November"  onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>November</span></div>
+      <div class="ms-option checked" data-group="month" data-val="December"  onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>December</span></div>
+    </div>
+  </div>
+
+  <!-- SUPPLIER -->
+  <div class="ms-filter" id="f-supplier">
+    <button class="ms-btn" onclick="toggleFilter('f-supplier')">
+      <span class="ms-btn-label">Supplier</span>
+      <span class="ms-btn-count" id="f-supplier-count">0</span>
+      <svg class="ms-caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="ms-dropdown" id="f-supplier-dd">
+      <div class="ms-option all-opt" onclick="toggleAll('supplier')"><div class="ms-checkbox"></div><span>All Suppliers</span></div>
+      <div class="ms-option" data-group="supplier" data-val="ECICO"     onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>ECICO</span></div>
+      <div class="ms-option" data-group="supplier" data-val="GAIA"      onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>GAIA</span></div>
+      <div class="ms-option" data-group="supplier" data-val="HS FASHION" onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>HS FASHION</span></div>
+      <div class="ms-option" data-group="supplier" data-val="KON"       onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>KON</span></div>
+      <div class="ms-option" data-group="supplier" data-val="S&S"       onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>S&amp;S</span></div>
+      <div class="ms-option" data-group="supplier" data-val="JJ"        onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>JJ</span></div>
+      <div class="ms-option" data-group="supplier" data-val="PQSWIM"    onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>PQSWIM</span></div>
+    </div>
+  </div>
+
+  <!-- CATEGORY -->
+  <div class="ms-filter" id="f-category">
+    <button class="ms-btn" onclick="toggleFilter('f-category')">
+      <span class="ms-btn-label">Category</span>
+      <span class="ms-btn-count" id="f-category-count">0</span>
+      <svg class="ms-caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="ms-dropdown" id="f-category-dd">
+      <div class="ms-option all-opt" onclick="toggleAll('category')"><div class="ms-checkbox"></div><span>All Categories</span></div>
+      <div class="ms-option" data-group="category" data-val="DRESS"     onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>DRESS</span></div>
+      <div class="ms-option" data-group="category" data-val="TOP"       onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>TOP</span></div>
+      <div class="ms-option" data-group="category" data-val="BOTTOM"    onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>BOTTOM</span></div>
+      <div class="ms-option" data-group="category" data-val="SWIMWEAR"  onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>SWIMWEAR</span></div>
+      <div class="ms-option" data-group="category" data-val="JUMPSUIT"  onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>JUMPSUIT</span></div>
+      <div class="ms-option" data-group="category" data-val="SKIRT"     onclick="toggleOpt(this)"><div class="ms-checkbox"></div><span>SKIRT</span></div>
+    </div>
+  </div>
+
+  <span class="badge-count" id="style-count">7 Styles</span>
+</div>
+
+<!-- LEGEND -->
+<div class="legend">
+  <span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Legend:</span>
+  <div class="legend-item"><div class="leg-dot leg-done"></div> Done on time</div>
+  <div class="legend-item"><div class="leg-dot leg-late"></div> Done late</div>
+  <div class="legend-item"><div class="leg-dot leg-over"></div> Overdue</div>
+  <div class="legend-item"><div class="leg-dot leg-next"></div> Upcoming</div>
+  <div class="legend-item"><div class="leg-dot leg-empty"></div> Not started</div>
+</div>
+
+<!-- GANTT TABLE -->
+<div class="wrap">
+<table>
+  <thead>
+    <tr class="phase-row">
+      <th colspan="4" class="ph-info"></th>
+      <th colspan="5" class="ph-design">— Design Phase —</th>
+      <th colspan="5" class="ph-sample ph-div">— Sampling —</th>
+      <th colspan="6" class="ph-prod ph-div">— PO &amp; Production —</th>
+    </tr>
+    <tr>
+      <th class="col-left" style="min-width:140px">Style #</th>
+      <th class="col-left" style="min-width:90px">Supplier</th>
+      <th style="min-width:75px">Category</th>
+      <th style="min-width:72px">NDC</th>
+      <th>INT PRES</th><th>BYR PRES</th><th>BYR APPR</th><th>TP SENT</th><th>PRINT</th>
+      <th class="ph-div">PROTO</th><th>PROTO COMM</th><th>SMS SUPP</th><th>COLOR</th><th>SMS ANTHRO</th>
+      <th class="ph-div">PO ISSUED</th><th>OFF PO</th><th>1ST FIT</th><th>2ND FIT</th><th>PHOTO</th><th>PI</th>
+    </tr>
+  </thead>
+  <tbody id="gantt-body">
+
+    <tr>
+      <td class="col-left">
+        <div class="style-num">H-278999</div>
+        <div class="style-sub">Ilhéus · MIDI</div>
+        <span class="sp sp-active">Active</span>
+        <div class="prog-wrap"><div class="prog-fill" style="width:82%"></div></div>
+      </td>
+      <td class="col-left sup-txt">HS FASHION</td>
+      <td><span class="cat-txt">DRESS</span></td>
+      <td><span class="ndc-pill">Jul 26</span></td>
+      <td><span class="ms ms-done" title="Done 07/15">✓</span></td>
+      <td><span class="ms ms-done" title="Done 08/02">✓</span></td>
+      <td><span class="ms ms-done" title="Done 08/14">✓</span></td>
+      <td><span class="ms ms-done" title="Done 08/28">✓</span></td>
+      <td><span class="ms ms-done" title="Done 09/11">✓</span></td>
+      <td class="ph-div"><span class="ms ms-done" title="Done 10/04">✓</span></td>
+      <td><span class="ms ms-done" title="Done 10/25">✓</span></td>
+      <td><span class="ms ms-done" title="Done 11/07">✓</span></td>
+      <td><span class="ms ms-done" title="Done 11/20">✓</span></td>
+      <td><span class="ms ms-done" title="Done 11/25">✓</span></td>
+      <td class="ph-div"><span class="ms ms-done" title="Done 12/02">✓</span></td>
+      <td><span class="ms ms-done" title="Done 12/04">✓</span></td>
+      <td><span class="ms ms-done" title="Done 12/09">✓</span></td>
+      <td><span class="ms ms-late" title="Done late — deadline was 01/20">!</span></td>
+      <td><span class="ms ms-next" title="Due 06/12">→</span></td>
+      <td><span class="ms ms-empty" title="Pending">·</span></td>
+    </tr>
+
+    <tr>
+      <td class="col-left">
+        <div class="style-num">I-279112</div>
+        <div class="style-sub">Cascata · MAXI</div>
+        <span class="sp sp-active">Active</span>
+        <div class="prog-wrap"><div class="prog-fill" style="width:55%;background:linear-gradient(90deg,var(--orange),#fb923c)"></div></div>
+      </td>
+      <td class="col-left sup-txt">S&S</td>
+      <td><span class="cat-txt">DRESS</span></td>
+      <td><span class="ndc-pill">Aug 26</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td class="ph-div"><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-late" title="Done late">!</span></td>
+      <td><span class="ms ms-over" title="OVERDUE — deadline was 03/31">✗</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td class="ph-div"><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+    </tr>
+
+    <tr>
+      <td class="col-left">
+        <div class="style-num">278687-D</div>
+        <div class="style-sub">Bright Flora · MAXI</div>
+        <span class="sp sp-active">Active</span>
+        <div class="prog-wrap"><div class="prog-fill" style="width:65%"></div></div>
+      </td>
+      <td class="col-left sup-txt">GAIA</td>
+      <td><span class="cat-txt">DRESS</span></td>
+      <td><span class="ndc-pill">Sep 26</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td class="ph-div"><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-next" title="Due 04/28">→</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td class="ph-div"><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+    </tr>
+
+    <tr>
+      <td class="col-left">
+        <div class="style-num">K-280045</div>
+        <div class="style-sub">Maré · MINI</div>
+        <span class="sp sp-active">Active</span>
+        <div class="prog-wrap"><div class="prog-fill" style="width:30%;background:linear-gradient(90deg,var(--red),#f87171)"></div></div>
+      </td>
+      <td class="col-left sup-txt">KON</td>
+      <td><span class="cat-txt">TOP</span></td>
+      <td><span class="ndc-pill">Oct 26</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-late">!</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-over">✗</span></td>
+      <td class="ph-div"><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td class="ph-div"><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+    </tr>
+
+    <tr>
+      <td class="col-left">
+        <div class="style-num">E-279834</div>
+        <div class="style-sub">Sereno · WRAP</div>
+        <span class="sp sp-active">Active</span>
+        <div class="prog-wrap"><div class="prog-fill" style="width:90%"></div></div>
+      </td>
+      <td class="col-left sup-txt">ECICO</td>
+      <td><span class="cat-txt">TOP</span></td>
+      <td><span class="ndc-pill">Jul 26</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td class="ph-div"><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td class="ph-div"><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-next">→</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+    </tr>
+
+    <tr>
+      <td class="col-left">
+        <div class="style-num">G-280201</div>
+        <div class="style-sub">Carioca · MIDI</div>
+        <span class="sp sp-hold">On Hold</span>
+        <div class="prog-wrap"><div class="prog-fill" style="width:20%;background:linear-gradient(90deg,var(--orange),#fb923c)"></div></div>
+      </td>
+      <td class="col-left sup-txt">GAIA</td>
+      <td><span class="cat-txt">DRESS</span></td>
+      <td><span class="ndc-pill">Nov 26</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-over">✗</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td class="ph-div"><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td class="ph-div"><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+    </tr>
+
+    <tr class="cancelled">
+      <td class="col-left">
+        <div class="style-num">H-277001</div>
+        <div class="style-sub">Caribe · MINI</div>
+        <span class="sp sp-cancel">Cancelled</span>
+        <div class="prog-wrap"><div class="prog-fill" style="width:15%;background:#9ca3af"></div></div>
+      </td>
+      <td class="col-left sup-txt">HS FASHION</td>
+      <td><span class="cat-txt">DRESS</span></td>
+      <td><span class="ndc-pill">Dec 26</span></td>
+      <td><span class="ms ms-done">✓</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td class="ph-div"><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td class="ph-div"><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+      <td><span class="ms ms-empty">·</span></td>
+    </tr>
+
+  </tbody>
+</table>
+</div>
+
+<script>
+// Close dropdowns when clicking outside
+document.addEventListener('click', e => {
+  document.querySelectorAll('.ms-filter.open').forEach(f => {
+    if (!f.contains(e.target)) f.classList.remove('open');
+  });
+});
+
+function toggleFilter(id) {
+  const el = document.getElementById(id);
+  const wasOpen = el.classList.contains('open');
+  document.querySelectorAll('.ms-filter.open').forEach(f => f.classList.remove('open'));
+  if (!wasOpen) el.classList.add('open');
+}
+
+function toggleOpt(el) {
+  el.classList.toggle('checked');
+  updateCount(el.dataset.group);
+}
+
+function toggleAll(group) {
+  const opts = document.querySelectorAll(`[data-group="${group}"]`);
+  const allChecked = [...opts].every(o => o.classList.contains('checked'));
+  opts.forEach(o => o.classList.toggle('checked', !allChecked));
+  updateCount(group);
+}
+
+function updateCount(group) {
+  const checked = document.querySelectorAll(`[data-group="${group}"].checked`).length;
+  const total   = document.querySelectorAll(`[data-group="${group}"]`).length;
+  const filterId = 'f-' + group;
+  const btn = document.querySelector(`#${filterId} .ms-btn`);
+  const countEl = document.getElementById(`${filterId}-count`);
+  countEl.textContent = checked;
+  btn.classList.toggle('has-selection', checked > 0 && checked < total);
+  btn.classList.toggle('active', checked > 0 && checked < total);
+}
+</script>
+</body>
+</html>
