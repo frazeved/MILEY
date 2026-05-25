@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Support Requests — 305 Workspace</title>
+<style>
+  :root {
+    --accent:#e11d48;--accent-hover:#be123c;--accent-light:#fff1f2;
+    --text:#1a1d23;--text-secondary:#6b7280;--text-muted:#9ca3af;
+    --bg:#f8f9fc;--surface:#fff;--border:#e5e7eb;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+  nav{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:52px;background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
+  .nav-brand{font-size:15px;font-weight:800;letter-spacing:-.3px;}
+  .nav-brand span{color:var(--accent);}
+  .nav-back{display:flex;align-items:center;gap:5px;font-family:inherit;font-size:12px;font-weight:600;color:var(--text-secondary);background:none;border:none;cursor:pointer;padding:5px 8px;border-radius:6px;transition:background .15s,color .15s;}
+  .nav-back:hover{background:var(--bg);color:var(--text);}
+  .page{max-width:860px;margin:0 auto;padding:24px 16px;}
+  .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
+  .page-title{font-size:20px;font-weight:800;letter-spacing:-.3px;}
+  .page-sub{font-size:12px;color:var(--text-secondary);margin-top:3px;}
+  .badge-unread{display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-size:11px;font-weight:700;border-radius:20px;padding:2px 10px;margin-left:8px;}
+  .btn-refresh{display:flex;align-items:center;gap:6px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;font-family:inherit;font-size:12px;font-weight:600;color:var(--text-secondary);cursor:pointer;transition:background .15s;}
+  .btn-refresh:hover{background:#eaecf2;}
+  .filter-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  .f-btn{font-family:inherit;font-size:12px;font-weight:600;padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:#fff;color:var(--text-secondary);cursor:pointer;transition:all .15s;}
+  .f-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .f-btn:hover:not(.active){background:var(--bg);}
+  .sr-list{display:flex;flex-direction:column;gap:12px;}
+  .sr-card{background:#fff;border:1.5px solid var(--border);border-radius:14px;overflow:hidden;transition:box-shadow .15s;}
+  .sr-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.07);}
+  .sr-card.status-open{border-left:4px solid var(--accent);}
+  .sr-card.status-read{border-left:4px solid #9ca3af;}
+  .sr-card.status-replied{border-left:4px solid #16a34a;}
+  .sr-head{display:flex;align-items:flex-start;justify-content:space-between;padding:14px 16px 10px;gap:10px;}
+  .sr-meta{display:flex;flex-direction:column;gap:3px;}
+  .sr-id{font-size:10px;font-weight:700;color:var(--text-secondary);letter-spacing:.4px;}
+  .sr-user{font-size:13px;font-weight:700;color:var(--text);}
+  .sr-date{font-size:10px;color:var(--text-muted);}
+  .sr-status{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
+  .st-open{background:#fff1f2;color:#e11d48;}
+  .st-read{background:#f3f4f6;color:#6b7280;}
+  .st-replied{background:#dcfce7;color:#16a34a;}
+  .sr-msg{padding:0 16px 12px;font-size:13px;color:var(--text);line-height:1.6;white-space:pre-wrap;}
+  .sr-reply-section{background:#f8f9fc;border-top:1px solid var(--border);padding:12px 16px;}
+  .sr-reply-existing{font-size:12px;color:#166534;background:#dcfce7;border-radius:8px;padding:8px 12px;margin-bottom:8px;line-height:1.5;}
+  .sr-reply-lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text-secondary);margin-bottom:4px;}
+  .sr-reply-input{width:100%;font-family:inherit;font-size:12px;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;resize:vertical;min-height:60px;outline:none;transition:border-color .15s;}
+  .sr-reply-input:focus{border-color:var(--accent);}
+  .sr-reply-actions{display:flex;justify-content:flex-end;margin-top:8px;}
+  .btn-send-reply{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:background .15s;}
+  .btn-send-reply:hover{background:var(--accent-hover);}
+  .btn-send-reply:disabled{opacity:.6;cursor:not-allowed;}
+  .empty-state{text-align:center;padding:60px 20px;color:var(--text-muted);}
+  .empty-state svg{opacity:.3;margin-bottom:12px;}
+  .empty-state p{font-size:14px;font-weight:600;}
+  .loading{text-align:center;padding:48px;color:var(--text-muted);font-size:13px;}
+  /* Notification pop-up */
+  .notif-banner{position:fixed;bottom:20px;right:20px;background:#1a1d23;color:#fff;border-radius:14px;padding:14px 18px;max-width:320px;box-shadow:0 8px 32px rgba(0,0,0,.25);z-index:9999;animation:slide-up .3s ease;display:none;}
+  .notif-banner.show{display:flex;align-items:flex-start;gap:12px;}
+  .notif-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:3px;}
+  .notif-text{flex:1;}
+  .notif-title{font-size:13px;font-weight:700;margin-bottom:2px;}
+  .notif-sub{font-size:11px;color:rgba(255,255,255,.65);}
+  .notif-close{background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:16px;line-height:1;padding:0;flex-shrink:0;}
+  @keyframes slide-up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  @media(max-width:640px){
+    .page{padding:16px 12px;}
+    .sr-head{flex-direction:column;gap:6px;}
+    .page-header{flex-direction:column;align-items:flex-start;}
+  }
+</style>
+</head>
+<body>
+<nav>
+  <button class="nav-back" onclick="history.length>1?history.back():location.href='/'">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Back
+  </button>
+  <div class="nav-brand">305 <span>Workspace</span></div>
+  <div style="width:60px"></div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">
+        Support Requests
+        <span class="badge-unread" id="unread-badge" style="display:none"></span>
+      </div>
+      <div class="page-sub">Messages from the team — reply directly here</div>
+    </div>
+    <button class="btn-refresh" onclick="loadRequests()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Refresh
+    </button>
+  </div>
+
+  <div class="filter-bar">
+    <button class="f-btn active" data-filter="all" onclick="setFilter(this,'all')">All</button>
+    <button class="f-btn" data-filter="Open" onclick="setFilter(this,'Open')">New</button>
+    <button class="f-btn" data-filter="Read" onclick="setFilter(this,'Read')">Read</button>
+    <button class="f-btn" data-filter="Replied" onclick="setFilter(this,'Replied')">Replied</button>
+  </div>
+
+  <div id="sr-list" class="sr-list">
+    <div class="loading">Loading requests…</div>
+  </div>
+</div>
+
+<!-- Notification banner -->
+<div class="notif-banner" id="notif-banner">
+  <div class="notif-dot"></div>
+  <div class="notif-text">
+    <div class="notif-title" id="notif-title"></div>
+    <div class="notif-sub" id="notif-sub"></div>
+  </div>
+  <button class="notif-close" onclick="dismissNotif()">&#x2715;</button>
+</div>
+
+<script src="/auth.js"></script>
+<script>
+let _allRows = [];
+let _filter  = 'all';
+
+async function loadRequests() {
+  document.getElementById('sr-list').innerHTML = '<div class="loading">Loading…</div>';
+  try {
+    const res  = await fetch('/api/support/list');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    _allRows = data.rows.reverse(); // newest first
+    await fetch('/api/support/mark-read', { method: 'POST' }); // mark Open → Read
+    render();
+  } catch (e) {
+    document.getElementById('sr-list').innerHTML = `<div class="empty-state"><p>Error: ${e.message}</p></div>`;
+  }
+}
+
+function setFilter(el, f) {
+  _filter = f;
+  document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+function render() {
+  const rows = _filter === 'all' ? _allRows : _allRows.filter(r => r.status === _filter);
+  const unread = _allRows.filter(r => r.status === 'Open').length;
+  const badge = document.getElementById('unread-badge');
+  if (unread > 0) { badge.textContent = unread; badge.style.display = 'inline-flex'; }
+  else badge.style.display = 'none';
+
+  if (!rows.length) {
+    document.getElementById('sr-list').innerHTML = `
+      <div class="empty-state">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <p>No ${_filter === 'all' ? '' : _filter.toLowerCase() + ' '}requests</p>
+      </div>`;
+    return;
+  }
+
+  document.getElementById('sr-list').innerHTML = rows.map(r => `
+    <div class="sr-card status-${r.status.toLowerCase()}">
+      <div class="sr-head">
+        <div class="sr-meta">
+          <div class="sr-id">${esc(r.id)}</div>
+          <div class="sr-user">${esc(r.userName)} <span style="font-weight:400;color:var(--text-secondary);font-size:11px">&lt;${esc(r.userEmail)}&gt;</span></div>
+          <div class="sr-date">${esc(r.date)}</div>
+        </div>
+        <span class="sr-status st-${r.status.toLowerCase()}">${esc(r.status)}</span>
+      </div>
+      <div class="sr-msg">${esc(r.message)}</div>
+      <div class="sr-reply-section">
+        ${r.reply ? `<div class="sr-reply-lbl">Your reply · ${esc(r.replyDate)}</div><div class="sr-reply-existing">${esc(r.reply)}</div>` : ''}
+        <div class="sr-reply-lbl">${r.reply ? 'Update reply' : 'Reply'}</div>
+        <textarea class="sr-reply-input" id="reply-${esc(r.id)}" rows="2" placeholder="Type your reply…">${esc(r.reply)}</textarea>
+        <div class="sr-reply-actions">
+          <button class="btn-send-reply" id="rbtn-${esc(r.id)}" onclick="sendReply('${esc(r.id)}')">Send Reply</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+async function sendReply(id) {
+  const ta  = document.getElementById('reply-' + id);
+  const btn = document.getElementById('rbtn-' + id);
+  const reply = ta.value.trim();
+  if (!reply) { ta.focus(); return; }
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    const res  = await fetch('/api/support/reply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, reply }) });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    const row = _allRows.find(r => r.id === id);
+    if (row) { row.status = 'Replied'; row.reply = reply; }
+    render();
+  } catch (e) {
+    alert('Error: ' + e.message);
+    btn.disabled = false; btn.textContent = 'Send Reply';
+  }
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function dismissNotif() {
+  document.getElementById('notif-banner').classList.remove('show');
+}
+
+// On load — fetch and show notification if unread
+async function checkNotifications() {
+  if (sessionStorage.getItem('supportNotifShown')) return;
+  try {
+    const res  = await fetch('/api/support/notifications');
+    const data = await res.json();
+    if (data.ok && data.unread > 0) {
+      document.getElementById('notif-title').textContent = `${data.unread} new support request${data.unread > 1 ? 's' : ''}`;
+      document.getElementById('notif-sub').textContent   = 'Tap to view — they\'re listed below';
+      document.getElementById('notif-banner').classList.add('show');
+      sessionStorage.setItem('supportNotifShown', '1');
+      setTimeout(dismissNotif, 6000);
+    }
+  } catch {}
+}
+
+loadRequests();
+checkNotifications();
+</script>
+</body>
+</html>

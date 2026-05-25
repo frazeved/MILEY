@@ -375,7 +375,8 @@
       <a class="nav-menu-item" href="forecast.html">Forecast</a>
       <a class="nav-menu-item" href="tradestone.html">Tradestone Updates</a>
       <a class="nav-menu-item" href="rlm.html">RLM Updates</a>
-      <a class="nav-menu-item" href="dhl.html">DHL Duties Cost</a>    </div>
+      <a class="nav-menu-item" href="dhl.html">DHL Duties Cost</a>
+      <a class="nav-menu-item admin-only" href="support.html" style="display:none">Support Requests</a>    </div>
   </div>
 </nav>
 
@@ -410,8 +411,6 @@
       </div>
       <div class="chat-body" id="chat-body">
         <div class="chat-bubble">Hi! Leave a message and the team will get back to you.</div>
-        <div class="chat-field"><label>Your name</label><input id="chat-name" type="text" placeholder="Jane Smith" /></div>
-        <div class="chat-field"><label>Email (optional)</label><input id="chat-email" type="email" placeholder="jane@company.com" /></div>
         <div class="chat-field"><label>Message</label><textarea id="chat-message" rows="3" placeholder="How can I help you?"></textarea></div>
         <button class="chat-send" id="chat-send-btn" onclick="sendChat()">Send Message</button>
       </div>
@@ -652,14 +651,12 @@ document.addEventListener('click', function(e) {
 });
 function toggleChat() { document.getElementById('chat-panel').classList.toggle('open'); }
 async function sendChat() {
-  const name = document.getElementById('chat-name').value.trim();
-  const email = document.getElementById('chat-email').value.trim();
   const message = document.getElementById('chat-message').value.trim();
-  if (!name || !message) { alert('Please enter your name and message.'); return; }
+  if (!message) { alert('Please enter a message.'); return; }
   const btn = document.getElementById('chat-send-btn');
   btn.disabled = true; btn.textContent = 'Sending...';
   try {
-    const res = await fetch('/api/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email, message }) });
+    const res = await fetch('/api/support/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message }) });
     if (!res.ok) throw new Error();
     document.getElementById('chat-body').style.display = 'none';
     document.getElementById('chat-success').style.display = 'block';
@@ -781,6 +778,17 @@ async function saveTimeline() {
   }
 }
 
+// Show admin-only UI elements if current user is admin
+(async function initAdminUI() {
+  try {
+    const res  = await fetch('/api/me');
+    const data = await res.json();
+    if (data?.role === 'admin') {
+      document.querySelectorAll('.admin-only').forEach(el => el.style.display = '');
+    }
+  } catch {}
+})();
+
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -789,6 +797,42 @@ function showToast(msg) {
 }
 </script>
 <script src="/auth.js"></script>
+
+<!-- Support Notification Banner -->
+<div id="support-notif" style="display:none;position:fixed;bottom:20px;right:20px;background:#1a1d23;color:#fff;border-radius:14px;padding:14px 18px;max-width:300px;box-shadow:0 8px 32px rgba(0,0,0,.25);z-index:9999;display:none;align-items:flex-start;gap:12px;animation:slide-up .3s ease">
+  <div style="width:10px;height:10px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:3px"></div>
+  <div style="flex:1">
+    <div id="notif-title" style="font-size:13px;font-weight:700;margin-bottom:2px"></div>
+    <div id="notif-sub" style="font-size:11px;color:rgba(255,255,255,.65)"></div>
+    <a href="/support.html" style="display:inline-block;margin-top:6px;font-size:11px;font-weight:700;color:var(--accent);text-decoration:none;">View requests →</a>
+  </div>
+  <button onclick="document.getElementById('support-notif').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:16px;line-height:1;padding:0;flex-shrink:0">&#x2715;</button>
+</div>
+<script>
+(async function checkSupportNotif() {
+  if (sessionStorage.getItem('supportNotifShown')) return;
+  try {
+    const res  = await fetch('/api/support/notifications');
+    const data = await res.json();
+    if (!data.ok) return;
+    const el = document.getElementById('support-notif');
+    if (data.role === 'admin' && data.unread > 0) {
+      document.getElementById('notif-title').textContent = `${data.unread} new support request${data.unread > 1 ? 's' : ''}`;
+      document.getElementById('notif-sub').textContent   = 'From your team — click to reply';
+      el.style.display = 'flex';
+      sessionStorage.setItem('supportNotifShown', '1');
+      setTimeout(() => { el.style.display = 'none'; }, 8000);
+    } else if (data.role === 'user' && data.unread > 0) {
+      document.getElementById('notif-title').textContent = `You have ${data.unread} new repl${data.unread > 1 ? 'ies' : 'y'}`;
+      document.getElementById('notif-sub').textContent   = 'Flavio replied to your message';
+      el.style.display = 'flex';
+      sessionStorage.setItem('supportNotifShown', '1');
+      fetch('/api/support/mark-seen', { method: 'POST' });
+      setTimeout(() => { el.style.display = 'none'; }, 8000);
+    }
+  } catch {}
+})();
+</script>
 
 <!-- ADD STEP MODAL -->
 <div class="add-overlay" id="add-overlay" onclick="if(event.target===this)closeAddModal()">

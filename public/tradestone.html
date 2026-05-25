@@ -997,10 +997,17 @@ function toggleChat() {
 }
 
 async function sendChat() {
-  const name = document.getElementById('chat-name').value.trim();
-  const email = document.getElementById('chat-email').value.trim();
   const message = document.getElementById('chat-message').value.trim();
-  if (!name || !message) { alert('Please enter your name and message.'); return; }
+  if (!message) { alert('Please enter a message.'); return; }
+  const btn = document.getElementById('chat-send-btn');
+  btn.disabled = true; btn.textContent = 'Sending...';
+  try {
+    const res = await fetch('/api/support/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message }) });
+    if (!res.ok) throw new Error();
+    document.getElementById('chat-body').style.display = 'none';
+    document.getElementById('chat-success').style.display = 'block';
+  } catch { btn.disabled = false; btn.textContent = 'Send Message'; alert('Could not send. Please try again.'); }
+}
 
   const btn = document.getElementById('chat-send-btn');
   btn.disabled = true;

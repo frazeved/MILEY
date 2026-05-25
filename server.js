@@ -1450,6 +1450,164 @@ app.post('/api/contact', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ─── Current user info ────────────────────────────────────────────────────────
+app.get('/api/me', (req, res) => {
+  const u = req.session?.user;
+  if (!u) return res.status(401).json({ error: 'Not authenticated' });
+  res.json({ name: u.name, email: u.email, role: u.role });
+});
+
+// ─── Support Messaging System ────────────────────────────────────────────────
+const SUPPORT_TAB = 'SUPPORT REQUESTS';
+
+async function getSupportSheets() {
+  const sa   = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+  const auth = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+  return google.sheets({ version: 'v4', auth });
+}
+
+async function ensureSupportTab(sheets) {
+  const meta = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
+  const exists = meta.data.sheets?.some(s => s.properties?.title === SUPPORT_TAB);
+  if (!exists) {
+    await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { requests: [{ addSheet: { properties: { title: SUPPORT_TAB } } }] } });
+    await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID, range: `'${SUPPORT_TAB}'!A1`, valueInputOption: 'RAW', requestBody: { values: [['ID','Date','User Name','User Email','Message','Status','Reply','Reply Date','Reply Seen']] } });
+  }
+}
+
+// POST /api/support/send — logged-in user sends a message
+app.post('/api/support/send', async (req, res) => {
+  const user = req.session?.user;
+  if (!user) return res.status(401).json({ error: 'Not authenticated' });
+  const { message } = req.body || {};
+  if (!message?.trim()) return res.status(400).json({ error: 'Message required' });
+  try {
+    const sheets = await getSupportSheets();
+    await ensureSupportTab(sheets);
+    const existing = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${SUPPORT_TAB}'!A:A` });
+    const rows = existing.data.values || [];
+    const nextId = rows.length; // row 1 = header, so length = next ID
+    const now = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SHEET_ID, range: `'${SUPPORT_TAB}'!A:I`, valueInputOption: 'RAW', insertDataOption: 'INSERT_ROWS',
+      requestBody: { values: [[`SR-${String(nextId).padStart(4,'0')}`, now, user.name, user.email, message.trim(), 'Open', '', '', '']] },
+    });
+    res.json({ ok: true });
+  } catch (e) { console.error('[support/send]', e.message); res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/support/list — admin only, returns all messages
+app.get('/api/support/list', async (req, res) => {
+  if (req.session?.user?.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+  try {
+    const sheets = await getSupportSheets();
+    await ensureSupportTab(sheets);
+    const r = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${SUPPORT_TAB}'!A:I` });
+    const rows = (r.data.values || []).slice(1).map(row => ({
+      id:        row[0] || '',
+      date:      row[1] || '',
+      userName:  row[2] || '',
+      userEmail: row[3] || '',
+      message:   row[4] || '',
+      status:    row[5] || 'Open',
+      reply:     row[6] || '',
+      replyDate: row[7] || '',
+      replySeen: row[8] || '',
+    }));
+    res.json({ ok: true, rows });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/support/reply — admin sends reply to a message
+app.post('/api/support/reply', async (req, res) => {
+  if (req.session?.user?.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+  const { id, reply } = req.body || {};
+  if (!id || !reply?.trim()) return res.status(400).json({ error: 'id and reply required' });
+  try {
+    const sheets = await getSupportSheets();
+    const r = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${SUPPORT_TAB}'!A:A` });
+    const rows = r.data.values || [];
+    const rowIdx = rows.findIndex(row => row[0] === id);
+    if (rowIdx < 1) return res.status(404).json({ error: 'Request not found' });
+    const sheetRow = rowIdx + 1;
+    const now = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+    await sheets.spreadsheets.values.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { valueInputOption: 'RAW', data: [
+      { range: `'${SUPPORT_TAB}'!F${sheetRow}`, values: [['Replied']] },
+      { range: `'${SUPPORT_TAB}'!G${sheetRow}`, values: [[reply.trim()]] },
+      { range: `'${SUPPORT_TAB}'!H${sheetRow}`, values: [[now]] },
+      { range: `'${SUPPORT_TAB}'!I${sheetRow}`, values: [['']] },
+    ]}});
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/support/notifications — returns unread counts for current user
+app.get('/api/support/notifications', async (req, res) => {
+  const user = req.session?.user;
+  if (!user) return res.status(401).json({ error: 'Not authenticated' });
+  try {
+    const sheets = await getSupportSheets();
+    await ensureSupportTab(sheets);
+    const r = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${SUPPORT_TAB}'!A:I` });
+    const rows = (r.data.values || []).slice(1);
+    if (user.role === 'admin') {
+      const unread = rows.filter(row => (row[5] || 'Open') === 'Open').length;
+      return res.json({ ok: true, unread, role: 'admin' });
+    } else {
+      const unread = rows.filter(row =>
+        (row[3] || '').toLowerCase() === user.email.toLowerCase() &&
+        (row[6] || '') !== '' &&
+        (row[8] || '') !== 'Yes'
+      ).length;
+      return res.json({ ok: true, unread, role: 'user' });
+    }
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/support/mark-seen — mark reply as seen by user
+app.post('/api/support/mark-seen', async (req, res) => {
+  const user = req.session?.user;
+  if (!user) return res.status(401).json({ error: 'Not authenticated' });
+  try {
+    const sheets = await getSupportSheets();
+    const r = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${SUPPORT_TAB}'!A:I` });
+    const rows = r.data.values || [];
+    const updates = [];
+    rows.forEach((row, i) => {
+      if (i === 0) return;
+      const isOwner = (row[3] || '').toLowerCase() === user.email.toLowerCase();
+      const hasReply = (row[6] || '') !== '';
+      const notSeen  = (row[8] || '') !== 'Yes';
+      if (isOwner && hasReply && notSeen) {
+        updates.push({ range: `'${SUPPORT_TAB}'!I${i + 1}`, values: [['Yes']] });
+      }
+    });
+    if (updates.length) {
+      await sheets.spreadsheets.values.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { valueInputOption: 'RAW', data: updates } });
+    }
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/support/mark-read — admin marks Open messages as Read
+app.post('/api/support/mark-read', async (req, res) => {
+  if (req.session?.user?.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+  try {
+    const sheets = await getSupportSheets();
+    const r = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${SUPPORT_TAB}'!A:F` });
+    const rows = r.data.values || [];
+    const updates = [];
+    rows.forEach((row, i) => {
+      if (i === 0) return;
+      if ((row[5] || 'Open') === 'Open') updates.push({ range: `'${SUPPORT_TAB}'!F${i + 1}`, values: [['Read']] });
+    });
+    if (updates.length) {
+      await sheets.spreadsheets.values.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { valueInputOption: 'RAW', data: updates } });
+    }
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ─── FedEx Validation Email Draft ────────────────────────────────────────────
 app.post('/api/fedex/validation-draft', async (req, res) => {
   try {
