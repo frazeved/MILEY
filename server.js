@@ -4327,6 +4327,7 @@ app.post('/api/miley/timeline/update', async (req, res) => {
 
 // ─── Miley: Gantt Chart Data ─────────────────────────────────────────────────
 const GANTT_MILESTONES = ['INT PRES','BYR PRES','BYR APPROV','TP SENT','PRINT','PROTO','PROTO COMM','SMS SUPP','COLOR','SMS ANTHRO','PO ISSUED','OFF PO','1ST FIT','2ND FIT','PHOTO','PI'];
+const GANTT_PLANNING   = ['COST','DUTY','PRICE WHOLESALE','FINAL NDC','EX FACTORY / FLIGHT DATE'];
 
 function ganttParseDate(s) {
   if (!s) return null;
@@ -4342,20 +4343,23 @@ function ganttParseDate(s) {
 function ganttExtractNdcMonth(ndcStr) {
   if (!ndcStr) return null;
   const s = String(ndcStr).trim().toLowerCase();
-  const map = { jan:1,january:1,feb:2,february:2,mar:3,march:3,apr:4,april:4,may:5,jun:6,june:6,jul:7,july:7,aug:8,august:8,sep:9,september:9,oct:10,october:10,nov:11,november:11,dec:12,december:12 };
+  const map = { january:1,jan:1,february:2,feb:2,march:3,mar:3,april:4,apr:4,may:5,june:6,jun:6,july:7,jul:7,august:8,aug:8,september:9,sep:9,october:10,oct:10,november:11,nov:11,december:12,dec:12 };
   for (const [k, v] of Object.entries(map)) { if (s.includes(k)) return v; }
+  const d = new Date(ndcStr);
+  if (!isNaN(d.getTime())) return d.getMonth() + 1;
   const dm = s.match(/^(\d{1,2})\//);
   if (dm) return parseInt(dm[1]);
   return null;
 }
 
+// Substring-includes based column finder (same pattern used throughout the codebase)
 function ganttFindCol(headers, ...candidates) {
+  const H = headers.map(h => (h || '').trim().toLowerCase());
   for (const c of candidates) {
-    const cn = c.trim().toUpperCase();
-    let idx = headers.indexOf(cn);
+    const cn = c.trim().toLowerCase();
+    let idx = H.findIndex(h => h === cn);          // exact match first
     if (idx >= 0) return idx;
-    const norm = cn.replace(/[\s\-_.#\/]/g, '');
-    idx = headers.findIndex(h => h.replace(/[\s\-_.#\/]/g, '') === norm);
+    idx = H.findIndex(h => h.includes(cn));         // substring match
     if (idx >= 0) return idx;
   }
   return -1;
@@ -4378,7 +4382,7 @@ app.get('/api/miley/gantt', async (req, res) => {
     const tlMap = {};
     const tlRows = tlRes.data.values || [];
     for (let i = 1; i < tlRows.length; i++) {
-      const r = tlRows[i];
+      const r    = tlRows[i];
       const step = (r[1] || '').trim().toUpperCase();
       if (!step) continue;
       tlMap[step] = {};
@@ -4389,59 +4393,71 @@ app.get('/api/miley/gantt', async (req, res) => {
     }
 
     const dbRows = dbRes.data.values || [];
-    if (dbRows.length < 2) return res.json({ milestones: GANTT_MILESTONES, styles: [] });
+    if (dbRows.length < 2) return res.json({ milestones: GANTT_MILESTONES, planning: GANTT_PLANNING, styles: [] });
 
-    const headers = dbRows[0].map(h => (h || '').trim().toUpperCase());
+    // Use raw headers (not uppercased) — ganttFindCol lowercases internally
+    const headers = dbRows[0].map(h => (h || '').trim());
 
-    const styleCol    = ganttFindCol(headers, 'STYLE #', 'STYLE#', 'STYLE');
-    const supplierCol = ganttFindCol(headers, 'SUPPLIER');
-    const brandCol    = ganttFindCol(headers, 'BRAND');
-    const categoryCol = ganttFindCol(headers, 'CATEGORY');
-    const subCatCol   = ganttFindCol(headers, 'SUB-CATEGORY', 'SUBCATEGORY', 'SUB CATEGORY');
-    const ndcCol      = ganttFindCol(headers, 'NDC');
-    const finalNdcCol = ganttFindCol(headers, 'FINAL NDC', 'FINAL N.D.C.', 'FINALNDC');
-    const yearCol     = ganttFindCol(headers, 'YEAR');
-    const statusCol   = ganttFindCol(headers, 'STATUS');
-    const notesCol    = ganttFindCol(headers, 'NOTES');
-    const notes2Col   = ganttFindCol(headers, 'NOTES 2', 'NOTES2');
-    const poStatusCol = ganttFindCol(headers, 'PO STATUS', 'POSTATUS');
-    const fabricCol   = ganttFindCol(headers, 'FABRIC');
-    const freightCol  = ganttFindCol(headers, 'FREIGHT');
-    const costCol     = ganttFindCol(headers, 'COST');
-    const htsCol      = ganttFindCol(headers, 'HTS CODE', 'HTS');
-    const dutyCol     = ganttFindCol(headers, 'DUTY');
-    const pwNotesCol  = ganttFindCol(headers, 'PRICE WHOLESALE NOTES', 'WHOLESALE NOTES');
+    const styleCol    = ganttFindCol(headers, 'original style#', 'original style', 'style #', 'style#', 'style');
+    const supplierCol = ganttFindCol(headers, 'supplier');
+    const brandCol    = ganttFindCol(headers, 'brand');
+    const categoryCol = ganttFindCol(headers, 'category');
+    const subCatCol   = ganttFindCol(headers, 'sub-category', 'subcategory', 'sub category');
+    const ndcCol      = ganttFindCol(headers, 'ndc month/year', 'ndc month', 'ndc');
+    const finalNdcCol = ganttFindCol(headers, 'final ndc', 'final n.d.c.');
+    const yearCol     = ganttFindCol(headers, 'year');
+    const statusCol   = ganttFindCol(headers, 'status');
+    const notesCol    = ganttFindCol(headers, 'notes');
+    const notes2Col   = ganttFindCol(headers, 'notes 2', 'notes2');
+    const poStatusCol = ganttFindCol(headers, 'po status');
+    const fabricCol   = ganttFindCol(headers, 'fabric');
+    const freightCol  = ganttFindCol(headers, 'freight');
+    const costCol     = ganttFindCol(headers, 'cost');
+    const htsCol      = ganttFindCol(headers, 'hts code', 'hts');
+    const dutyCol     = ganttFindCol(headers, 'duty');
+    const pwNotesCol  = ganttFindCol(headers, 'price wholesale notes', 'wholesale notes');
+    const exFactoryCol = ganttFindCol(headers, 'ex factory / flight date', 'ex factory', 'flight date');
+    const priceWhCol  = ganttFindCol(headers, 'price wholesale');
 
-    // Find milestone columns
+    // Milestone columns — exact match then substring
     const milestoneCols = {};
     for (const ms of GANTT_MILESTONES) {
-      let idx = ganttFindCol(headers, ms);
-      if (idx < 0) idx = headers.findIndex(h => h.replace(/\s+/g, '') === ms.replace(/\s+/g, ''));
-      milestoneCols[ms] = idx;
+      milestoneCols[ms] = ganttFindCol(headers, ms);
     }
+    // Planning columns
+    const planningCols = {};
+    for (const pl of GANTT_PLANNING) {
+      planningCols[pl] = ganttFindCol(headers, pl);
+    }
+    // Override planning cols that need more specific lookup
+    planningCols['EX FACTORY / FLIGHT DATE'] = exFactoryCol;
+    planningCols['PRICE WHOLESALE']           = priceWhCol >= 0 ? priceWhCol : ganttFindCol(headers, 'price wholesale');
+    planningCols['COST']                      = costCol;
+    planningCols['DUTY']                      = dutyCol;
+    planningCols['FINAL NDC']                 = finalNdcCol;
 
+    const g = (row, ci) => ci >= 0 ? (row[ci] || '').toString().trim() : '';
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const styles = [];
 
     for (let i = 1; i < dbRows.length; i++) {
       const r     = dbRows[i];
-      const style = styleCol >= 0 ? (r[styleCol] || '').trim() : '';
+      const style = g(r, styleCol);
       if (!style) continue;
 
-      const ndcRaw   = ndcCol >= 0 ? (r[ndcCol] || '') : '';
+      const ndcRaw   = g(r, ndcCol);
       const ndcMonth = ganttExtractNdcMonth(ndcRaw);
-      const yearRaw  = yearCol >= 0 ? (r[yearCol] || '') : '';
+      const yearRaw  = g(r, yearCol);
       const yearMatch = (yearRaw || ndcRaw).match(/\b(20\d\d)\b/);
-      const ndcYear  = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
+      const ndcYear   = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
 
       const milestones = {};
       let doneCount = 0;
 
       for (const ms of GANTT_MILESTONES) {
-        const ci       = milestoneCols[ms];
-        const actual   = ci >= 0 ? (r[ci] || '').trim() : '';
-        const deadline = (ndcMonth && tlMap[ms]) ? (tlMap[ms][ndcMonth] || null) : null;
-        const actualDate = ganttParseDate(actual);
+        const actual      = g(r, milestoneCols[ms]);
+        const deadline    = (ndcMonth && tlMap[ms]) ? (tlMap[ms][ndcMonth] || null) : null;
+        const actualDate  = ganttParseDate(actual);
         let status = 'empty';
 
         if (actualDate) {
@@ -4459,32 +4475,40 @@ app.get('/api/miley/gantt', async (req, res) => {
         };
       }
 
+      // Planning phase — filled or empty
+      const planning = {};
+      for (const pl of GANTT_PLANNING) {
+        const val = g(r, planningCols[pl]);
+        planning[pl] = { value: val, status: val ? 'filled' : 'empty' };
+      }
+
       styles.push({
         style,
-        supplier:            supplierCol >= 0  ? (r[supplierCol] || '').trim()  : '',
-        brand:               brandCol >= 0     ? (r[brandCol] || '').trim()     : '',
-        category:            categoryCol >= 0  ? (r[categoryCol] || '').trim()  : '',
-        subCategory:         subCatCol >= 0    ? (r[subCatCol] || '').trim()    : '',
-        ndc:                 ndcRaw.trim(),
-        finalNdc:            finalNdcCol >= 0  ? (r[finalNdcCol] || '').trim()  : '',
+        supplier:    g(r, supplierCol),
+        brand:       g(r, brandCol),
+        category:    g(r, categoryCol),
+        subCategory: g(r, subCatCol),
+        ndc:         ndcRaw,
+        finalNdc:    g(r, finalNdcCol),
         ndcMonth,
         ndcYear,
-        status:              statusCol >= 0    ? (r[statusCol] || '').trim()    : '',
-        notes:               notesCol >= 0     ? (r[notesCol] || '').trim()     : '',
-        notes2:              notes2Col >= 0    ? (r[notes2Col] || '').trim()    : '',
-        poStatus:            poStatusCol >= 0  ? (r[poStatusCol] || '').trim()  : '',
-        fabric:              fabricCol >= 0    ? (r[fabricCol] || '').trim()    : '',
-        freight:             freightCol >= 0   ? (r[freightCol] || '').trim()   : '',
-        cost:                costCol >= 0      ? (r[costCol] || '').trim()      : '',
-        htsCode:             htsCol >= 0       ? (r[htsCol] || '').trim()       : '',
-        duty:                dutyCol >= 0      ? (r[dutyCol] || '').trim()      : '',
-        priceWholesaleNotes: pwNotesCol >= 0   ? (r[pwNotesCol] || '').trim()   : '',
+        status:      g(r, statusCol),
+        notes:       g(r, notesCol),
+        notes2:      g(r, notes2Col),
+        poStatus:    g(r, poStatusCol),
+        fabric:      g(r, fabricCol),
+        freight:     g(r, freightCol),
+        cost:        g(r, costCol),
+        htsCode:     g(r, htsCol),
+        duty:        g(r, dutyCol),
+        priceWholesaleNotes: g(r, pwNotesCol),
         milestones,
+        planning,
         progress: Math.round(doneCount / GANTT_MILESTONES.length * 100),
       });
     }
 
-    res.json({ milestones: GANTT_MILESTONES, styles });
+    res.json({ milestones: GANTT_MILESTONES, planning: GANTT_PLANNING, styles });
   } catch (e) {
     console.error('[miley/gantt]', e.message);
     res.status(500).json({ error: e.message });
