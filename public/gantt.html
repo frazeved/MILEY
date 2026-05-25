@@ -528,19 +528,19 @@
           <colgroup>
             <col style="width:34px">
             <col style="width:96px">
-            <col style="width:68px">
-            <col style="width:58px">
-            <col style="width:42px">
-            <col><col><col><col><col>
-            <col><col><col><col><col>
-            <col><col><col><col><col>
-            <col><col><col><col><col><col>
+            <col style="width:64px">
+            <col style="width:54px">
+            <col style="width:40px">
+            <!-- design: 5 --><col><col><col><col><col>
+            <!-- sampling: 12 --><col><col><col><col><col><col><col><col><col><col><col><col>
+            <!-- planning: 5 --><col><col><col><col><col>
+            <!-- prod: 6 --><col><col><col><col><col><col>
           </colgroup>
           <thead>
             <tr class="g-ph-row">
               <th colspan="5" class="g-ph-i"></th>
               <th colspan="5" class="g-ph-d">— Design Phase —</th>
-              <th colspan="5" class="g-ph-s g-ph-div">— Sampling —</th>
+              <th colspan="12" class="g-ph-s g-ph-div">— Sampling —</th>
               <th colspan="5" class="g-ph-pl g-ph-div">— Planning &amp; Pricing —</th>
               <th colspan="6" class="g-ph-p g-ph-div">— PO &amp; Production —</th>
             </tr>
@@ -551,7 +551,7 @@
               <th>Category</th>
               <th>NDC</th>
               <th class="ms-hdr">INT PRES</th><th class="ms-hdr">BYER PRES</th><th class="ms-hdr">BYER APP</th><th class="ms-hdr">TP SUP</th><th class="ms-hdr">PRINT SUP</th>
-              <th class="ms-hdr g-ph-div">PROT SUP</th><th class="ms-hdr">PROT CANAN</th><th class="ms-hdr">SMS SUPP</th><th class="ms-hdr">COLOR</th><th class="ms-hdr">SMS ANTHRO</th>
+              <th class="ms-hdr g-ph-div">PROT SUP</th><th class="ms-hdr">PROT COMM</th><th class="ms-hdr">PROT CANAN</th><th class="ms-hdr">SMS IMAG</th><th class="ms-hdr">SMS IMAG APP</th><th class="ms-hdr">SMS SUP</th><th class="ms-hdr">SMS NYC</th><th class="ms-hdr">SMS SENT ANTHRO</th><th class="ms-hdr">TOP BY SUP</th><th class="ms-hdr">TOP SENT ANTHRO</th><th class="ms-hdr">TOP APPROVAL</th><th class="ms-hdr">PHOTO SAMP ANTHRO</th>
               <th class="ms-hdr g-ph-div">COST</th><th class="ms-hdr">DUTY</th><th class="ms-hdr">PRICE WS</th><th class="ms-hdr">FINAL NDC</th><th class="ms-hdr">EX FACTORY</th>
               <th class="ms-hdr g-ph-div">PO ISSUED</th><th class="ms-hdr">OFF PO</th><th class="ms-hdr">1ST FIT</th><th class="ms-hdr">2ND FIT</th><th class="ms-hdr">PHOTO</th><th class="ms-hdr">PI</th>
             </tr>
@@ -1054,7 +1054,7 @@ function renderGantt() {
   document.getElementById('gantt-count').textContent = `${filtered.length} Style${filtered.length !== 1 ? 's' : ''}`;
 
   const DESIGN_MS   = ['INT PRES','BYR PRES','BYR APPROV','TP SENT','PRINT'];
-  const SAMPLING_MS = ['PROTO','PROTO COMM','SMS SUPP','COLOR','SMS ANTHRO'];
+  const SAMPLING_MS = ['PROTO','PROTO COMM','PROTO CANAN','SMS IMAG','SMS IMAG APP','SMS SUP','SMS NYC','SMS ANTHRO','TOP SUP','TOP ANTHRO','TOP APPROV','PHOTO SAMP'];
   const PROD_MS     = ['PO ISSUED','OFF PO','1ST FIT','2ND FIT','PHOTO','PI'];
   const PL          = ['COST','DUTY','PRICE WHOLESALE','FINAL NDC','EX FACTORY / FLIGHT DATE'];
 
@@ -1138,7 +1138,8 @@ function openDet(idx) {
   set('det-duty',      s.duty || '');
   set('det-hts',       s.htsCode || '');
   const doneCount = Object.values(s.milestones).filter(m => m.status === 'done' || m.status === 'late').length;
-  set('det-progress',  `${s.progress}% complete (${doneCount}/16 steps)`);
+  const totalSteps = Object.values(s.milestones).filter(m => m.status !== 'proto-no').length;
+  set('det-progress',  `${s.progress}% complete (${doneCount}/${totalSteps} steps)`);
   set('det-pwnotes',   s.priceWholesaleNotes || '');
   set('det-notes',     s.notes || '');
   set('det-notes2',    s.notes2 || '');

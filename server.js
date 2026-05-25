@@ -4329,47 +4329,54 @@ app.post('/api/miley/timeline/update', async (req, res) => {
 // Each entry: key = internal ID, label = short display name, dbCols = actual DB column names to try (in order)
 // protoConditional: true = skip if "STYLE NEEDS PROTO?" column says NO
 const GANTT_MS_CONFIG = [
-  // ── Design Phase ──
-  { key: 'INT PRES',    label: 'INT PRES',   dbCols: ['INTERNAL PRESENTATION', 'INT PRES'] },
-  { key: 'BYR PRES',   label: 'BYER PRES',  dbCols: ['BUYER PRESENTATION', 'BYR PRES', 'BUYER PRES'] },
-  { key: 'BYR APPROV', label: 'BYER APP',   dbCols: ['BUYER APPROVAL', 'BYR APPROV', 'BUYER APPROV'] },
-  { key: 'TP SENT',    label: 'TP SUP',     dbCols: ['TP SENT TO SUPPLIER', 'TP SENT'] },
-  { key: 'PRINT',      label: 'PRINT SUP',  dbCols: ['PRINT SENT TO SUPPLIER', 'PRINT'] },
-  // ── Sampling Phase ──
-  { key: 'PROTO',      label: 'PROT SUP',   dbCols: ['PROTO SENT BY SUPPLIER', 'PROTO'], protoConditional: true },
-  { key: 'PROTO COMM', label: 'PROT CANAN', dbCols: ['PROTO SENT TO CANAN', 'PROTO COMM'], protoConditional: true },
-  { key: 'SMS SUPP',   label: 'SMS SUPP',   dbCols: ['SMS SUPP'] },
-  { key: 'COLOR',      label: 'COLOR',      dbCols: ['COLOR'] },
-  { key: 'SMS ANTHRO', label: 'SMS ANTHRO', dbCols: ['SMS ANTHRO'] },
-  // ── PO & Production ──
-  { key: 'PO ISSUED',  label: 'PO ISSUED',  dbCols: ['PO ISSUED BY ANTHRO', 'PO ISSUED'] },
-  { key: 'OFF PO',     label: 'OFF PO',     dbCols: ['OFF PO'] },
-  { key: '1ST FIT',    label: '1ST FIT',    dbCols: ['1ST FIT'] },
-  { key: '2ND FIT',    label: '2ND FIT',    dbCols: ['2ND FIT'] },
-  { key: 'PHOTO',      label: 'PHOTO',      dbCols: ['PHOTO'] },
-  { key: 'PI',         label: 'PI',         dbCols: ['PI'] },
+  // ── Design Phase (5) ──
+  { key: 'INT PRES',     label: 'INT PRES',            dbCols: ['INTERNAL PRESENTATION', 'INT PRES'] },
+  { key: 'BYR PRES',    label: 'BYER PRES',           dbCols: ['BUYER PRESENTATION', 'BYR PRES', 'BUYER PRES'] },
+  { key: 'BYR APPROV',  label: 'BYER APP',            dbCols: ['BUYER APPROVAL', 'BYR APPROV', 'BUYER APPROV'] },
+  { key: 'TP SENT',     label: 'TP SUP',              dbCols: ['TP SENT TO SUPPLIER', 'TP SENT'] },
+  { key: 'PRINT',       label: 'PRINT SUP',           dbCols: ['PRINT SENT TO SUPPLIER', 'PRINT'] },
+  // ── Sampling Phase (12) ──
+  { key: 'PROTO',       label: 'PROT SUP',            dbCols: ['PROTO SENT BY SUPPLIER', 'PROTO'],                   protoConditional: true },
+  { key: 'PROTO COMM',  label: 'PROT COMM',           dbCols: ['PROTO COMMENTS SENT TO SUPPLIER', 'PROTO COMM'],      protoConditional: true },
+  { key: 'PROTO CANAN', label: 'PROT CANAN',          dbCols: ['PROTO SENT TO CANAN', 'PROTO CANAN'],                 protoConditional: true },
+  { key: 'SMS IMAG',    label: 'SMS IMAG',            dbCols: ['SMS IMAGES', 'SMS IMAG'] },
+  { key: 'SMS IMAG APP',label: 'SMS IMAG APP',        dbCols: ['SMS IMAGES APPROVAL', 'SMS IMAG APP'] },
+  { key: 'SMS SUP',     label: 'SMS SUP',             dbCols: ['SMS SENT FROM SUPPLIER', 'SMS SUP'] },
+  { key: 'SMS NYC',     label: 'SMS NYC',             dbCols: ['SMS RECEIVED IN NY', 'SMS NYC'] },
+  { key: 'SMS ANTHRO',  label: 'SMS SENT ANTHRO',     dbCols: ['SMS SENT TO ANTHRO', 'SMS ANTHRO'] },
+  { key: 'TOP SUP',     label: 'TOP BY SUP',          dbCols: ['TOP SENT BY SUPPLIER', 'TOP SUP'] },
+  { key: 'TOP ANTHRO',  label: 'TOP SENT ANTHRO',     dbCols: ['TOP SENT TO ANTHRO', 'TOP ANTHRO'] },
+  { key: 'TOP APPROV',  label: 'TOP APPROVAL',        dbCols: ['TOP APPROVAL FROM ANTHRO', 'TOP APPROV'] },
+  { key: 'PHOTO SAMP',  label: 'PHOTO SAMP ANTHRO',   dbCols: ['PHOTO SAMPLE SENT TO ANTHRO', 'PHOTO SAMP'] },
+  // ── PO & Production (6) ──
+  { key: 'PO ISSUED',   label: 'PO ISSUED',           dbCols: ['PO ISSUED BY ANTHRO', 'PO ISSUED'] },
+  { key: 'OFF PO',      label: 'OFF PO',              dbCols: ['OFF PO'] },
+  { key: '1ST FIT',     label: '1ST FIT',             dbCols: ['1ST FIT'] },
+  { key: '2ND FIT',     label: '2ND FIT',             dbCols: ['2ND FIT'] },
+  { key: 'PHOTO',       label: 'PHOTO',               dbCols: ['PHOTO'] },
+  { key: 'PI',          label: 'PI',                  dbCols: ['PI'] },
 ];
 const GANTT_MILESTONES = GANTT_MS_CONFIG.map(c => c.key);
 const GANTT_PLANNING   = ['COST','DUTY','PRICE WHOLESALE','FINAL NDC','EX FACTORY / FLIGHT DATE'];
 
-// Match a timeline step name to a GANTT_MS_CONFIG key using full names and fuzzy match
+// Match a timeline step name to a GANTT_MS_CONFIG key
 function findMilestoneMatch(stepName) {
   const sn = stepName.trim().toUpperCase();
   if (!sn) return null;
-  // Exact key
+  // 1. Exact key
   const exact = GANTT_MS_CONFIG.find(c => c.key === sn);
   if (exact) return exact.key;
-  // Match against any dbCols entry (exact or substring both ways)
-  const byCol = GANTT_MS_CONFIG.find(c =>
-    (c.dbCols || []).some(col => {
-      const cu = col.toUpperCase();
-      return cu === sn || sn.includes(cu) || cu.includes(sn);
-    })
+  // 2. Exact dbCol match (DB column header = timeline step name)
+  const byExact = GANTT_MS_CONFIG.find(c => (c.dbCols || []).some(col => col.toUpperCase() === sn));
+  if (byExact) return byExact.key;
+  // 3. Step name contains a long dbCol (avoids short keys like "PROTO" matching "PROTO COMMENTS…")
+  const bySub = GANTT_MS_CONFIG.find(c =>
+    (c.dbCols || []).some(col => col.length > 5 && sn.includes(col.toUpperCase()))
   );
-  if (byCol) return byCol.key;
-  // Fuzzy key match
-  const sub = GANTT_MS_CONFIG.find(c => sn.includes(c.key) || c.key.includes(sn));
-  return sub ? sub.key : null;
+  if (bySub) return bySub.key;
+  // 4. Fuzzy key match (both directions, only for keys longer than 3 chars)
+  const fuzzy = GANTT_MS_CONFIG.find(c => c.key.length > 3 && (sn.includes(c.key) || c.key.includes(sn)));
+  return fuzzy ? fuzzy.key : null;
 }
 
 function ganttParseDate(s) {
