@@ -108,6 +108,91 @@
       .btn-update { font-size: 11px; padding: 7px 12px; }
     }
 
+    /* ── GANTT CHART PANEL ── */
+    .layout.gantt-open .sidebar { display: none; }
+    .gantt-panel { display: none; }
+    .gantt-panel.open { display: block; }
+    @keyframes pulse-r { 0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.3)} 50%{box-shadow:0 0 0 4px rgba(220,38,38,0)} }
+    @keyframes row-in { from{opacity:0;transform:translateX(-6px)} to{opacity:1;transform:translateX(0)} }
+    @keyframes det-in { from{opacity:0;transform:scale(.96) translateY(8px)} to{opacity:1;transform:scale(1) translateY(0)} }
+    .gantt-topbar { display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap; }
+    .gantt-legend { display:flex;align-items:center;gap:14px;padding:4px 0 10px;flex-wrap:wrap; }
+    .g-leg { display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;color:var(--text-secondary); }
+    .g-dot { width:12px;height:12px;border-radius:50%; }
+    .g-done{background:#16a34a} .g-late{background:#ea580c} .g-over{background:#dc2626} .g-next{background:#0891b2} .g-empty{background:#e5e7eb}
+    /* Gantt filters */
+    .gf-wrap { display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1; }
+    .gf { position:relative; }
+    .gf-btn { display:flex;align-items:center;gap:6px;font-family:inherit;font-size:12px;font-weight:600;color:var(--text);background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:6px 11px;cursor:pointer;white-space:nowrap;transition:border-color .15s,background .15s;min-width:100px; }
+    .gf-btn:hover { border-color:#c9cdd8;background:#eaecf2; }
+    .gf-btn.active { border-color:var(--accent);background:#fff1f2;color:var(--accent); }
+    .gf-lbl { flex:1;text-align:left; }
+    .gf-cnt { font-size:10px;font-weight:700;background:var(--accent);color:#fff;border-radius:20px;padding:1px 6px;display:none; }
+    .gf-btn.has-sel .gf-cnt { display:inline; }
+    .gf-caret { opacity:.5;transition:transform .15s;flex-shrink:0; }
+    .gf.open .gf-caret { transform:rotate(180deg); }
+    .gf-dd { display:none;position:absolute;top:calc(100% + 6px);left:0;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:160px;z-index:300;padding:6px;max-height:260px;overflow-y:auto; }
+    .gf.open .gf-dd { display:block; }
+    .gf-opt { display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:500;color:var(--text);transition:background .1s;user-select:none; }
+    .gf-opt:hover { background:var(--bg); }
+    .gf-opt.all-o { font-weight:700;border-bottom:1px solid var(--border);margin-bottom:4px;padding-bottom:10px;color:var(--text-secondary); }
+    .gf-cb { width:15px;height:15px;border:2px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s; }
+    .gf-opt.checked .gf-cb { background:var(--accent);border-color:var(--accent); }
+    .gf-opt.checked .gf-cb::after { content:'';width:5px;height:3px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) translateY(-1px);display:block; }
+    .g-cbadge { font-size:11px;font-weight:600;background:#e0f2fe;color:#0369a1;padding:4px 12px;border-radius:20px;white-space:nowrap; }
+    /* Gantt table */
+    .gantt-wrap { overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:var(--surface); }
+    .gantt-loading { padding:48px;text-align:center;color:var(--text-muted);font-size:13px; }
+    .gantt-spinner { width:26px;height:26px;border:3px solid #bae6fd;border-top-color:#0891b2;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px; }
+    .g-tbl { border-collapse:collapse;font-size:11px; }
+    .g-tbl thead th { background:#f8f9fc;font-size:9px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;padding:7px 4px;text-align:center;border-bottom:1.5px solid var(--border);white-space:nowrap; }
+    .g-tbl thead th.tl { text-align:left;padding-left:12px; }
+    .g-ph-row th { font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;padding:6px 4px; }
+    .g-ph-i{background:#fff} .g-ph-d{background:#fff1f2;color:#be123c;border-left:2px solid #fecdd3} .g-ph-s{background:#fef9c3;color:#854d0e;border-left:2px solid #fde68a} .g-ph-p{background:#eff6ff;color:#1d4ed8;border-left:2px solid #bfdbfe}
+    .g-tbl tbody tr { border-bottom:1px solid #f1f3f7;cursor:pointer;transition:background .1s;animation:row-in .25s ease both; }
+    .g-tbl tbody tr:last-child { border-bottom:none; }
+    .g-tbl tbody tr:hover { background:#fafbff; }
+    .g-tbl tbody td { padding:6px 4px;text-align:center;vertical-align:middle; }
+    .g-tbl tbody td.tl { text-align:left;padding-left:12px; }
+    .g-ph-div { border-left:2px solid var(--border) !important; }
+    .g-snum { font-size:12px;font-weight:700; }
+    .g-ssub { font-size:10px;color:var(--text-secondary);margin-top:1px; }
+    .g-sp { font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;display:inline-block;margin-top:2px; }
+    .g-sp-a{background:#dcfce7;color:#16a34a} .g-sp-c{background:#f3f4f6;color:#9ca3af} .g-sp-h{background:#fff7ed;color:#ea580c}
+    .g-pgw { height:3px;background:#f1f3f7;border-radius:2px;margin-top:3px;overflow:hidden; }
+    .g-pgf { height:100%;border-radius:2px;transition:width .7s ease; }
+    .g-ms { display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:9px;font-weight:800;transition:transform .15s; }
+    .g-ms:hover { transform:scale(1.25); }
+    .g-ms-d{background:#dcfce7;color:#16a34a;border:1.5px solid #86efac} .g-ms-l{background:#fff7ed;color:#ea580c;border:1.5px solid #fdba74} .g-ms-o{background:#fee2e2;color:#dc2626;border:1.5px solid #fca5a5;animation:pulse-r 1.8s ease-in-out infinite} .g-ms-u{background:#e0f2fe;color:#0891b2;border:1.5px solid #7dd3fc} .g-ms-e{background:#f3f4f6;color:#d1d5db;border:1.5px solid #e5e7eb}
+    .g-ndc { font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:#e0f2fe;color:#0369a1; }
+    .g-sup { font-size:10px;color:var(--text-secondary); }
+    .g-cat { font-size:10px;font-weight:600; }
+    /* Details modal */
+    .det-ov { display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:800;align-items:center;justify-content:center;padding:16px; }
+    .det-ov.open { display:flex; }
+    .det-mod { background:#fff;border-radius:18px;width:100%;max-width:540px;max-height:92vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.25);animation:det-in .28s cubic-bezier(.34,1.56,.64,1) both; }
+    .det-hero { position:relative;background:#111;border-radius:18px 18px 0 0;overflow:hidden;min-height:180px; }
+    .det-img-wrap { width:100%;overflow:hidden; }
+    .det-img-wrap img { width:100%;max-height:300px;object-fit:cover;display:block;transition:transform .5s ease; }
+    .det-img-wrap:hover img { transform:scale(1.05); }
+    .det-img-ph { padding:60px 20px;text-align:center;color:#888;font-size:12px; }
+    .det-close { position:absolute;top:12px;right:12px;background:rgba(0,0,0,.5);border:none;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:16px;line-height:1;transition:background .15s;z-index:2; }
+    .det-close:hover { background:rgba(0,0,0,.75); }
+    .det-hero-info { position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(0,0,0,.85) 0%,rgba(0,0,0,.2) 60%,transparent 100%);padding:28px 18px 14px; }
+    .det-style-n { font-size:22px;font-weight:800;color:#fff;letter-spacing:-.4px; }
+    .det-style-s { font-size:12px;color:rgba(255,255,255,.75);margin-top:3px; }
+    .det-miley-tag { position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.5);border-radius:20px;padding:4px 10px 4px 4px;backdrop-filter:blur(4px); }
+    .det-miley-av { width:22px;height:22px;border-radius:50%;object-fit:cover;object-position:center top;border:1.5px solid rgba(255,255,255,.4); }
+    .det-miley-lbl { font-size:10px;font-weight:700;color:rgba(255,255,255,.85); }
+    .det-body { padding:16px 18px 20px;display:flex;flex-direction:column;gap:12px; }
+    .det-g2 { display:grid;grid-template-columns:1fr 1fr;gap:10px; }
+    .det-g3 { display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px; }
+    .det-f { display:flex;flex-direction:column;gap:3px; }
+    .det-lbl { font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-secondary); }
+    .det-val { font-size:12px;color:var(--text);background:var(--bg);border-radius:7px;padding:7px 10px;min-height:32px;line-height:1.5;word-break:break-word; }
+    .det-val:empty::before { content:'—';color:var(--text-muted); }
+    @media(max-width:520px) { .det-g2 { grid-template-columns:1fr 1fr; } .det-g3 { grid-template-columns:1fr 1fr; } .gf-btn { min-width:80px;font-size:11px; } }
+
     /* ── ADD STEP MODAL ── */
     .add-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; align-items:center; justify-content:center; padding:16px; }
     .add-overlay.open { display:flex; }
@@ -352,6 +437,102 @@
       </div>
     </div>
 
+    <!-- GANTT PANEL -->
+    <div class="gantt-panel" id="gantt-panel">
+      <div class="gantt-topbar">
+        <button class="tl-back" onclick="closeGantt()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Back
+        </button>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <img src="MILEY.png" style="width:28px;height:28px;border-radius:50%;object-fit:cover;object-position:center top;border:2px solid #fecdd3" alt="Miley">
+          <span class="tl-title">Gantt Chart — Style Tracker</span>
+        </div>
+        <div class="gf-wrap">
+          <div class="gf" id="gf-year">
+            <button class="gf-btn has-sel active" onclick="gfOpen('gf-year')">
+              <span class="gf-lbl">Year</span>
+              <span class="gf-cnt" id="gf-year-cnt">1</span>
+              <svg class="gf-caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="gf-dd" id="gf-year-dd"></div>
+          </div>
+          <div class="gf" id="gf-month">
+            <button class="gf-btn has-sel active" onclick="gfOpen('gf-month')">
+              <span class="gf-lbl">NDC Month</span>
+              <span class="gf-cnt" id="gf-month-cnt">6</span>
+              <svg class="gf-caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="gf-dd" id="gf-month-dd">
+              <div class="gf-opt all-o" onclick="gfToggleAll('month')"><div class="gf-cb"></div><span>All Months</span></div>
+              <div class="gf-opt" data-gfg="month" data-val="1"  onclick="gfToggleOpt(this)"><div class="gf-cb"></div><span>January</span></div>
+              <div class="gf-opt" data-gfg="month" data-val="2"  onclick="gfToggleOpt(this)"><div class="gf-cb"></div><span>February</span></div>
+              <div class="gf-opt" data-gfg="month" data-val="3"  onclick="gfToggleOpt(this)"><div class="gf-cb"></div><span>March</span></div>
+              <div class="gf-opt" data-gfg="month" data-val="4"  onclick="gfToggleOpt(this)"><div class="gf-cb"></div><span>April</span></div>
+              <div class="gf-opt" data-gfg="month" data-val="5"  onclick="gfToggleOpt(this)"><div class="gf-cb"></div><span>May</span></div>
+              <div class="gf-opt" data-gfg="month" data-val="6"  onclick="gfToggleOpt(this)"><div class="gf-cb"></div><span>June</span></div>
+              <div class="gf-opt checked" data-gfg="month" data-val="7"  onclick="gfToggleOpt(this)"><div class="gf-cb"></div><span>July</span></div>
+              <div class="gf-opt checked" data-gfg="month" data-val="8"  onclick="gfToggleOpt(this)"><div class="gf-cb"></div><span>August</span></div>
+              <div class="gf-opt checked" data-gfg="month" data-val="9"  onclick="gfToggleOpt(this)"><div class="gf-cb"></div><span>September</span></div>
+              <div class="gf-opt checked" data-gfg="month" data-val="10" onclick="gfToggleOpt(this)"><div class="gf-cb"></div><span>October</span></div>
+              <div class="gf-opt checked" data-gfg="month" data-val="11" onclick="gfToggleOpt(this)"><div class="gf-cb"></div><span>November</span></div>
+              <div class="gf-opt checked" data-gfg="month" data-val="12" onclick="gfToggleOpt(this)"><div class="gf-cb"></div><span>December</span></div>
+            </div>
+          </div>
+          <div class="gf" id="gf-sup">
+            <button class="gf-btn" onclick="gfOpen('gf-sup')">
+              <span class="gf-lbl">Supplier</span>
+              <span class="gf-cnt" id="gf-sup-cnt">0</span>
+              <svg class="gf-caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="gf-dd" id="gf-sup-dd"></div>
+          </div>
+          <div class="gf" id="gf-cat">
+            <button class="gf-btn" onclick="gfOpen('gf-cat')">
+              <span class="gf-lbl">Category</span>
+              <span class="gf-cnt" id="gf-cat-cnt">0</span>
+              <svg class="gf-caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="gf-dd" id="gf-cat-dd"></div>
+          </div>
+        </div>
+        <span class="g-cbadge" id="gantt-count">— Styles</span>
+      </div>
+
+      <div class="gantt-legend">
+        <span style="font-size:10px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px">Legend:</span>
+        <span class="g-leg"><span class="g-dot g-done"></span> Done on time</span>
+        <span class="g-leg"><span class="g-dot g-late"></span> Done late</span>
+        <span class="g-leg"><span class="g-dot g-over"></span> Overdue</span>
+        <span class="g-leg"><span class="g-dot g-next"></span> Upcoming</span>
+        <span class="g-leg"><span class="g-dot g-empty"></span> Not started</span>
+      </div>
+
+      <div class="gantt-wrap">
+        <div class="gantt-loading" id="gantt-loading"><div class="gantt-spinner"></div>Loading styles…</div>
+        <table class="g-tbl" id="gantt-table" style="display:none">
+          <thead>
+            <tr class="g-ph-row">
+              <th colspan="4" class="g-ph-i"></th>
+              <th colspan="5" class="g-ph-d">— Design Phase —</th>
+              <th colspan="5" class="g-ph-s g-ph-div">— Sampling —</th>
+              <th colspan="6" class="g-ph-p g-ph-div">— PO &amp; Production —</th>
+            </tr>
+            <tr>
+              <th class="tl" style="min-width:150px">Style #</th>
+              <th class="tl" style="min-width:85px">Supplier</th>
+              <th style="min-width:72px">Category</th>
+              <th style="min-width:64px">NDC</th>
+              <th>INT PRES</th><th>BYR PRES</th><th>BYR APPR</th><th>TP SENT</th><th>PRINT</th>
+              <th class="g-ph-div">PROTO</th><th>PROTO COMM</th><th>SMS SUPP</th><th>COLOR</th><th>SMS ANTHRO</th>
+              <th class="g-ph-div">PO ISSUED</th><th>OFF PO</th><th>1ST FIT</th><th>2ND FIT</th><th>PHOTO</th><th>PI</th>
+            </tr>
+          </thead>
+          <tbody id="gantt-body"></tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="grid" id="tasks-grid">
       <div class="card" onclick="openTimeline()" style="cursor:pointer">
         <div class="card-header">
@@ -380,6 +561,13 @@
           <span class="soon-label">Coming Soon</span>
         </div>
         <div class="card-body"><div class="card-desc">Weekly email listing all orders with deadlines in the next 14 days, grouped by urgency and vendor, so nothing gets missed.</div></div>
+      </div>
+      <div class="card" style="border: 1.5px dashed #bae6fd; background: #f0f9ff; cursor: pointer;" onclick="openGantt()">
+        <div class="card-header">
+          <div><div class="card-title" style="color:#0369a1">GANTT CHART</div><div class="card-dest">&#x2192; Visual Timeline</div></div>
+          <span class="soon-label" style="background:#dcfce7;color:#15803d;border-color:#86efac">Open</span>
+        </div>
+        <div class="card-body"><div class="card-desc">Visual Gantt chart tracking all styles across every production milestone — see at a glance what's on time, at risk, or delayed across the full collection.</div></div>
       </div>
     </div>
   </div>
@@ -584,9 +772,67 @@ function showToast(msg) {
       <!-- injected by JS -->
     </div>
 
+    <div class="af-row">
+      <div class="af-group">
+        <label class="af-label">Database</label>
+        <select class="af-select" id="af-db">
+          <option value="">— Select —</option>
+          <option value="Production &amp; PO DataBase">Production &amp; PO DataBase</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="af-group">
+        <label class="af-label">Column Header Name</label>
+        <input class="af-input" id="af-col" type="text" placeholder="e.g. INT PRES">
+      </div>
+    </div>
+
     <div class="add-modal-actions">
       <button class="btn-modal-cancel" onclick="closeAddModal()">Cancel</button>
       <button class="btn-modal-save" id="af-save-btn" onclick="saveNewStep()">Save Step</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAILS MODAL -->
+<div class="det-ov" id="det-ov" onclick="if(event.target===this)closeDet()">
+  <div class="det-mod">
+    <div class="det-hero" id="det-hero">
+      <div class="det-img-wrap" id="det-img-wrap">
+        <div class="det-img-ph">Loading image…</div>
+      </div>
+      <button class="det-close" onclick="closeDet()">&#x2715;</button>
+      <div class="det-miley-tag">
+        <img src="MILEY.png" class="det-miley-av" alt="Miley">
+        <span class="det-miley-lbl">Miley</span>
+      </div>
+      <div class="det-hero-info">
+        <div class="det-style-n" id="det-style-n">—</div>
+        <div class="det-style-s" id="det-style-s">—</div>
+      </div>
+    </div>
+    <div class="det-body">
+      <div class="det-g2">
+        <div class="det-f"><div class="det-lbl">Year</div><div class="det-val" id="det-year"></div></div>
+        <div class="det-f"><div class="det-lbl">NDC Month/Year</div><div class="det-val" id="det-ndc"></div></div>
+        <div class="det-f"><div class="det-lbl">Status</div><div class="det-val" id="det-status"></div></div>
+        <div class="det-f"><div class="det-lbl">PO Status</div><div class="det-val" id="det-postatus"></div></div>
+        <div class="det-f"><div class="det-lbl">Supplier</div><div class="det-val" id="det-supplier"></div></div>
+        <div class="det-f"><div class="det-lbl">Category</div><div class="det-val" id="det-category"></div></div>
+        <div class="det-f"><div class="det-lbl">Sub-Category</div><div class="det-val" id="det-subcat"></div></div>
+        <div class="det-f"><div class="det-lbl">Fabric</div><div class="det-val" id="det-fabric"></div></div>
+      </div>
+      <div class="det-g3">
+        <div class="det-f"><div class="det-lbl">Final NDC</div><div class="det-val" id="det-finalndc"></div></div>
+        <div class="det-f"><div class="det-lbl">Cost</div><div class="det-val" id="det-cost"></div></div>
+        <div class="det-f"><div class="det-lbl">Freight</div><div class="det-val" id="det-freight"></div></div>
+        <div class="det-f"><div class="det-lbl">Duty</div><div class="det-val" id="det-duty"></div></div>
+        <div class="det-f"><div class="det-lbl">HTS Code</div><div class="det-val" id="det-hts"></div></div>
+        <div class="det-f"><div class="det-lbl">Progress</div><div class="det-val" id="det-progress"></div></div>
+      </div>
+      <div class="det-f"><div class="det-lbl">Price Wholesale Notes</div><div class="det-val" id="det-pwnotes"></div></div>
+      <div class="det-f"><div class="det-lbl">Notes</div><div class="det-val" id="det-notes"></div></div>
+      <div class="det-f"><div class="det-lbl">Notes 2</div><div class="det-val" id="det-notes2"></div></div>
     </div>
   </div>
 </div>
@@ -603,8 +849,9 @@ function openAddModal() {
     </div>`
   ).join('');
   // Clear fields
-  ['af-num','af-name','af-info','af-cond'].forEach(id => document.getElementById(id).value = '');
+  ['af-num','af-name','af-info','af-cond','af-col'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('af-resp').selectedIndex = 0;
+  document.getElementById('af-db').selectedIndex = 0;
   document.getElementById('add-overlay').classList.add('open');
 }
 
@@ -622,9 +869,11 @@ async function saveNewStep() {
   if (!name) { alert('Process Step name is required.'); return; }
 
   const months = MONTH_NAMES.map(m => document.getElementById('af-m-' + m).value.trim());
+  const db  = document.getElementById('af-db').value;
+  const col = document.getElementById('af-col').value.trim();
 
-  // Step | Process Step | Info Para Deadline | Condition Rule | Responsible | Jan…Dec
-  const row = [num, name, info, cond, resp, ...months];
+  // Step | Process Step | Info Para Deadline | Condition Rule | Responsible | Jan…Dec | Database | Column
+  const row = [num, name, info, cond, resp, ...months, db, col];
 
   const btn = document.getElementById('af-save-btn');
   btn.disabled = true;
@@ -647,6 +896,209 @@ async function saveNewStep() {
     btn.disabled = false;
     btn.textContent = 'Save Step';
   }
+}
+
+// ── Gantt Chart ───────────────────────────────────────────────────────────────
+let _ganttData = null;
+let _ganttFiltered = [];
+
+function openGantt() {
+  document.getElementById('tasks-grid').style.display = 'none';
+  document.getElementById('tl-panel').classList.remove('open');
+  document.getElementById('gantt-panel').classList.add('open');
+  document.querySelector('.layout').classList.add('gantt-open');
+  loadGantt();
+}
+
+function closeGantt() {
+  document.getElementById('gantt-panel').classList.remove('open');
+  document.querySelector('.layout').classList.remove('gantt-open');
+  document.getElementById('tasks-grid').style.display = '';
+}
+
+async function loadGantt() {
+  document.getElementById('gantt-loading').style.display = 'block';
+  document.getElementById('gantt-table').style.display = 'none';
+  try {
+    const res = await fetch('/api/miley/gantt');
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    _ganttData = data;
+    buildGanttFilters(data);
+    renderGantt();
+  } catch(e) {
+    document.getElementById('gantt-loading').innerHTML = '&#9888; Could not load: ' + esc(e.message);
+  }
+}
+
+function buildGanttFilters(data) {
+  const years = [...new Set(data.styles.map(s => s.ndcYear).filter(Boolean))].sort();
+  const sups  = [...new Set(data.styles.map(s => s.supplier).filter(Boolean))].sort();
+  const cats  = [...new Set(data.styles.map(s => s.category).filter(Boolean))].sort();
+  const curYear = new Date().getFullYear();
+
+  document.getElementById('gf-year-dd').innerHTML =
+    `<div class="gf-opt all-o" onclick="gfToggleAll('year')"><div class="gf-cb"></div><span>All Years</span></div>` +
+    years.map(y => `<div class="gf-opt${y===curYear?' checked':''}" data-gfg="year" data-val="${y}" onclick="gfToggleOpt(this)"><div class="gf-cb"></div><span>${y}</span></div>`).join('');
+  gfUpdateCount('year');
+
+  document.getElementById('gf-sup-dd').innerHTML =
+    `<div class="gf-opt all-o" onclick="gfToggleAll('sup')"><div class="gf-cb"></div><span>All Suppliers</span></div>` +
+    sups.map(s => `<div class="gf-opt" data-gfg="sup" data-val="${esc(s)}" onclick="gfToggleOpt(this)"><div class="gf-cb"></div><span>${esc(s)}</span></div>`).join('');
+
+  document.getElementById('gf-cat-dd').innerHTML =
+    `<div class="gf-opt all-o" onclick="gfToggleAll('cat')"><div class="gf-cb"></div><span>All Categories</span></div>` +
+    cats.map(c => `<div class="gf-opt" data-gfg="cat" data-val="${esc(c)}" onclick="gfToggleOpt(this)"><div class="gf-cb"></div><span>${esc(c)}</span></div>`).join('');
+}
+
+function gfOpen(id) {
+  const el = document.getElementById(id);
+  const wasOpen = el.classList.contains('open');
+  document.querySelectorAll('.gf.open').forEach(f => f.classList.remove('open'));
+  if (!wasOpen) el.classList.add('open');
+}
+
+document.addEventListener('click', function(e) {
+  document.querySelectorAll('.gf.open').forEach(f => {
+    if (!f.contains(e.target)) f.classList.remove('open');
+  });
+});
+
+function gfToggleOpt(el) {
+  el.classList.toggle('checked');
+  gfUpdateCount(el.dataset.gfg);
+  renderGantt();
+}
+
+function gfToggleAll(group) {
+  const opts = document.querySelectorAll(`[data-gfg="${group}"]`);
+  const allChecked = [...opts].every(o => o.classList.contains('checked'));
+  opts.forEach(o => o.classList.toggle('checked', !allChecked));
+  gfUpdateCount(group);
+  renderGantt();
+}
+
+function gfUpdateCount(group) {
+  const checked = document.querySelectorAll(`[data-gfg="${group}"].checked`).length;
+  const total   = document.querySelectorAll(`[data-gfg="${group}"]`).length;
+  const btn = document.querySelector(`#gf-${group} .gf-btn`);
+  const cnt = document.getElementById(`gf-${group}-cnt`);
+  if (!btn || !cnt) return;
+  cnt.textContent = checked;
+  const hasSel = checked > 0 && checked < total;
+  btn.classList.toggle('has-sel', hasSel);
+  btn.classList.toggle('active', hasSel);
+}
+
+function getGfSel(group) {
+  return new Set([...document.querySelectorAll(`[data-gfg="${group}"].checked`)].map(o => o.dataset.val));
+}
+
+function renderGantt() {
+  if (!_ganttData) return;
+  const selYears  = getGfSel('year');
+  const selMonths = getGfSel('month');
+  const selSup    = getGfSel('sup');
+  const selCat    = getGfSel('cat');
+
+  const filtered = _ganttData.styles.filter(s => {
+    if (selYears.size  && !selYears.has(String(s.ndcYear)))   return false;
+    if (selMonths.size && !selMonths.has(String(s.ndcMonth))) return false;
+    if (selSup.size    && !selSup.has(s.supplier))            return false;
+    if (selCat.size    && !selCat.has(s.category))            return false;
+    return true;
+  });
+
+  document.getElementById('gantt-count').textContent = `${filtered.length} Style${filtered.length !== 1 ? 's' : ''}`;
+
+  const MS = ['INT PRES','BYR PRES','BYR APPROV','TP SENT','PRINT','PROTO','PROTO COMM','SMS SUPP','COLOR','SMS ANTHRO','PO ISSUED','OFF PO','1ST FIT','2ND FIT','PHOTO','PI'];
+
+  document.getElementById('gantt-body').innerHTML = filtered.map((s, idx) => {
+    const stCls = (s.status||'').toUpperCase().includes('CANCEL') ? 'g-sp-c'
+                : (s.status||'').toUpperCase().includes('HOLD')   ? 'g-sp-h' : 'g-sp-a';
+    const pgColor = s.progress >= 80 ? '#16a34a,#4ade80'
+                  : s.progress >= 50 ? '#ea580c,#fb923c' : '#dc2626,#f87171';
+
+    const msCells = MS.map((ms, i) => {
+      const m   = s.milestones[ms] || {};
+      const div = (i === 5 || i === 10) ? ' g-ph-div' : '';
+      let cls = 'g-ms-e', icon = '&#183;', title = ms;
+      if      (m.status === 'done')     { cls='g-ms-d'; icon='&#10003;'; title=`Done: ${m.actual}`; }
+      else if (m.status === 'late')     { cls='g-ms-l'; icon='!';        title=`Done late: ${m.actual} (deadline: ${m.deadline})`; }
+      else if (m.status === 'overdue')  { cls='g-ms-o'; icon='&#10007;'; title=`OVERDUE — deadline was ${m.deadline}`; }
+      else if (m.status === 'upcoming') { cls='g-ms-u'; icon='&#8594;';  title=`Due: ${m.deadline}`; }
+      return `<td class="${div}"><span class="g-ms ${cls}" title="${esc(title)}">${icon}</span></td>`;
+    }).join('');
+
+    return `<tr style="animation-delay:${idx * 0.025}s" onclick="openDet(${idx})">
+      <td class="tl">
+        <div class="g-snum">${esc(s.style)}</div>
+        ${s.brand ? `<div class="g-ssub">${esc(s.brand)}</div>` : ''}
+        <span class="g-sp ${stCls}">${esc(s.status || 'Active')}</span>
+        <div class="g-pgw"><div class="g-pgf" data-w="${s.progress}" style="width:0%;background:linear-gradient(90deg,${pgColor})"></div></div>
+      </td>
+      <td class="tl"><span class="g-sup">${esc(s.supplier)}</span></td>
+      <td><span class="g-cat">${esc(s.category)}</span></td>
+      <td><span class="g-ndc">${esc(s.ndc)}</span></td>
+      ${msCells}
+    </tr>`;
+  }).join('');
+
+  _ganttFiltered = filtered;
+  document.getElementById('gantt-loading').style.display = 'none';
+  document.getElementById('gantt-table').style.display = '';
+
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.g-pgf').forEach(el => { el.style.width = el.dataset.w + '%'; });
+  });
+}
+
+// ── Details Modal ─────────────────────────────────────────────────────────────
+function openDet(idx) {
+  const s = _ganttFiltered[idx];
+  if (!s) return;
+
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || ''; };
+  set('det-style-n', s.style);
+  set('det-style-s', [s.supplier, s.category, s.ndc].filter(Boolean).join(' · '));
+  set('det-year',      s.ndcYear || '');
+  set('det-ndc',       s.ndc || '');
+  set('det-status',    s.status || '');
+  set('det-postatus',  s.poStatus || '');
+  set('det-supplier',  s.supplier || '');
+  set('det-category',  s.category || '');
+  set('det-subcat',    s.subCategory || '');
+  set('det-fabric',    s.fabric || '');
+  set('det-finalndc',  s.finalNdc || '');
+  set('det-cost',      s.cost || '');
+  set('det-freight',   s.freight || '');
+  set('det-duty',      s.duty || '');
+  set('det-hts',       s.htsCode || '');
+  const doneCount = Object.values(s.milestones).filter(m => m.status === 'done' || m.status === 'late').length;
+  set('det-progress',  `${s.progress}% complete (${doneCount}/16 steps)`);
+  set('det-pwnotes',   s.priceWholesaleNotes || '');
+  set('det-notes',     s.notes || '');
+  set('det-notes2',    s.notes2 || '');
+
+  const imgWrap = document.getElementById('det-img-wrap');
+  imgWrap.innerHTML = '<div class="det-img-ph">Loading image…</div>';
+
+  document.getElementById('det-ov').classList.add('open');
+
+  fetch('/api/jhonny/cad-images-batch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ styles: [s.style] })
+  }).then(r => r.json()).then(data => {
+    const url = data[s.style];
+    imgWrap.innerHTML = url
+      ? `<img src="${url}" alt="${esc(s.style)}" />`
+      : '<div class="det-img-ph">No image available</div>';
+  }).catch(() => { imgWrap.innerHTML = '<div class="det-img-ph">Image not available</div>'; });
+}
+
+function closeDet() {
+  document.getElementById('det-ov').classList.remove('open');
 }
 </script>
 </body>

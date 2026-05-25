@@ -4325,6 +4325,172 @@ app.post('/api/miley/timeline/update', async (req, res) => {
   }
 });
 
+// ─── Miley: Gantt Chart Data ─────────────────────────────────────────────────
+const GANTT_MILESTONES = ['INT PRES','BYR PRES','BYR APPROV','TP SENT','PRINT','PROTO','PROTO COMM','SMS SUPP','COLOR','SMS ANTHRO','PO ISSUED','OFF PO','1ST FIT','2ND FIT','PHOTO','PI'];
+
+function ganttParseDate(s) {
+  if (!s) return null;
+  s = String(s).trim();
+  if (!s || s === '—' || s === '-') return null;
+  let d = new Date(s);
+  if (!isNaN(d.getTime())) return d;
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return new Date(+m[3], +m[1] - 1, +m[2]);
+  return null;
+}
+
+function ganttExtractNdcMonth(ndcStr) {
+  if (!ndcStr) return null;
+  const s = String(ndcStr).trim().toLowerCase();
+  const map = { jan:1,january:1,feb:2,february:2,mar:3,march:3,apr:4,april:4,may:5,jun:6,june:6,jul:7,july:7,aug:8,august:8,sep:9,september:9,oct:10,october:10,nov:11,november:11,dec:12,december:12 };
+  for (const [k, v] of Object.entries(map)) { if (s.includes(k)) return v; }
+  const dm = s.match(/^(\d{1,2})\//);
+  if (dm) return parseInt(dm[1]);
+  return null;
+}
+
+function ganttFindCol(headers, ...candidates) {
+  for (const c of candidates) {
+    const cn = c.trim().toUpperCase();
+    let idx = headers.indexOf(cn);
+    if (idx >= 0) return idx;
+    const norm = cn.replace(/[\s\-_.#\/]/g, '');
+    idx = headers.findIndex(h => h.replace(/[\s\-_.#\/]/g, '') === norm);
+    if (idx >= 0) return idx;
+  }
+  return -1;
+}
+
+app.get('/api/miley/gantt', async (req, res) => {
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON)
+    return res.status(500).json({ error: 'Google credentials not configured' });
+  try {
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    const [tlRes, dbRes] = await Promise.all([
+      sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${MILEY_TAB}'`, valueRenderOption: 'FORMATTED_VALUE' }),
+      sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'Production & PO DataBase'`, valueRenderOption: 'FORMATTED_VALUE' }),
+    ]);
+
+    // Build timeline deadline map: { STEP_NAME -> { 1..12: Date } }
+    const tlMap = {};
+    const tlRows = tlRes.data.values || [];
+    for (let i = 1; i < tlRows.length; i++) {
+      const r = tlRows[i];
+      const step = (r[1] || '').trim().toUpperCase();
+      if (!step) continue;
+      tlMap[step] = {};
+      for (let m = 0; m < 12; m++) {
+        const d = ganttParseDate(r[5 + m]);
+        if (d) tlMap[step][m + 1] = d;
+      }
+    }
+
+    const dbRows = dbRes.data.values || [];
+    if (dbRows.length < 2) return res.json({ milestones: GANTT_MILESTONES, styles: [] });
+
+    const headers = dbRows[0].map(h => (h || '').trim().toUpperCase());
+
+    const styleCol    = ganttFindCol(headers, 'STYLE #', 'STYLE#', 'STYLE');
+    const supplierCol = ganttFindCol(headers, 'SUPPLIER');
+    const brandCol    = ganttFindCol(headers, 'BRAND');
+    const categoryCol = ganttFindCol(headers, 'CATEGORY');
+    const subCatCol   = ganttFindCol(headers, 'SUB-CATEGORY', 'SUBCATEGORY', 'SUB CATEGORY');
+    const ndcCol      = ganttFindCol(headers, 'NDC');
+    const finalNdcCol = ganttFindCol(headers, 'FINAL NDC', 'FINAL N.D.C.', 'FINALNDC');
+    const yearCol     = ganttFindCol(headers, 'YEAR');
+    const statusCol   = ganttFindCol(headers, 'STATUS');
+    const notesCol    = ganttFindCol(headers, 'NOTES');
+    const notes2Col   = ganttFindCol(headers, 'NOTES 2', 'NOTES2');
+    const poStatusCol = ganttFindCol(headers, 'PO STATUS', 'POSTATUS');
+    const fabricCol   = ganttFindCol(headers, 'FABRIC');
+    const freightCol  = ganttFindCol(headers, 'FREIGHT');
+    const costCol     = ganttFindCol(headers, 'COST');
+    const htsCol      = ganttFindCol(headers, 'HTS CODE', 'HTS');
+    const dutyCol     = ganttFindCol(headers, 'DUTY');
+    const pwNotesCol  = ganttFindCol(headers, 'PRICE WHOLESALE NOTES', 'WHOLESALE NOTES');
+
+    // Find milestone columns
+    const milestoneCols = {};
+    for (const ms of GANTT_MILESTONES) {
+      let idx = ganttFindCol(headers, ms);
+      if (idx < 0) idx = headers.findIndex(h => h.replace(/\s+/g, '') === ms.replace(/\s+/g, ''));
+      milestoneCols[ms] = idx;
+    }
+
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const styles = [];
+
+    for (let i = 1; i < dbRows.length; i++) {
+      const r     = dbRows[i];
+      const style = styleCol >= 0 ? (r[styleCol] || '').trim() : '';
+      if (!style) continue;
+
+      const ndcRaw   = ndcCol >= 0 ? (r[ndcCol] || '') : '';
+      const ndcMonth = ganttExtractNdcMonth(ndcRaw);
+      const yearRaw  = yearCol >= 0 ? (r[yearCol] || '') : '';
+      const yearMatch = (yearRaw || ndcRaw).match(/\b(20\d\d)\b/);
+      const ndcYear  = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
+
+      const milestones = {};
+      let doneCount = 0;
+
+      for (const ms of GANTT_MILESTONES) {
+        const ci       = milestoneCols[ms];
+        const actual   = ci >= 0 ? (r[ci] || '').trim() : '';
+        const deadline = (ndcMonth && tlMap[ms]) ? (tlMap[ms][ndcMonth] || null) : null;
+        const actualDate = ganttParseDate(actual);
+        let status = 'empty';
+
+        if (actualDate) {
+          doneCount++;
+          status = (deadline && actualDate > deadline) ? 'late' : 'done';
+        } else if (deadline) {
+          if (today > deadline) status = 'overdue';
+          else status = ((deadline - today) / 864e5 <= 60) ? 'upcoming' : 'empty';
+        }
+
+        milestones[ms] = {
+          actual,
+          deadline: deadline ? deadline.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' }) : '',
+          status,
+        };
+      }
+
+      styles.push({
+        style,
+        supplier:            supplierCol >= 0  ? (r[supplierCol] || '').trim()  : '',
+        brand:               brandCol >= 0     ? (r[brandCol] || '').trim()     : '',
+        category:            categoryCol >= 0  ? (r[categoryCol] || '').trim()  : '',
+        subCategory:         subCatCol >= 0    ? (r[subCatCol] || '').trim()    : '',
+        ndc:                 ndcRaw.trim(),
+        finalNdc:            finalNdcCol >= 0  ? (r[finalNdcCol] || '').trim()  : '',
+        ndcMonth,
+        ndcYear,
+        status:              statusCol >= 0    ? (r[statusCol] || '').trim()    : '',
+        notes:               notesCol >= 0     ? (r[notesCol] || '').trim()     : '',
+        notes2:              notes2Col >= 0    ? (r[notes2Col] || '').trim()    : '',
+        poStatus:            poStatusCol >= 0  ? (r[poStatusCol] || '').trim()  : '',
+        fabric:              fabricCol >= 0    ? (r[fabricCol] || '').trim()    : '',
+        freight:             freightCol >= 0   ? (r[freightCol] || '').trim()   : '',
+        cost:                costCol >= 0      ? (r[costCol] || '').trim()      : '',
+        htsCode:             htsCol >= 0       ? (r[htsCol] || '').trim()       : '',
+        duty:                dutyCol >= 0      ? (r[dutyCol] || '').trim()      : '',
+        priceWholesaleNotes: pwNotesCol >= 0   ? (r[pwNotesCol] || '').trim()   : '',
+        milestones,
+        progress: Math.round(doneCount / GANTT_MILESTONES.length * 100),
+      });
+    }
+
+    res.json({ milestones: GANTT_MILESTONES, styles });
+  } catch (e) {
+    console.error('[miley/gantt]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`\n  305 WORKSPACE TEAM`);
