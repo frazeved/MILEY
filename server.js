@@ -2759,19 +2759,22 @@ async function getCadImage(style) {
   const rows = await getCadSheetRows();
   if (rows.length < 2) return { found: false };
 
-  const H    = rows[0].map(h => (h || '').trim());
-  const idxH = (...keys) => H.findIndex(h => keys.some(k => h.toLowerCase().includes(k.toLowerCase())));
-  const get  = (row, i) => i >= 0 ? (row[i] || '').trim() : '';
+  const H   = rows[0].map(h => (h || '').trim());
+  const get = (row, i) => i >= 0 ? (row[i] || '').trim() : '';
 
-  const styleCol    = idxH('original style#', 'original style');
-  const cadImageCol = idxH('cad image');
-  const cadUrlCol   = idxH('cad url');
-  if (styleCol < 0) return { found: false };
+  // Use the same flexible column finder as the Gantt route so renamed headers still match
+  const styleCol    = ganttFindCol(H, 'original style#', 'original style', 'style #', 'style#', 'style');
+  const cadImageCol = ganttFindCol(H, 'cad image', 'cad link', 'cad url', 'image link', 'image url', 'cad');
+  if (styleCol < 0 || cadImageCol < 0) {
+    console.error('[getCadImage] column not found — styleCol:', styleCol, 'cadImageCol:', cadImageCol, '| headers:', H.slice(0, 20));
+    return { found: false };
+  }
 
+  const styleKey = style.trim().toLowerCase();
   let driveUrl = '';
   for (let i = 1; i < rows.length; i++) {
-    if (get(rows[i], styleCol).toLowerCase() === style.toLowerCase()) {
-      driveUrl = get(rows[i], cadImageCol) || get(rows[i], cadUrlCol);
+    if (get(rows[i], styleCol).toLowerCase() === styleKey) {
+      driveUrl = get(rows[i], cadImageCol);
       break;
     }
   }
@@ -2783,16 +2786,20 @@ async function getCadImage(style) {
 
   if (_cadImageCache.has(fileId)) return { found: true, ..._cadImageCache.get(fileId) };
 
-  const sa    = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-  const auth  = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/drive.readonly'] });
-  const drive = google.drive({ version: 'v3', auth });
-  const fileRes = await drive.files.get({ fileId, alt: 'media', supportsAllDrives: true }, { responseType: 'arraybuffer' });
-  const mimeType  = fileRes.headers['content-type'] || 'image/jpeg';
-  const imageData = Buffer.from(fileRes.data).toString('base64');
-  if (_cadImageCache.size >= 30) _cadImageCache.delete(_cadImageCache.keys().next().value);
-  _cadImageCache.set(fileId, { imageData, mimeType });
-
-  return { found: true, imageData, mimeType };
+  try {
+    const sa      = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth    = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/drive.readonly'] });
+    const drive   = google.drive({ version: 'v3', auth });
+    const fileRes = await drive.files.get({ fileId, alt: 'media', supportsAllDrives: true }, { responseType: 'arraybuffer' });
+    const mimeType  = fileRes.headers['content-type'] || 'image/jpeg';
+    const imageData = Buffer.from(fileRes.data).toString('base64');
+    if (_cadImageCache.size >= 30) _cadImageCache.delete(_cadImageCache.keys().next().value);
+    _cadImageCache.set(fileId, { imageData, mimeType });
+    return { found: true, imageData, mimeType };
+  } catch (e) {
+    console.error('[getCadImage] Drive fetch failed — fileId:', fileId, e.message);
+    return { found: false };
+  }
 }
 
 // Single style
