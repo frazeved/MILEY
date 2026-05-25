@@ -4275,6 +4275,31 @@ app.get('/api/miley/timeline', async (req, res) => {
   }
 });
 
+app.post('/api/miley/timeline/add', async (req, res) => {
+  if (!req.session?.user) return res.status(401).json({ error: 'Not authenticated' });
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON)
+    return res.status(500).json({ error: 'Google credentials not configured' });
+  const { row } = req.body;
+  if (!Array.isArray(row)) return res.status(400).json({ error: 'row required' });
+  try {
+    const sa     = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    const auth   = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/spreadsheets'] });
+    const sheets = google.sheets({ version: 'v4', auth });
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SHEET_ID,
+      range: `'${MILEY_TAB}'`,
+      valueInputOption: 'USER_ENTERED',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: { values: [row] },
+    });
+    logAction(req.session.user.email, req.session.user.name, 'MILEY — Add Process Step');
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[miley/timeline/add]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.post('/api/miley/timeline/update', async (req, res) => {
   if (!req.session?.user) return res.status(401).json({ error: 'Not authenticated' });
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON)

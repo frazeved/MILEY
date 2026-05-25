@@ -107,6 +107,35 @@
       .tl-header { gap: 8px; }
       .btn-update { font-size: 11px; padding: 7px 12px; }
     }
+
+    /* ── ADD STEP MODAL ── */
+    .add-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; align-items:center; justify-content:center; padding:16px; }
+    .add-overlay.open { display:flex; }
+    .add-modal { background:#fff; border-radius:16px; padding:24px; max-width:540px; width:100%; box-shadow:0 8px 32px rgba(0,0,0,0.18); max-height:92vh; overflow-y:auto; }
+    .add-modal-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+    .add-modal-title { font-size:15px; font-weight:700; color:var(--text); }
+    .add-modal-close { background:none; border:none; font-size:20px; cursor:pointer; color:var(--text-secondary); line-height:1; padding:2px 6px; border-radius:6px; }
+    .add-modal-close:hover { background:var(--bg); color:var(--text); }
+    .af-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+    .af-group { display:flex; flex-direction:column; gap:4px; }
+    .af-group.full { grid-column:1/-1; }
+    .af-label { font-size:9px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.6px; }
+    .af-input, .af-select, .af-textarea { font-family:inherit; font-size:12px; padding:7px 10px; border:1.5px solid var(--border); border-radius:8px; outline:none; color:var(--text); background:#fff; transition:border-color 0.15s; width:100%; }
+    .af-input:focus, .af-select:focus, .af-textarea:focus { border-color:var(--accent); }
+    .af-textarea { resize:vertical; height:52px; }
+    .af-months-label { font-size:9px; font-weight:700; color:#0369a1; text-transform:uppercase; letter-spacing:0.6px; margin:14px 0 8px; }
+    .af-months { display:grid; grid-template-columns:repeat(6,1fr); gap:6px; margin-bottom:14px; }
+    .af-month-group { display:flex; flex-direction:column; gap:3px; }
+    .af-month-name { font-size:9px; font-weight:700; color:#0369a1; text-align:center; text-transform:uppercase; }
+    .af-month-input { font-family:inherit; font-size:10px; padding:5px 3px; border:1.5px solid #bae6fd; border-radius:6px; outline:none; color:var(--text); text-align:center; background:#f0f9ff; width:100%; transition:border-color 0.15s; }
+    .af-month-input:focus { border-color:#0891b2; background:#fff; }
+    .add-modal-actions { display:flex; gap:10px; justify-content:flex-end; padding-top:4px; }
+    .btn-modal-cancel { background:#f1f5f9; color:#555; border:none; border-radius:8px; padding:9px 20px; font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+    .btn-modal-cancel:hover { background:#e2e8f0; }
+    .btn-modal-save { background:var(--accent); color:#fff; border:none; border-radius:8px; padding:9px 22px; font-family:inherit; font-size:13px; font-weight:700; cursor:pointer; transition:background 0.15s; }
+    .btn-modal-save:hover { background:var(--accent-hover); }
+    .btn-modal-save:disabled { opacity:0.6; cursor:not-allowed; }
+    @media (max-width:480px) { .af-months { grid-template-columns:repeat(4,1fr); } }
     .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--text-secondary); line-height: 1; }
     .nav-hamburger:hover { color: var(--text); }
     @media (max-width: 768px) {
@@ -277,6 +306,10 @@
           Back
         </button>
         <span class="tl-title">2026 URBN Timeline — Production Deadlines</span>
+        <button class="btn-update" onclick="openAddModal()" style="background:#0891b2">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Step
+        </button>
         <button class="btn-update" id="tl-save-btn" onclick="saveTimeline()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           Update Timeline
@@ -477,6 +510,145 @@ function showToast(msg) {
 }
 </script>
 <script src="/auth.js"></script>
+
+<!-- ADD STEP MODAL -->
+<div class="add-overlay" id="add-overlay" onclick="if(event.target===this)closeAddModal()">
+  <div class="add-modal">
+    <div class="add-modal-head">
+      <div class="add-modal-title">Add Process Step</div>
+      <button class="add-modal-close" onclick="closeAddModal()">&#x2715;</button>
+    </div>
+
+    <div class="af-row">
+      <div class="af-group">
+        <label class="af-label">Process Step #</label>
+        <input class="af-input" id="af-num" type="text" placeholder="e.g. 22">
+      </div>
+      <div class="af-group">
+        <label class="af-label">Responsible</label>
+        <select class="af-select" id="af-resp">
+          <option value="">— Select —</option>
+          <option>Isa</option><option>Victor</option><option>Canan</option>
+          <option>Taissa</option><option>Igo</option><option>Kamilla</option>
+          <option>Manu</option><option>Ozan</option><option>Rafa</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="af-row">
+      <div class="af-group full">
+        <label class="af-label">Process Step Name</label>
+        <input class="af-input" id="af-name" type="text" placeholder="e.g. PHOTO SAMPLE SENT TO ANTHRO">
+      </div>
+    </div>
+
+    <div class="af-row">
+      <div class="af-group full">
+        <label class="af-label">Info Para Deadline</label>
+        <textarea class="af-textarea" id="af-info" placeholder="Describe when this deadline is calculated from…"></textarea>
+      </div>
+    </div>
+
+    <div class="af-row">
+      <div class="af-group full">
+        <label class="af-label">Condition Rule</label>
+        <textarea class="af-textarea" id="af-cond" placeholder="What triggers or follows from this step…"></textarea>
+      </div>
+    </div>
+
+    <div class="af-row">
+      <div class="af-group">
+        <label class="af-label">Database</label>
+        <select class="af-select" id="af-db">
+          <option value="">— Select —</option>
+          <option value="DESIGN">Design</option>
+          <option value="DESIGN & PRODUCTION">Design &amp; Production</option>
+          <option value="PRODUCTION">Production</option>
+        </select>
+      </div>
+      <div class="af-group">
+        <label class="af-label">PowerBI</label>
+        <select class="af-select" id="af-pbi">
+          <option value="YES">YES</option>
+          <option value="NO">NO</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="af-months-label">Monthly Deadlines (M/D/YYYY)</div>
+    <div class="af-months" id="af-months">
+      <!-- injected by JS -->
+    </div>
+
+    <div class="add-modal-actions">
+      <button class="btn-modal-cancel" onclick="closeAddModal()">Cancel</button>
+      <button class="btn-modal-save" id="af-save-btn" onclick="saveNewStep()">Save Step</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function openAddModal() {
+  // Build month inputs
+  document.getElementById('af-months').innerHTML = MONTH_NAMES.map(m =>
+    `<div class="af-month-group">
+      <div class="af-month-name">${m}</div>
+      <input class="af-month-input" id="af-m-${m}" placeholder="—">
+    </div>`
+  ).join('');
+  // Clear fields
+  ['af-num','af-name','af-info','af-cond'].forEach(id => document.getElementById(id).value = '');
+  ['af-resp','af-db'].forEach(id => document.getElementById(id).selectedIndex = 0);
+  document.getElementById('af-pbi').value = 'YES';
+  document.getElementById('add-overlay').classList.add('open');
+}
+
+function closeAddModal() {
+  document.getElementById('add-overlay').classList.remove('open');
+}
+
+async function saveNewStep() {
+  const num  = document.getElementById('af-num').value.trim();
+  const name = document.getElementById('af-name').value.trim();
+  const info = document.getElementById('af-info').value.trim();
+  const cond = document.getElementById('af-cond').value.trim();
+  const resp = document.getElementById('af-resp').value;
+  const db   = document.getElementById('af-db').value;
+  const pbi  = document.getElementById('af-pbi').value;
+
+  if (!name) { alert('Process Step name is required.'); return; }
+
+  const months = MONTH_NAMES.map(m => document.getElementById('af-m-' + m).value.trim());
+
+  // Build row matching sheet column order:
+  // Step | Process Step | Info Para Deadline | Condition Rule | Responsible | Jan…Dec | Database | PowerBI
+  const row = [num, name, info, cond, resp, ...months, db, pbi];
+
+  const btn = document.getElementById('af-save-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  try {
+    const res = await fetch('/api/miley/timeline/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ row }),
+    });
+    const d = await res.json();
+    if (!d.ok) throw new Error(d.error || 'Failed');
+    closeAddModal();
+    showToast('Step added ✓ — reloading…');
+    setTimeout(() => openTimeline(), 800);
+  } catch(e) {
+    showToast('Error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Step';
+  }
+}
+</script>
 </body>
 </html>
 
