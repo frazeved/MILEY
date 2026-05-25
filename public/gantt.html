@@ -222,7 +222,9 @@
     .ph-ov { display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;align-items:center;justify-content:center;padding:12px; }
     .ph-ov.open { display:flex; }
     .ph-mod { background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.22);animation:det-in .22s cubic-bezier(.34,1.56,.64,1) both; }
-    .ph-head { display:flex;align-items:flex-start;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid var(--border);flex-shrink:0; }
+    .ph-head { display:flex;align-items:flex-start;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid var(--border);flex-shrink:0;gap:12px; }
+    .ph-cad { width:56px;height:72px;border-radius:8px;object-fit:cover;background:#f3f4f6;flex-shrink:0; }
+    .ph-head-info { flex:1; }
     .ph-phase-tag { font-size:14px;font-weight:800;color:var(--text);letter-spacing:-.2px; }
     .ph-style-tag { font-size:11px;color:var(--text-secondary);margin-top:3px;font-weight:600; }
     .ph-close { background:none;border:none;font-size:17px;cursor:pointer;color:var(--text-secondary);width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0; }
@@ -930,7 +932,8 @@ function showToast(msg) {
 <div class="ph-ov" id="ph-ov" onclick="if(event.target===this)closePhaseModal()">
   <div class="ph-mod">
     <div class="ph-head">
-      <div>
+      <img class="ph-cad" id="ph-cad-img" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" />
+      <div class="ph-head-info">
         <div class="ph-phase-tag" id="ph-phase-tag">Design Phase</div>
         <div class="ph-style-tag" id="ph-style-tag"></div>
       </div>
@@ -1322,6 +1325,17 @@ function openPhaseModal(si, phase, event) {
 
   document.getElementById('ph-phase-tag').textContent = cfg.label;
   document.getElementById('ph-style-tag').textContent = s.style + (s.brand ? ' · ' + s.brand : '');
+
+  // Reset CAD image then fetch it
+  const cadImg = document.getElementById('ph-cad-img');
+  cadImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+  fetch('/api/jhonny/cad-images-batch', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ styles: [s.style] })
+  }).then(r => r.json()).then(data => {
+    const d = data.results?.[s.style];
+    if (d?.found) cadImg.src = `data:${d.mimeType};base64,${d.imageData}`;
+  }).catch(() => {});
 
   const labels = (_ganttData && _ganttData.milestoneLabels) || {};
   document.getElementById('ph-ms-list').innerHTML = cfg.ms.map(key => {
