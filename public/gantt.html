@@ -306,6 +306,10 @@
           Back
         </button>
         <span class="tl-title">2026 URBN Timeline — Production Deadlines</span>
+        <button class="btn-update" id="tl-refresh-btn" onclick="refreshTimeline()" style="background:#64748b" title="Reload from Google Sheets">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Refresh
+        </button>
         <button class="btn-update" onclick="openAddModal()" style="background:#0891b2">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Add Step
@@ -418,6 +422,24 @@ function rowPhaseClass(db) {
   return '';
 }
 
+async function refreshTimeline() {
+  const btn = document.getElementById('tl-refresh-btn');
+  btn.disabled = true;
+  document.getElementById('tl-loading').style.display = 'block';
+  document.getElementById('tl-table').style.display = 'none';
+  try {
+    const res = await fetch('/api/miley/timeline');
+    const { rows } = await res.json();
+    _tlRows = rows || [];
+    buildTable(_tlRows);
+    showToast('Timeline refreshed ✓');
+  } catch(e) {
+    document.getElementById('tl-loading').innerHTML = '⚠ Could not load timeline.';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 async function openTimeline() {
   document.getElementById('tasks-grid').style.display = 'none';
   document.getElementById('tl-panel').classList.add('open');
@@ -528,9 +550,10 @@ function showToast(msg) {
         <label class="af-label">Responsible</label>
         <select class="af-select" id="af-resp">
           <option value="">— Select —</option>
-          <option>Isa</option><option>Victor</option><option>Canan</option>
-          <option>Taissa</option><option>Igo</option><option>Kamilla</option>
-          <option>Manu</option><option>Ozan</option><option>Rafa</option>
+          <option>ISA</option><option>VICTOR</option><option>CANAN</option>
+          <option>TAISSA</option><option>IGO</option><option>KAMILLA</option>
+          <option>MANU</option><option>OZAN</option><option>RAFA</option>
+          <option>EDUARDO</option><option>JULIAN</option><option>FLAVIO</option>
         </select>
       </div>
     </div>
@@ -553,25 +576,6 @@ function showToast(msg) {
       <div class="af-group full">
         <label class="af-label">Condition Rule</label>
         <textarea class="af-textarea" id="af-cond" placeholder="What triggers or follows from this step…"></textarea>
-      </div>
-    </div>
-
-    <div class="af-row">
-      <div class="af-group">
-        <label class="af-label">Database</label>
-        <select class="af-select" id="af-db">
-          <option value="">— Select —</option>
-          <option value="DESIGN">Design</option>
-          <option value="DESIGN & PRODUCTION">Design &amp; Production</option>
-          <option value="PRODUCTION">Production</option>
-        </select>
-      </div>
-      <div class="af-group">
-        <label class="af-label">PowerBI</label>
-        <select class="af-select" id="af-pbi">
-          <option value="YES">YES</option>
-          <option value="NO">NO</option>
-        </select>
       </div>
     </div>
 
@@ -600,8 +604,7 @@ function openAddModal() {
   ).join('');
   // Clear fields
   ['af-num','af-name','af-info','af-cond'].forEach(id => document.getElementById(id).value = '');
-  ['af-resp','af-db'].forEach(id => document.getElementById(id).selectedIndex = 0);
-  document.getElementById('af-pbi').value = 'YES';
+  document.getElementById('af-resp').selectedIndex = 0;
   document.getElementById('add-overlay').classList.add('open');
 }
 
@@ -615,16 +618,13 @@ async function saveNewStep() {
   const info = document.getElementById('af-info').value.trim();
   const cond = document.getElementById('af-cond').value.trim();
   const resp = document.getElementById('af-resp').value;
-  const db   = document.getElementById('af-db').value;
-  const pbi  = document.getElementById('af-pbi').value;
 
   if (!name) { alert('Process Step name is required.'); return; }
 
   const months = MONTH_NAMES.map(m => document.getElementById('af-m-' + m).value.trim());
 
-  // Build row matching sheet column order:
-  // Step | Process Step | Info Para Deadline | Condition Rule | Responsible | Jan…Dec | Database | PowerBI
-  const row = [num, name, info, cond, resp, ...months, db, pbi];
+  // Step | Process Step | Info Para Deadline | Condition Rule | Responsible | Jan…Dec
+  const row = [num, name, info, cond, resp, ...months];
 
   const btn = document.getElementById('af-save-btn');
   btn.disabled = true;
