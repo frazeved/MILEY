@@ -72,40 +72,40 @@
     .toast.show { opacity: 1; transform: translateY(0); }
 
     /* ── TIMELINE PANEL ── */
+    .layout.tl-open .sidebar { display: none; }
     .tl-panel { display: none; }
     .tl-panel.open { display: block; }
-    .tl-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
-    .tl-back { background: none; border: none; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 5px; padding: 0; }
+    .tl-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .tl-back { background: none; border: none; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 0; }
     .tl-back:hover { color: var(--accent); }
-    .tl-title { font-size: 14px; font-weight: 700; color: var(--text); flex: 1; }
-    .btn-update { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 9px 20px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: background 0.15s; }
+    .tl-title { font-size: 13px; font-weight: 700; color: var(--text); flex: 1; }
+    .btn-update { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.15s; white-space: nowrap; }
     .btn-update:hover { background: var(--accent-hover); }
     .btn-update:disabled { opacity: 0.6; cursor: not-allowed; }
-    .tl-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
-    .tl-table { border-collapse: collapse; width: 100%; font-size: 12px; min-width: 1100px; }
-    .tl-table th { background: #e0f2fe; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #0369a1; padding: 9px 10px; text-align: left; border-bottom: 1.5px solid #bae6fd; white-space: nowrap; position: sticky; top: 0; z-index: 2; }
-    .tl-table th.month { text-align: center; min-width: 82px; }
-    .tl-table td { padding: 6px 8px; border-bottom: 1px solid #e0f2fe; vertical-align: middle; }
+    .tl-scroll { overflow-x: auto; border: 1px solid #bae6fd; border-radius: 10px; background: var(--surface); }
+    .tl-table { border-collapse: collapse; width: 100%; table-layout: fixed; font-size: 11px; }
+    .tl-table th { background: #e0f2fe; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #0369a1; padding: 7px 5px; text-align: left; border-bottom: 1.5px solid #bae6fd; white-space: nowrap; }
+    .tl-table th.month { text-align: center; }
+    .tl-table td { padding: 4px 5px; border-bottom: 1px solid #e0f2fe; vertical-align: middle; }
     .tl-table tr:last-child td { border-bottom: none; }
     .tl-table tr:hover td { background: #f0f9ff; }
-    .step-num { font-size: 10px; font-weight: 700; color: var(--text-muted); width: 28px; text-align: center; }
-    .step-name { font-weight: 600; color: var(--text); max-width: 220px; line-height: 1.35; }
-    .step-resp { font-size: 11px; color: var(--text-secondary); white-space: nowrap; }
-    .phase-tag { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 20px; white-space: nowrap; display: inline-block; margin-top: 2px; }
-    .phase-design   { background: #fff1f2; color: var(--accent); }
-    .phase-both     { background: #fff7ed; color: #c2410c; }
-    .phase-prod     { background: #eff6ff; color: #1d4ed8; }
-    .tl-input { font-family: inherit; font-size: 12px; color: var(--text); background: transparent; border: 1.5px solid transparent; border-radius: 6px; padding: 4px 7px; width: 78px; text-align: center; transition: border-color 0.15s, background 0.15s; }
+    .step-num { font-size: 9px; font-weight: 700; color: var(--text-muted); text-align: center; }
+    .step-name { font-weight: 600; color: var(--text); font-size: 11px; line-height: 1.3; }
+    .step-resp { font-size: 10px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .phase-bar { display: inline-block; width: 3px; height: 100%; border-radius: 2px; margin-right: 4px; flex-shrink: 0; }
+    .tl-input { font-family: inherit; font-size: 10px; color: var(--text); background: transparent; border: 1px solid transparent; border-radius: 4px; padding: 3px 2px; width: 100%; text-align: center; transition: border-color 0.15s, background 0.15s; }
     .tl-input:hover { border-color: #bae6fd; background: #f0f9ff; }
     .tl-input:focus { border-color: #0891b2; background: #fff; outline: none; }
-    .tl-input.formula { color: var(--text-muted); font-style: italic; }
+    .tl-input.formula { color: var(--text-muted); font-style: italic; font-size: 9px; }
+    .row-design td:first-child { border-left: 3px solid var(--accent); }
+    .row-both td:first-child    { border-left: 3px solid #f97316; }
+    .row-prod td:first-child     { border-left: 3px solid #3b82f6; }
     .tl-loading { padding: 40px; text-align: center; color: var(--text-muted); font-size: 13px; }
-    .tl-spinner { width: 28px; height: 28px; border: 3px solid #bae6fd; border-top-color: #0891b2; border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 10px; }
+    .tl-spinner { width: 26px; height: 26px; border: 3px solid #bae6fd; border-top-color: #0891b2; border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 10px; }
     @keyframes spin { to { transform: rotate(360deg); } }
     @media (max-width: 640px) {
       .tl-header { gap: 8px; }
-      .tl-title { font-size: 13px; }
-      .btn-update { font-size: 12px; padding: 8px 14px; }
+      .btn-update { font-size: 11px; padding: 7px 12px; }
     }
     .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px 8px; color: var(--text-secondary); line-height: 1; }
     .nav-hamburger:hover { color: var(--text); }
@@ -285,6 +285,12 @@
       <div class="tl-scroll">
         <div class="tl-loading" id="tl-loading"><div class="tl-spinner"></div>Loading timeline…</div>
         <table class="tl-table" id="tl-table" style="display:none">
+          <colgroup>
+            <col style="width:28px">
+            <col style="width:200px">
+            <col style="width:72px">
+            <col><col><col><col><col><col><col><col><col><col><col><col>
+          </colgroup>
           <thead>
             <tr>
               <th>#</th>
@@ -371,24 +377,18 @@ let _tlRows = [];   // full raw rows from sheet (preserved for save)
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 // Sheet column indexes (0-based): 0=Step,1=ProcessStep,2=Info,3=Condition,4=Responsible,5-16=Jan-Dec,17=Database,18=PowerBI
 
-function phaseClass(db) {
+function rowPhaseClass(db) {
   const d = (db || '').toUpperCase();
-  if (d === 'DESIGN') return 'phase-design';
-  if (d.includes('PRODUCTION') && d.includes('DESIGN')) return 'phase-both';
-  if (d.includes('PRODUCTION')) return 'phase-prod';
+  if (d.includes('PRODUCTION') && d.includes('DESIGN')) return 'row-both';
+  if (d.includes('PRODUCTION')) return 'row-prod';
+  if (d.includes('DESIGN')) return 'row-design';
   return '';
-}
-function phaseLabel(db) {
-  const d = (db || '').toUpperCase();
-  if (d === 'DESIGN') return 'Design';
-  if (d.includes('PRODUCTION') && d.includes('DESIGN')) return 'Design & Prod';
-  if (d.includes('PRODUCTION')) return 'Production';
-  return db || '';
 }
 
 async function openTimeline() {
   document.getElementById('tasks-grid').style.display = 'none';
   document.getElementById('tl-panel').classList.add('open');
+  document.querySelector('.layout').classList.add('tl-open');
   document.getElementById('tl-loading').style.display = 'block';
   document.getElementById('tl-table').style.display = 'none';
   try {
@@ -403,23 +403,25 @@ async function openTimeline() {
 
 function buildTable(rows) {
   if (rows.length < 2) { document.getElementById('tl-loading').textContent = 'No data found.'; return; }
-  const data = rows.slice(1); // skip header row
+  const data = rows.slice(1);
   const tbody = document.getElementById('tl-body');
   tbody.innerHTML = data.map((r, ri) => {
+    const monthVals = MONTHS.map((_, mi) => (r[5 + mi] || '').trim());
+    const hasAnyDate = monthVals.some(v => v !== '');
+    if (!hasAnyDate) return '';   // hide rows with no dates yet
+
     const step = r[0] || '';
     const name = r[1] || '';
     const resp = r[4] || '';
     const db   = r[17] || '';
-    const pc   = phaseClass(db);
-    const pl   = phaseLabel(db);
-    const monthCells = MONTHS.map((_, mi) => {
-      const val = (r[5 + mi] || '').trim();
+    const pc   = rowPhaseClass(db);
+    const monthCells = monthVals.map((val, mi) => {
       const isFormula = val.toLowerCase().includes('formula');
-      return `<td><input class="tl-input${isFormula?' formula':''}" data-ri="${ri}" data-mi="${mi}" value="${esc(val)}" placeholder="—" ${isFormula?'title="Calculated by PowerBI formula"':''}></td>`;
+      return `<td><input class="tl-input${isFormula?' formula':''}" data-ri="${ri}" data-mi="${mi}" value="${esc(val)}" placeholder="—"${isFormula?' title="PowerBI formula"':''}></td>`;
     }).join('');
-    return `<tr>
+    return `<tr class="${pc}">
       <td class="step-num">${esc(step)}</td>
-      <td><div class="step-name">${esc(name)}</div>${pc?`<span class="phase-tag ${pc}">${pl}</span>`:''}</td>
+      <td><div class="step-name">${esc(name)}</div></td>
       <td class="step-resp">${esc(resp)}</td>
       ${monthCells}
     </tr>`;
@@ -433,6 +435,7 @@ function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'
 
 function closeTimeline() {
   document.getElementById('tl-panel').classList.remove('open');
+  document.querySelector('.layout').classList.remove('tl-open');
   document.getElementById('tasks-grid').style.display = '';
 }
 
