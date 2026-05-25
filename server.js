@@ -4326,17 +4326,50 @@ app.post('/api/miley/timeline/update', async (req, res) => {
 });
 
 // ─── Miley: Gantt Chart Data ─────────────────────────────────────────────────
-const GANTT_MILESTONES = ['INT PRES','BYR PRES','BYR APPROV','TP SENT','PRINT','PROTO','PROTO COMM','SMS SUPP','COLOR','SMS ANTHRO','PO ISSUED','OFF PO','1ST FIT','2ND FIT','PHOTO','PI'];
+// Each entry: key = internal ID, label = short display name, dbCols = actual DB column names to try (in order)
+// protoConditional: true = skip if "STYLE NEEDS PROTO?" column says NO
+const GANTT_MS_CONFIG = [
+  // ── Design Phase ──
+  { key: 'INT PRES',    label: 'INT PRES',   dbCols: ['INTERNAL PRESENTATION', 'INT PRES'] },
+  { key: 'BYR PRES',   label: 'BYER PRES',  dbCols: ['BUYER PRESENTATION', 'BYR PRES', 'BUYER PRES'] },
+  { key: 'BYR APPROV', label: 'BYER APP',   dbCols: ['BUYER APPROVAL', 'BYR APPROV', 'BUYER APPROV'] },
+  { key: 'TP SENT',    label: 'TP SUP',     dbCols: ['TP SENT TO SUPPLIER', 'TP SENT'] },
+  { key: 'PRINT',      label: 'PRINT SUP',  dbCols: ['PRINT SENT TO SUPPLIER', 'PRINT'] },
+  // ── Sampling Phase ──
+  { key: 'PROTO',      label: 'PROT SUP',   dbCols: ['PROTO SENT BY SUPPLIER', 'PROTO'], protoConditional: true },
+  { key: 'PROTO COMM', label: 'PROT CANAN', dbCols: ['PROTO SENT TO CANAN', 'PROTO COMM'], protoConditional: true },
+  { key: 'SMS SUPP',   label: 'SMS SUPP',   dbCols: ['SMS SUPP'] },
+  { key: 'COLOR',      label: 'COLOR',      dbCols: ['COLOR'] },
+  { key: 'SMS ANTHRO', label: 'SMS ANTHRO', dbCols: ['SMS ANTHRO'] },
+  // ── PO & Production ──
+  { key: 'PO ISSUED',  label: 'PO ISSUED',  dbCols: ['PO ISSUED BY ANTHRO', 'PO ISSUED'] },
+  { key: 'OFF PO',     label: 'OFF PO',     dbCols: ['OFF PO'] },
+  { key: '1ST FIT',    label: '1ST FIT',    dbCols: ['1ST FIT'] },
+  { key: '2ND FIT',    label: '2ND FIT',    dbCols: ['2ND FIT'] },
+  { key: 'PHOTO',      label: 'PHOTO',      dbCols: ['PHOTO'] },
+  { key: 'PI',         label: 'PI',         dbCols: ['PI'] },
+];
+const GANTT_MILESTONES = GANTT_MS_CONFIG.map(c => c.key);
 const GANTT_PLANNING   = ['COST','DUTY','PRICE WHOLESALE','FINAL NDC','EX FACTORY / FLIGHT DATE'];
 
-// Match a timeline step name to a GANTT_MILESTONE using substring/fuzzy match
+// Match a timeline step name to a GANTT_MS_CONFIG key using full names and fuzzy match
 function findMilestoneMatch(stepName) {
   const sn = stepName.trim().toUpperCase();
   if (!sn) return null;
-  const exact = GANTT_MILESTONES.find(ms => ms === sn);
-  if (exact) return exact;
-  const sub = GANTT_MILESTONES.find(ms => sn.includes(ms) || ms.includes(sn));
-  return sub || null;
+  // Exact key
+  const exact = GANTT_MS_CONFIG.find(c => c.key === sn);
+  if (exact) return exact.key;
+  // Match against any dbCols entry (exact or substring both ways)
+  const byCol = GANTT_MS_CONFIG.find(c =>
+    (c.dbCols || []).some(col => {
+      const cu = col.toUpperCase();
+      return cu === sn || sn.includes(cu) || cu.includes(sn);
+    })
+  );
+  if (byCol) return byCol.key;
+  // Fuzzy key match
+  const sub = GANTT_MS_CONFIG.find(c => sn.includes(c.key) || c.key.includes(sn));
+  return sub ? sub.key : null;
 }
 
 function ganttParseDate(s) {
@@ -4405,7 +4438,8 @@ app.get('/api/miley/gantt', async (req, res) => {
     }
 
     const dbRows = dbRes.data.values || [];
-    if (dbRows.length < 2) return res.json({ milestones: GANTT_MILESTONES, planning: GANTT_PLANNING, styles: [] });
+    const milestoneLabels = Object.fromEntries(GANTT_MS_CONFIG.map(c => [c.key, c.label]));
+    if (dbRows.length < 2) return res.json({ milestones: GANTT_MILESTONES, milestoneLabels, planning: GANTT_PLANNING, styles: [] });
 
     // Use raw headers (not uppercased) — ganttFindCol lowercases internally
     const headers = dbRows[0].map(h => (h || '').trim());
@@ -4431,11 +4465,14 @@ app.get('/api/miley/gantt', async (req, res) => {
     const exFactoryCol = ganttFindCol(headers, 'ex factory / flight date', 'ex factory', 'flight date');
     const priceWhCol  = ganttFindCol(headers, 'price wholesale');
 
-    // Milestone columns — exact match then substring
+    // Milestone columns — use full DB column names from config, then fallback to key
     const milestoneCols = {};
-    for (const ms of GANTT_MILESTONES) {
-      milestoneCols[ms] = ganttFindCol(headers, ms);
+    for (const msCfg of GANTT_MS_CONFIG) {
+      milestoneCols[msCfg.key] = ganttFindCol(headers, ...msCfg.dbCols, msCfg.key);
     }
+
+    // Proto conditional — "STYLE NEEDS PROTO?" column
+    const protoCheckCol = ganttFindCol(headers, 'style needs proto?', 'needs proto?', 'needs proto', 'proto?');
     // Planning columns
     const planningCols = {};
     for (const pl of GANTT_PLANNING) {
@@ -4466,14 +4503,25 @@ app.get('/api/miley/gantt', async (req, res) => {
       const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       const ndcDisplay = ndcMonth ? SHORT_MONTHS[ndcMonth - 1] : (ndcRaw || '');
 
+      const protoVal = protoCheckCol >= 0 ? g(r, protoCheckCol).toUpperCase() : '';
+      const isProtoNo = protoVal.includes('NO');
+
       const milestones = {};
       let doneCount = 0;
 
-      for (const ms of GANTT_MILESTONES) {
+      for (const msCfg of GANTT_MS_CONFIG) {
+        const ms = msCfg.key;
+
+        // Proto conditional rule
+        if (msCfg.protoConditional && isProtoNo) {
+          milestones[ms] = { actual: '', deadline: '', status: 'proto-no' };
+          continue;
+        }
+
         const actual      = g(r, milestoneCols[ms]);
         const deadline    = (ndcMonth && tlMap[ms]) ? (tlMap[ms][ndcMonth] || null) : null;
         const actualDate  = ganttParseDate(actual);
-        let status = deadline ? 'empty' : 'unknown'; // 'unknown' when no deadline info at all
+        let status = deadline ? 'empty' : 'unknown';
 
         if (actualDate) {
           doneCount++;
@@ -4524,7 +4572,7 @@ app.get('/api/miley/gantt', async (req, res) => {
       });
     }
 
-    res.json({ milestones: GANTT_MILESTONES, planning: GANTT_PLANNING, styles });
+    res.json({ milestones: GANTT_MILESTONES, milestoneLabels, planning: GANTT_PLANNING, styles });
   } catch (e) {
     console.error('[miley/gantt]', e.message);
     res.status(500).json({ error: e.message });

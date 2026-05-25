@@ -550,8 +550,8 @@
               <th class="tl">Supplier</th>
               <th>Category</th>
               <th>NDC</th>
-              <th class="ms-hdr">INT PRES</th><th class="ms-hdr">BYR PRES</th><th class="ms-hdr">BYR APPROV</th><th class="ms-hdr">TP SENT</th><th class="ms-hdr">PRINT</th>
-              <th class="ms-hdr g-ph-div">PROTO</th><th class="ms-hdr">PROTO COMM</th><th class="ms-hdr">SMS SUPP</th><th class="ms-hdr">COLOR</th><th class="ms-hdr">SMS ANTHRO</th>
+              <th class="ms-hdr">INT PRES</th><th class="ms-hdr">BYER PRES</th><th class="ms-hdr">BYER APP</th><th class="ms-hdr">TP SUP</th><th class="ms-hdr">PRINT SUP</th>
+              <th class="ms-hdr g-ph-div">PROT SUP</th><th class="ms-hdr">PROT CANAN</th><th class="ms-hdr">SMS SUPP</th><th class="ms-hdr">COLOR</th><th class="ms-hdr">SMS ANTHRO</th>
               <th class="ms-hdr g-ph-div">COST</th><th class="ms-hdr">DUTY</th><th class="ms-hdr">PRICE WS</th><th class="ms-hdr">FINAL NDC</th><th class="ms-hdr">EX FACTORY</th>
               <th class="ms-hdr g-ph-div">PO ISSUED</th><th class="ms-hdr">OFF PO</th><th class="ms-hdr">1ST FIT</th><th class="ms-hdr">2ND FIT</th><th class="ms-hdr">PHOTO</th><th class="ms-hdr">PI</th>
             </tr>
@@ -1061,6 +1061,7 @@ function renderGantt() {
   function makeMsCell(ms, m, firstInGroup) {
     const div = firstInGroup ? ' g-ph-div' : '';
     if (m.status === 'unknown') return `<td class="${div}"></td>`;
+    if (m.status === 'proto-no') return `<td class="${div}"><span class="g-ms g-ms-e" style="opacity:.45;font-size:6px;letter-spacing:-.5px;line-height:1" title="Proto not required for this style">N/A</span></td>`;
     let cls = 'g-ms-e', icon = '&#183;', title = ms;
     if      (m.status === 'done')     { cls='g-ms-d'; icon='&#10003;'; title=`${ms}\nDone: ${m.actual}${m.deadline ? '\nDeadline: '+m.deadline : ''}`; }
     else if (m.status === 'late')     { cls='g-ms-l'; icon='!';        title=`${ms}\nDone late: ${m.actual}\nDeadline: ${m.deadline}`; }
