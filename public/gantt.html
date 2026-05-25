@@ -1201,8 +1201,6 @@ function renderGantt() {
   document.getElementById('gantt-body').innerHTML = filtered.map((s, idx) => {
     const stCls = (s.status||'').toUpperCase().includes('CANCEL') ? 'g-sp-c'
                 : (s.status||'').toUpperCase().includes('HOLD')   ? 'g-sp-h' : 'g-sp-a';
-    const pgColor = s.progress >= 80 ? '#16a34a,#4ade80'
-                  : s.progress >= 50 ? '#ea580c,#fb923c' : '#dc2626,#f87171';
 
     const designCells   = DESIGN_MS.map((ms, i)   => makeMsCell(ms, s.milestones[ms]||{}, false, 'design', idx)).join('');
     const samplingCells = SAMPLING_MS.map((ms, i)  => makeMsCell(ms, s.milestones[ms]||{}, i===0, 'sampling', idx)).join('');
@@ -1224,7 +1222,6 @@ function renderGantt() {
         <div class="g-snum">${esc(s.style)}</div>
         ${s.brand ? `<div class="g-ssub">${esc(s.brand)}</div>` : ''}
         <span class="g-sp ${stCls}">${esc(s.status || 'Active')}</span>
-        <div class="g-pgw"><div class="g-pgf" data-w="${s.progress}" style="width:0%;background:linear-gradient(90deg,${pgColor})"></div></div>
       </td>
       <td class="tl"><span class="g-sup">${esc(s.supplier)}</span></td>
       <td><span class="g-cat">${esc(s.category)}</span></td>
@@ -1237,9 +1234,6 @@ function renderGantt() {
   document.getElementById('gantt-loading').style.display = 'none';
   document.getElementById('gantt-table').style.display = '';
 
-  requestAnimationFrame(() => {
-    document.querySelectorAll('.g-pgf').forEach(el => { el.style.width = el.dataset.w + '%'; });
-  });
   loadGanttCadImages();
 }
 
